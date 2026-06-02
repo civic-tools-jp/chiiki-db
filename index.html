@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地域活動DB 安定版6</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f7f3;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:#1f2937}
+#app{max-width:560px;margin:0 auto;padding:16px 14px 90px}
+h1{font-size:22px;margin:0}
+.header{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:12px}
+.sub{font-size:12px;color:#6b7280;margin-top:4px}
+.btn{border:0;border-radius:12px;padding:10px 12px;font-weight:800;background:white;color:#2f6f3e;box-shadow:0 3px 12px rgba(0,0,0,.08);font-family:inherit}
+.btn-primary{background:#2f6f3e;color:white}
+.btn-danger{background:#fee2e2;color:#b91c1c}
+.panel{background:white;border-radius:16px;padding:12px;box-shadow:0 3px 12px rgba(0,0,0,.08);margin-bottom:12px}
+.progress-head{display:flex;justify-content:space-between;font-size:13px;font-weight:900;margin-bottom:8px}
+.progress-bar{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;background:#2f6f3e;width:0%}
+.status{font-size:11px;color:#6b7280;font-weight:700;margin-top:6px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:#e8efe7;border-radius:16px;padding:5px;margin:12px 0}
+.tab{border:0;background:transparent;padding:10px 4px;border-radius:12px;font-weight:800;color:#526052;font-family:inherit}
+.tab.active{background:white;color:#111827;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.row{display:flex;gap:8px;margin:10px 0}
+.row input{flex:1}
+input,select,textarea{width:100%;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;font-size:16px;font-family:inherit;background:white}
+textarea{min-height:80px}
+#map{height:410px;border-radius:18px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.legend{display:flex;gap:6px;flex-wrap:wrap;background:white;border-radius:14px;padding:10px;margin-top:10px;box-shadow:0 3px 12px rgba(0,0,0,.08);font-size:11px;font-weight:800}
+.legend span{background:#f9fafb;border-radius:999px;padding:5px 8px}
+.list{display:flex;flex-direction:column;gap:9px}
+.card{background:white;border-radius:16px;padding:13px;box-shadow:0 3px 12px rgba(0,0,0,.08);border-left:6px solid #94a3b8}
+.card-title{font-weight:900}
+.card-sub{font-size:12px;color:#6b7280;margin-top:4px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{font-size:11px;background:#f3f4f6;border-radius:999px;padding:4px 8px;font-weight:700}
+.card-actions{display:flex;gap:8px;margin-top:10px}
+.card-actions .btn{flex:1;box-shadow:none;background:#f3f4f6}
+.empty{text-align:center;color:#9ca3af;padding:40px 12px;line-height:1.8}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:9999}
+.modal{width:100%;max-width:560px;margin:0 auto;background:white;border-radius:24px 24px 0 0;max-height:92vh;overflow:auto;padding:20px 16px 24px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.modal-title{font-size:18px;font-weight:900}
+.close{border:0;background:#f3f4f6;border-radius:999px;font-size:22px;width:38px;height:38px}
+.section{border-top:1px solid #eef0f2;padding-top:14px;margin-top:14px}
+.section:first-of-type{border-top:0;margin-top:0}
+.label{display:block;font-size:13px;font-weight:900;color:#4b5563;margin:0 0 7px}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status-btn{border:2px solid #e5e7eb;background:white;border-radius:12px;padding:12px 6px;font-weight:900;font-family:inherit}
+.status-btn.active{background:#dcfce7;border-color:#22c55e;color:#166534}
+.check{display:flex;align-items:center;gap:10px;background:#fff8e1;border:1.5px solid #fde68a;border-radius:12px;padding:12px;font-weight:900;color:#92400e}
+.check input{width:22px;height:22px;margin:0}
+.form-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:sticky;bottom:0;background:white;padding-top:12px;margin-top:14px}
+.form-actions button{padding:14px;font-size:17px}
+.analysis-card{background:white;border-radius:16px;padding:14px;box-shadow:0 3px 12px rgba(0,0,0,.08);margin-bottom:12px}
+.analysis-title{font-weight:900;margin-bottom:8px}
+.analysis-row{display:flex;justify-content:space-between;border-top:1px solid #eef0f2;padding:9px 0}
+.analysis-row:first-of-type{border-top:0}
+.err{display:none;background:#fee2e2;color:#991b1b;border-radius:12px;padding:10px;font-weight:800;margin:10px 0}
+.pin-badge{position:absolute;right:-8px;top:-8px;min-width:18px;height:18px;border-radius:999px;background:#111827;color:white;font-size:10px;line-height:18px;text-align:center;font-weight:900;border:2px solid white}
+@media(max-width:390px){#map{height:370px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div>
+      <h1>🏘️ 地域活動DB</h1>
+      <div class="sub" id="areaLabel">地図をタップして訪問先を追加</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="downloadJSON()">📤</button>
+      <button class="btn" onclick="downloadCSV()">CSV</button>
+    </div>
+  </div>
+
+  <div id="err" class="err"></div>
+
+  <div class="panel">
+    <div class="progress-head">
+      <span id="goalText">目標100件</span>
+      <button class="btn" style="box-shadow:none;padding:7px 10px" onclick="openSettings()">変更</button>
+    </div>
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <div class="status" id="localStatus">端末保存：準備中</div>
+    <div class="status" id="sheetStatus">シート連携：未設定</div>
+  </div>
+
+  <div class="tabs">
+    <button id="tab-map" class="tab active" onclick="showView('map')">地図</button>
+    <button id="tab-list" class="tab" onclick="showView('list')">一覧</button>
+    <button id="tab-revisit" class="tab" onclick="showView('revisit')">再訪</button>
+    <button id="tab-analysis" class="tab" onclick="showView('analysis')">分析</button>
+  </div>
+
+  <div id="view-map">
+    <div class="row">
+      <input id="searchText" placeholder="住所検索：名島5丁目 など">
+      <button class="btn btn-primary" onclick="searchMap()">検索</button>
+    </div>
+    <div class="row">
+      <button class="btn" style="flex:1" onclick="loadSheet()">シート読込</button>
+      <button class="btn" style="flex:1" onclick="syncAll()">全件同期</button>
+    </div>
+    <div id="map"></div>
+    <div id="legend" class="legend"></div>
+  </div>
+
+  <div id="view-list" class="list" style="display:none"></div>
+  <div id="view-revisit" class="list" style="display:none"></div>
+  <div id="view-analysis" style="display:none"></div>
+</div>
+
+<div id="editModal" class="modal-bg" onclick="closeEdit()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div id="editTitle" class="modal-title">訪問先</div>
+      <button class="close" onclick="closeEdit()">×</button>
+    </div>
+
+    <div class="section">
+      <label class="label">住所・目印</label>
+      <input id="address">
+      <input id="lat" type="hidden"><input id="lng" type="hidden">
+      <button class="btn" style="width:100%;margin-top:10px" onclick="openGoogle()">Googleマップで開く</button>
+    </div>
+
+    <div class="section">
+      <label class="label">エリア</label>
+      <select id="area">
+        <option>名島1丁目</option><option>名島2丁目</option><option>名島3丁目</option><option>名島4丁目</option><option selected>名島5丁目</option>
+        <option>千早</option><option>香椎浜</option><option>その他</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <label class="label">状態</label>
+      <div id="statusGrid" class="status-grid"></div>
+      <label class="label" style="margin-top:12px">支持者候補</label>
+      <select id="supporter"><option value="">未設定</option><option>◎有力</option><option>○可能性あり</option><option>△様子見</option><option>×なし</option></select>
+    </div>
+
+    <div class="section">
+      <label class="label">世帯属性</label>
+      <select id="household"><option value="">不明</option><option>若い単身</option><option>ファミリー</option><option>高齢者世帯</option><option>多世代同居</option></select>
+      <label class="label" style="margin-top:12px">接触相手</label>
+      <select id="contact"><option value="">未設定</option><option>会えず</option><option>本人</option><option>配偶者</option><option>家族</option></select>
+      <label class="label" style="margin-top:12px">再訪優先度</label>
+      <select id="priority"><option value="">なし</option><option>△低</option><option>○中</option><option>◎高</option></select>
+      <label class="label" style="margin-top:12px">紹介者</label>
+      <input id="referrer" placeholder="例：吉田さん、本村さん">
+    </div>
+
+    <div class="section">
+      <label class="check"><input id="warning" type="checkbox" onchange="toggleWarn()">⚠️ 注意メモあり</label>
+      <textarea id="warningMemo" style="display:none;margin-top:10px" placeholder="例：強い拒否、犬あり、複数人対応推奨"></textarea>
+      <label class="check" style="margin-top:12px;background:#eef4ff;border-color:#bfdbfe;color:#1d4ed8"><input id="signboard" type="checkbox">看板あり</label>
+      <label class="label" style="margin-top:12px">ポスター政党</label>
+      <select id="poster"><option value="">なし・未確認</option><option>参政党</option><option>自民党</option><option>公明党</option><option>共産党</option><option>立憲民主党</option><option>国民民主党</option><option>維新</option><option>その他</option></select>
+      <input id="posterMemo" style="margin-top:10px" placeholder="ポスター・看板メモ">
+    </div>
+
+    <div class="section">
+      <label class="label">対象種別</label>
+      <select id="type"><option>戸建て</option><option>集合住宅</option><option>事業所</option><option>その他</option></select>
+      <label class="label" style="margin-top:12px">メモ</label>
+      <textarea id="memo" placeholder="会話内容、関心事項、次回話すことなど"></textarea>
+    </div>
+
+    <div class="section">
+      <label class="label">訪問日</label>
+      <input id="date" type="date">
+      <div class="row">
+        <div style="flex:1"><label class="label">開始</label><input id="startTime" type="time" onchange="updateDuration()"></div>
+        <div style="flex:1"><label class="label">終了</label><input id="endTime" type="time" onchange="updateDuration()"></div>
+      </div>
+      <div class="status" id="duration">滞在時間：未入力</div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+      <button class="btn btn-danger" onclick="deleteRecord()">削除</button>
+    </div>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal-bg" onclick="closeSettings()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><div class="modal-title">設定</div><button class="close" onclick="closeSettings()">×</button></div>
+    <div class="section">
+      <label class="label">活動エリア名</label><input id="setArea">
+      <label class="label" style="margin-top:12px">目標件数</label><input id="setGoal" type="number">
+      <label class="label" style="margin-top:12px">担当者名</label><input id="setAssignee">
+      <label class="label" style="margin-top:12px">Google連携URL</label><input id="setScript">
+      <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveSettings()">設定を保存</button>
+      <button class="btn" style="width:100%;margin-top:10px;background:#eef4ff;color:#1d4ed8" onclick="resyncFromSheet()">🔄 シートから再同期</button>
+      <button class="btn btn-danger" style="width:100%;margin-top:10px" onclick="clearLocalData()">🗑️ 端末データ削除</button>
+      <div class="status">※端末データ削除は、このスマホ内の保存だけを消します。スプレッドシートは消えません。</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const STORE_KEY="chiiki-katsudo-db-simple-records";
+const SETTING_KEY="chiiki-katsudo-db-simple-settings";
+const STATUS={
+  unvisited:{label:"未訪問",color:"#94a3b8"},
+  visited:{label:"訪問済み",color:"#3b82f6"},
+  good:{label:"手応えあり",color:"#22c55e"},
+  absent:{label:"不在",color:"#f59e0b"},
+  revisit:{label:"要再訪",color:"#ef4444"},
+  refused:{label:"断られた",color:"#6b7280"}
+};
+let records=[];
+let settings={areaName:"名島5丁目",goal:100,assignee:"未羽",scriptUrl:""};
+let map=null;
+let markers={};
+let editing=null;
+let editStatus="unvisited";
+
+function err(m){document.getElementById("err").style.display="block";document.getElementById("err").textContent=m;console.error(m);}
+function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function now(){const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+function min(t){if(!t)return null;const a=t.split(":").map(Number);return a[0]*60+a[1];}
+function calcDur(s,e){const a=min(s),b=min(e);if(a===null||b===null)return null;let d=b-a;if(d<0)d+=1440;return d;}
+function dtext(m){if(m===null||m===undefined||isNaN(m))return"未入力";return m<60?m+"分":Math.floor(m/60)+"時間"+(m%60?m%60+"分":"");}
+function norm(s){return String(s||"").replace(/日本/g,"").replace(/〒?\d{3}-?\d{4}/g,"").replace(/一丁目/g,"1丁目").replace(/二丁目/g,"2丁目").replace(/三丁目/g,"3丁目").replace(/四丁目/g,"4丁目").replace(/五丁目/g,"5丁目").replace(/,/g," ").replace(/、/g," ").replace(/\s+/g," ").trim();}
+function shortAddr(s){s=norm(s);const p=s.split(/\s+/).filter(Boolean);return p.find(x=>/(名島|千早|香椎浜|城浜|松崎|若宮|水谷)/.test(x))||p.slice(0,2).join(" ")||s;}
+function guessArea(s){s=norm(s);for(const a of ["名島1丁目","名島2丁目","名島3丁目","名島4丁目","名島5丁目","千早","香椎浜"]){if(s.includes(a))return a;}return settings.areaName;}
+function gmap(lat,lng){return "https://www.google.com/maps?q="+lat+","+lng;}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+
+window.addEventListener("load",function(){
+  try{
+    records=JSON.parse(localStorage.getItem(STORE_KEY)||"[]");
+    settings={...settings,...JSON.parse(localStorage.getItem(SETTING_KEY)||"{}")};
+    initMap();
+    render();
+    saveLocal();
+  }catch(e){err("起動エラー："+e.message);}
+});
+
+function saveLocal(){
+  localStorage.setItem(STORE_KEY,JSON.stringify(records));
+  localStorage.setItem(SETTING_KEY,JSON.stringify(settings));
+  document.getElementById("localStatus").textContent="端末保存：完了（"+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})+"）";
+}
+function sheetStatus(m){document.getElementById("sheetStatus").textContent="シート連携："+(settings.scriptUrl?(m||"準備OK"):"未設定");}
+
+function initMap(){
+  map=L.map("map").setView([33.6452,130.4319],15);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+  map.on("click",async function(e){
+    const lat=Number(e.latlng.lat.toFixed(6));
+    const lng=Number(e.latlng.lng.toFixed(6));
+    let addr=lat+", "+lng;
+    try{
+      const r=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lng+"&accept-language=ja");
+      const j=await r.json();
+      addr=j.display_name||addr;
+    }catch(ex){}
+    const s=shortAddr(addr);
+    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:norm(addr),area:guessArea(s),status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
+  });
+  setTimeout(()=>map.invalidateSize(),200);
+}
+
+async function searchMap(){
+  const q=document.getElementById("searchText").value.trim();
+  if(!q)return;
+  try{
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q="+encodeURIComponent("福岡市東区 "+q));
+    const j=await r.json();
+    if(j&&j[0])map.setView([Number(j[0].lat),Number(j[0].lon)],17);
+    else alert("見つかりませんでした");
+  }catch(e){alert("検索に失敗しました");}
+}
+
+function render(){
+  renderTop();
+  renderMarkers();
+  renderLegend();
+  renderList();
+  renderRevisit();
+  renderAnalysis();
+  sheetStatus("準備OK");
+}
+function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
+function renderTop(){
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加";
+  const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
+  document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
+  document.getElementById("progressFill").style.width=p+"%";
+}
+function iconFor(r){
+  const color=r.warning?"#8b5cf6":(STATUS[r.status]||STATUS.unvisited).color;
+  const badge=r.signboard?"看":(r.posterParty?"P":"");
+  return L.divIcon({className:"",html:`<div style="position:relative;width:22px;height:22px"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:${color};border:3px solid white;box-shadow:0 3px 9px rgba(0,0,0,.32);transform:rotate(-45deg)"></div>${badge?`<div class="pin-badge">${badge}</div>`:""}</div>`,iconSize:[30,30],iconAnchor:[11,22]});
+}
+function renderMarkers(){
+  Object.values(markers).forEach(m=>map.removeLayer(m));
+  markers={};
+  records.forEach(r=>{
+    if(!r.lat||!r.lng)return;
+    const m=L.marker([r.lat,r.lng],{icon:iconFor(r)}).addTo(map);
+    m.on("click",()=>openEdit({...r},false));
+    m.bindTooltip(r.address||r.area||"訪問先");
+    markers[r.id]=m;
+  });
+}
+function renderLegend(){
+  const order=["good","visited","absent","revisit","refused","unvisited"];
+  document.getElementById("legend").innerHTML=order.map(k=>`<span><b style="color:${STATUS[k].color}">●</b> ${STATUS[k].label}</span>`).join("")+`<span><b style="color:#8b5cf6">●</b> 注意</span><span><b>P</b> ポスター</span><span><b>看</b> 看板</span>`;
+}
+function card(r){
+  const st=STATUS[r.status]||STATUS.unvisited;
+  const b=[r.area,st.label,r.supporter,r.householdType,r.contactPerson,r.revisitPriority?"再訪:"+r.revisitPriority:"",r.referrer?"紹介:"+r.referrer:"",r.warning?"⚠️注意":"",r.signboard?"看板あり":"",r.posterParty?"ポスター:"+r.posterParty:"",r.assignee?"担当:"+r.assignee:""].filter(Boolean);
+  return `<div class="card" style="border-left-color:${r.warning?"#8b5cf6":st.color}"><div class="card-title">${esc(r.address||"住所未設定")}</div><div class="card-sub">${esc(r.memo||r.fullAddress||"")}</div><div class="badges">${b.map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div><div class="card-actions"><button class="btn" onclick="editById('${r.id}')">編集</button><button class="btn" onclick="window.open('${gmap(r.lat,r.lng)}','_blank')">Google</button></div></div>`;
+}
+function renderList(){document.getElementById("view-list").innerHTML=records.length?records.slice().reverse().map(card).join(""):`<div class="empty">まだ記録がありません</div>`;}
+function renderRevisit(){const a=records.filter(r=>r.status==="revisit"||r.revisitPriority);document.getElementById("view-revisit").innerHTML=a.length?a.slice().reverse().map(card).join(""):`<div class="empty">再訪対象はありません</div>`;}
+function renderAnalysis(){
+  const c=(f,v)=>records.filter(r=>r[f]===v).length;
+  const todayRecords=records.filter(r=>r.date===today()&&r.status!=="unvisited");
+  const total=todayRecords.reduce((s,r)=>s+(Number(r.durationMinutes)||0),0);
+  document.getElementById("view-analysis").innerHTML=`
+    <div class="analysis-card"><div class="analysis-title">名簿化サマリー</div>
+    <div class="analysis-row"><span>訪問済み</span><b>${visitedCount()}/${settings.goal}</b></div>
+    <div class="analysis-row"><span>◎有力</span><b>${c("supporter","◎有力")}件</b></div>
+    <div class="analysis-row"><span>○可能性あり</span><b>${c("supporter","○可能性あり")}件</b></div>
+    <div class="analysis-row"><span>再訪◎高</span><b>${c("revisitPriority","◎高")}件</b></div>
+    <div class="analysis-row"><span>紹介者あり</span><b>${records.filter(r=>r.referrer).length}件</b></div></div>
+    <div class="analysis-card"><div class="analysis-title">世帯属性</div>
+    <div class="analysis-row"><span>ファミリー</span><b>${c("householdType","ファミリー")}件</b></div>
+    <div class="analysis-row"><span>高齢者世帯</span><b>${c("householdType","高齢者世帯")}件</b></div>
+    <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div></div>
+    <div class="analysis-card"><div class="analysis-title">組織・注意</div>
+    <div class="analysis-row"><span>注意件数</span><b>${records.filter(r=>r.warning).length}件</b></div>
+    <div class="analysis-row"><span>公明ポスター</span><b>${c("posterParty","公明党")}件</b></div>
+    <div class="analysis-row"><span>共産ポスター</span><b>${c("posterParty","共産党")}件</b></div>
+    <div class="analysis-row"><span>看板件数</span><b>${records.filter(r=>r.signboard).length}件</b></div></div>
+    <div class="analysis-card"><div class="analysis-title">今日の活動</div>
+    <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
+    <div class="analysis-row"><span>計測時間</span><b>${dtext(total)}</b></div></div>`;
+}
+
+function showView(v){
+  ["map","list","revisit","analysis"].forEach(x=>{
+    document.getElementById("tab-"+x).className="tab"+(x===v?" active":"");
+    document.getElementById("view-"+x).style.display=x===v?(x==="map"||x==="analysis"?"block":"flex"):"none";
+  });
+  if(v==="map")setTimeout(()=>map.invalidateSize(),100);
+}
+
+function renderStatusGrid(){
+  const order=["visited","absent","good","revisit","refused","unvisited"];
+  document.getElementById("statusGrid").innerHTML=order.map(k=>`<button class="status-btn ${editStatus===k?"active":""}" onclick="setEditStatus('${k}')" style="${editStatus===k?`border-color:${STATUS[k].color};background:${STATUS[k].color}22;color:${STATUS[k].color}`:""}">${STATUS[k].label}</button>`).join("");
+}
+function setEditStatus(k){editStatus=k;renderStatusGrid();}
+function editById(id){const r=records.find(x=>x.id===id);if(r)openEdit({...r},false);}
+function openEdit(r,isNew){
+  editing={...r,isNew}; editStatus=r.status||"unvisited";
+  document.getElementById("editTitle").textContent=isNew?"新規訪問先":"訪問先編集";
+  address.value=r.address||"";lat.value=r.lat||"";lng.value=r.lng||"";
+  area.value=r.area||settings.areaName;supporter.value=r.supporter||"";household.value=r.householdType||"";contact.value=r.contactPerson||"";priority.value=r.revisitPriority||"";referrer.value=r.referrer||"";
+  warning.checked=!!r.warning;warningMemo.value=r.warningMemo||"";toggleWarn();
+  signboard.checked=!!r.signboard;poster.value=r.posterParty||"";posterMemo.value=r.posterMemo||"";
+  type.value=r.type||"戸建て";memo.value=r.memo||"";date.value=r.date||today();startTime.value=r.startTime||now();endTime.value=r.endTime||"";
+  updateDuration();renderStatusGrid();editModal.style.display="flex";
+}
+function closeEdit(){editModal.style.display="none";editing=null;}
+function toggleWarn(){warningMemo.style.display=warning.checked?"block":"none";}
+function updateDuration(){document.getElementById('duration').textContent="滞在時間："+dtext(calcDur(startTime.value,endTime.value));}
+function openGoogle(){if(editing)window.open(gmap(editing.lat,editing.lng),"_blank");}
+function saveRecord(){
+  if(!editing)return;
+  const r={...editing,address:shortAddr(address.value),lat:Number(lat.value),lng:Number(lng.value),area:area.value,status:editStatus,supporter:supporter.value,householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
+  delete r.isNew;
+  const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
+  saveLocal(); render(); sendSheet(r); closeEdit();
+}
+function deleteRecord(){if(!editing)return;if(!confirm("削除しますか？"))return;records=records.filter(r=>r.id!==editing.id);saveLocal();render();closeEdit();}
+
+function openSettings(){setArea.value=settings.areaName;setGoal.value=settings.goal;setAssignee.value=settings.assignee;setScript.value=settings.scriptUrl;settingsModal.style.display="flex";}
+function closeSettings(){settingsModal.style.display="none";}
+function saveSettings(){settings.areaName=setArea.value.trim()||"名島5丁目";settings.goal=Number(setGoal.value)||100;settings.assignee=setAssignee.value.trim()||"未設定";settings.scriptUrl=setScript.value.trim();saveLocal();render();sheetStatus("準備OK");closeSettings();}
+
+async function sendSheet(r){
+  if(!settings.scriptUrl)return;
+  try{sheetStatus("送信中");await fetch(settings.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({item:r})});sheetStatus("送信しました");}catch(e){sheetStatus("送信失敗");}
+}
+
+function pick(row, names){
+  for(const name of names){
+    if(row[name] !== undefined && row[name] !== null && row[name] !== "") return row[name];
+  }
+  return "";
+}
+function parseNum(v){
+  if(v === undefined || v === null) return null;
+  const n = Number(String(v).replace(/[^\d.\-]/g,""));
+  return isNaN(n) ? null : n;
+}
+function rowToRecord(row){
+  const sm={"未訪問":"unvisited","訪問済み":"visited","手応えあり":"good","不在":"absent","要再訪":"revisit","断られた":"refused"};
+  const latVal = pick(row,["緯度","lat","Lat","latitude","Latitude"]);
+  const lngVal = pick(row,["経度","lng","Lng","lon","Lon","longitude","Longitude"]);
+  const latNum = parseNum(latVal);
+  const lngNum = parseNum(lngVal);
+
+  return {
+    id: pick(row,["ID","id"]) || id(),
+    createdAt: pick(row,["登録日時","createdAt"]) || "",
+    updatedAt: pick(row,["更新日時","updatedAt"]) || "",
+    date: pick(row,["訪問日","date"]) || "",
+    startTime: pick(row,["訪問開始","startTime"]) || "",
+    endTime: pick(row,["訪問終了","endTime"]) || "",
+    durationMinutes: Number(pick(row,["滞在時間(分)","durationMinutes"]) || 0) || null,
+    area: pick(row,["エリア","area"]) || settings.areaName,
+    address: pick(row,["住所表示","住所","address"]) || "",
+    fullAddress: pick(row,["フル住所","fullAddress"]) || "",
+    status: sm[pick(row,["状態","status"])] || pick(row,["状態","status"]) || "unvisited",
+    type: pick(row,["対象種別","type"]) || "戸建て",
+    householdType: pick(row,["世帯属性","householdType"]) || "",
+    contactPerson: pick(row,["接触相手","contactPerson"]) || "",
+    revisitPriority: pick(row,["再訪優先度","revisitPriority"]) || "",
+    referrer: pick(row,["紹介者","referrer"]) || "",
+    supporter: pick(row,["支持者候補","supporter"]) || "",
+    warning: pick(row,["注意","warning"]) === "○" || pick(row,["注意","warning"]) === "true" || pick(row,["注意","warning"]) === "TRUE",
+    warningMemo: pick(row,["注意メモ","warningMemo"]) || "",
+    signboard: pick(row,["看板","signboard"]) === "○" || pick(row,["看板","signboard"]) === "true",
+    posterParty: pick(row,["ポスター","ポスター・看板","posterParty"]) || "",
+    posterMemo: pick(row,["ポスターメモ","posterMemo"]) || "",
+    memo: pick(row,["メモ","memo"]) || "",
+    lat: latNum,
+    lng: lngNum,
+    assignee: pick(row,["担当者","assignee"]) || ""
+  };
+}
+
+
+async function loadSheet(){
+  if(!settings.scriptUrl){
+    alert("Google連携URLを設定してください");
+    return;
+  }
+
+  try{
+    sheetStatus("読込中");
+
+    const beforeCount = records.length;
+
+    const r = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
+    const j = await r.json();
+
+    const rawRows = j.rows || [];
+    const converted = rawRows.map(rowToRecord);
+    const withLocation = converted.filter(x => x.lat !== null && x.lng !== null && !isNaN(x.lat) && !isNaN(x.lng));
+
+    // 安全第一：シート読込では絶対に既存ピンを消さない
+    let added = 0;
+    let updated = 0;
+
+    withLocation.forEach(x => {
+      const idx = records.findIndex(r => r.id === x.id);
+      if(idx >= 0){
+        records[idx] = {...records[idx], ...x};
+        updated++;
+      }else{
+        records.push(x);
+        added++;
+      }
+    });
+
+    saveLocal();
+    render();
+
+    const afterCount = records.length;
+    sheetStatus("読込 追加" + added + "件 更新" + updated + "件");
+
+    alert(
+      "シート行数：" + rawRows.length + "件\n" +
+      "地図表示可能：" + withLocation.length + "件\n" +
+      "追加：" + added + "件\n" +
+      "更新：" + updated + "件\n" +
+      "読込前：" + beforeCount + "件\n" +
+      "読込後：" + afterCount + "件"
+    );
+
+    if(rawRows.length > 0 && withLocation.length === 0){
+      err("シートは読めていますが、緯度・経度を認識できません。列名が『緯度』『経度』になっているか確認してください。");
+    }
+
+  }catch(e){
+    sheetStatus("読込失敗・端末データ保持");
+    err("シート読込エラー：" + e.message);
+    alert("シート読込に失敗しました。\n今のピンは消さずに残しました。");
+    render();
+  }
+}
+
+async function syncAll(){if(!settings.scriptUrl){alert("Google連携URLを設定してください");return;}if(!confirm(records.length+"件を同期しますか？"))return;for(const r of records)await sendSheet(r);alert("同期しました");}
+
+
+function clearLocalData(){
+  if(!confirm("この端末に保存されているピンを削除します。\nスプレッドシートのデータは削除されません。\n本当に削除しますか？")) return;
+  records = [];
+  localStorage.removeItem(STORE_KEY);
+  saveLocal();
+  render();
+  alert("この端末のデータを削除しました。");
+}
+async function resyncFromSheet(){
+  if(!settings.scriptUrl){
+    alert("Google連携URLを設定してください");
+    return;
+  }
+  if(!confirm("この端末のピンをいったん消して、スプレッドシートから読み込み直します。\nよろしいですか？")) return;
+  const backup = records.slice();
+  records = [];
+  saveLocal();
+  render();
+  await loadSheet();
+  if(records.length === 0 && backup.length > 0){
+    if(confirm("シートから0件でした。消す前の端末データを戻しますか？")){
+      records = backup;
+      saveLocal();
+      render();
+      alert("端末データを復元しました。");
+    }
+  }
+}
+
+function downloadCSV(){
+  const headers=["ID","担当者","エリア","住所表示","フル住所","状態","対象種別","世帯属性","接触相手","再訪優先度","紹介者","訪問日","訪問開始","訪問終了","滞在時間(分)","支持者候補","注意","注意メモ","看板","ポスター","ポスターメモ","メモ","緯度","経度","GoogleマップURL"];
+  const rows=records.map(r=>[r.id,r.assignee,r.area,r.address,r.fullAddress,(STATUS[r.status]||STATUS.unvisited).label,r.type,r.householdType,r.contactPerson,r.revisitPriority,r.referrer,r.date,r.startTime,r.endTime,r.durationMinutes??"",r.supporter,r.warning?"○":"",r.warningMemo,r.signboard?"○":"",r.posterParty,r.posterMemo,r.memo,r.lat,r.lng,gmap(r.lat,r.lng)]);
+  const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>`"${String(v||"").replace(/"/g,'""')}"`).join(",")).join("\n");
+  download(csv,"chiiki-katsudo-db.csv","text/csv");
+}
+function downloadJSON(){download(JSON.stringify({settings,records},null,2),"chiiki-katsudo-db-backup.json","application/json");}
+function download(content,name,type){const b=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+</script>
+</body>
+</html>
