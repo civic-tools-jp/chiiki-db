@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地域活動DB 安定版6</title>
+<title>地域活動DB 安定版8</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -195,7 +195,7 @@ textarea{min-height:80px}
       <label class="label" style="margin-top:12px">担当者名</label><input id="setAssignee">
       <label class="label" style="margin-top:12px">Google連携URL</label><input id="setScript">
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveSettings()">設定を保存</button>
-      <button class="btn" style="width:100%;margin-top:10px;background:#eef4ff;color:#1d4ed8" onclick="resyncFromSheet()">🔄 シートから再同期</button>
+      <button class="btn" style="width:100%;margin-top:10px;background:#eef4ff;color:#1d4ed8" onclick="resyncFromSheet()">🔄 シート読込・追加のみ</button>
       <button class="btn btn-danger" style="width:100%;margin-top:10px" onclick="clearLocalData()">🗑️ 端末データ削除</button>
       <div class="status">※端末データ削除は、このスマホ内の保存だけを消します。スプレッドシートは消えません。</div>
     </div>
@@ -291,7 +291,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加";
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版8";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
@@ -443,6 +443,8 @@ function rowToRecord(row){
 }
 
 
+
+
 async function loadSheet(){
   if(!settings.scriptUrl){
     alert("Google連携URLを設定してください");
@@ -454,22 +456,23 @@ async function loadSheet(){
 
     const beforeCount = records.length;
 
-    const r = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
-    const j = await r.json();
+    const response = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
+    const data = await response.json();
 
-    const rawRows = j.rows || [];
+    const rawRows = Array.isArray(data.rows) ? data.rows : [];
     const converted = rawRows.map(rowToRecord);
     const withLocation = converted.filter(x => x.lat !== null && x.lng !== null && !isNaN(x.lat) && !isNaN(x.lng));
 
-    // 安全第一：シート読込では絶対に既存ピンを消さない
+    // 安定版8：
+    // 読込では既存ピンを絶対に削除しない。
+    // 既存IDは触らない。新しいIDだけ追加する。
     let added = 0;
-    let updated = 0;
+    let skipped = 0;
 
     withLocation.forEach(x => {
-      const idx = records.findIndex(r => r.id === x.id);
-      if(idx >= 0){
-        records[idx] = {...records[idx], ...x};
-        updated++;
+      const exists = records.some(r => String(r.id) === String(x.id));
+      if(exists){
+        skipped++;
       }else{
         records.push(x);
         added++;
@@ -480,13 +483,14 @@ async function loadSheet(){
     render();
 
     const afterCount = records.length;
-    sheetStatus("読込 追加" + added + "件 更新" + updated + "件");
+    sheetStatus("読込 追加" + added + "件");
 
     alert(
+      "安定版8：追加のみ\n" +
       "シート行数：" + rawRows.length + "件\n" +
       "地図表示可能：" + withLocation.length + "件\n" +
       "追加：" + added + "件\n" +
-      "更新：" + updated + "件\n" +
+      "既存のためスキップ：" + skipped + "件\n" +
       "読込前：" + beforeCount + "件\n" +
       "読込後：" + afterCount + "件"
     );
@@ -514,25 +518,15 @@ function clearLocalData(){
   render();
   alert("この端末のデータを削除しました。");
 }
+
+
 async function resyncFromSheet(){
   if(!settings.scriptUrl){
     alert("Google連携URLを設定してください");
     return;
   }
-  if(!confirm("この端末のピンをいったん消して、スプレッドシートから読み込み直します。\nよろしいですか？")) return;
-  const backup = records.slice();
-  records = [];
-  saveLocal();
-  render();
+  if(!confirm("スプレッドシートから新しいピンだけ追加します。\n既存ピンは削除・上書きしません。\nよろしいですか？")) return;
   await loadSheet();
-  if(records.length === 0 && backup.length > 0){
-    if(confirm("シートから0件でした。消す前の端末データを戻しますか？")){
-      records = backup;
-      saveLocal();
-      render();
-      alert("端末データを復元しました。");
-    }
-  }
 }
 
 function downloadCSV(){
