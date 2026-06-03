@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地域活動DB 安定版9</title>
+<title>地域活動DB 安定版10</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -233,6 +233,21 @@ function norm(s){return String(s||"").replace(/日本/g,"").replace(/〒?\d{3}-?
 function shortAddr(s){s=norm(s);const p=s.split(/\s+/).filter(Boolean);return p.find(x=>/(名島|千早|香椎浜|城浜|松崎|若宮|水谷)/.test(x))||p.slice(0,2).join(" ")||s;}
 function guessArea(s){s=norm(s);for(const a of ["名島1丁目","名島2丁目","名島3丁目","名島4丁目","名島5丁目","千早","香椎浜"]){if(s.includes(a))return a;}return settings.areaName;}
 function gmap(lat,lng){return "https://www.google.com/maps?q="+lat+","+lng;}
+
+function isValidMapCoord(lat,lng){
+  lat = Number(lat);
+  lng = Number(lng);
+  // 福岡市周辺だけ許可。誤読で海・海外へ飛ぶのを防ぐ。
+  return !isNaN(lat) && !isNaN(lng) && lat >= 30 && lat <= 36 && lng >= 128 && lng <= 133;
+}
+function cleanCoordRecord(r){
+  if(!isValidMapCoord(r.lat, r.lng)){
+    r.lat = null;
+    r.lng = null;
+  }
+  return r;
+}
+
 function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 
 window.addEventListener("load",function(){
@@ -292,7 +307,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版9";
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版10";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
@@ -305,16 +320,17 @@ function iconFor(r){
 
 function fitAllPins(){
   const pts = records
-    .filter(r => r.lat !== null && r.lng !== null && !isNaN(r.lat) && !isNaN(r.lng))
+    .filter(r => isValidMapCoord(r.lat,r.lng))
     .map(r => [Number(r.lat), Number(r.lng)]);
   if(!pts.length){
-    alert("表示できるピンがありません");
+    alert("表示できるピンがありません。緯度・経度が正しく入っているか確認してください。");
+    map.setView([33.6452,130.4319],15);
     return;
   }
   if(pts.length === 1){
     map.setView(pts[0], 18);
   }else{
-    map.fitBounds(pts, {padding:[35,35]});
+    map.fitBounds(pts, {padding:[35,35], maxZoom:18});
   }
   setTimeout(()=>map.invalidateSize(),100);
 }
@@ -323,8 +339,8 @@ function renderMarkers(){
   Object.values(markers).forEach(m=>map.removeLayer(m));
   markers={};
   records.forEach(r=>{
-    if(!r.lat||!r.lng)return;
-    const m=L.marker([r.lat,r.lng],{icon:iconFor(r)}).addTo(map);
+    if(!isValidMapCoord(r.lat,r.lng)) return;
+    const m=L.marker([Number(r.lat),Number(r.lng)],{icon:iconFor(r)}).addTo(map);
     m.on("click",()=>openEdit({...r},false));
     m.bindTooltip(r.address||r.area||"訪問先");
     markers[r.id]=m;
@@ -423,14 +439,23 @@ function parseNum(v){
   const n = Number(String(v).replace(/[^\d.\-]/g,""));
   return isNaN(n) ? null : n;
 }
+
+function pick(row, names){
+  for(const name of names){
+    if(row[name] !== undefined && row[name] !== null && row[name] !== "") return row[name];
+  }
+  return "";
+}
+function parseNum(v){
+  if(v === undefined || v === null) return null;
+  const n = Number(String(v).replace(/[^\d.\-]/g,""));
+  return isNaN(n) ? null : n;
+}
 function rowToRecord(row){
   const sm={"未訪問":"unvisited","訪問済み":"visited","手応えあり":"good","不在":"absent","要再訪":"revisit","断られた":"refused"};
-  const latVal = pick(row,["緯度","lat","Lat","latitude","Latitude"]);
-  const lngVal = pick(row,["経度","lng","Lng","lon","Lon","longitude","Longitude"]);
-  const latNum = parseNum(latVal);
-  const lngNum = parseNum(lngVal);
-
-  return {
+  const latNum = parseNum(pick(row,["緯度","lat","Lat","latitude","Latitude"]));
+  const lngNum = parseNum(pick(row,["経度","lng","Lng","lon","Lon","longitude","Longitude"]));
+  const rec = {
     id: pick(row,["ID","id"]) || id(),
     createdAt: pick(row,["登録日時","createdAt"]) || "",
     updatedAt: pick(row,["更新日時","updatedAt"]) || "",
@@ -450,7 +475,7 @@ function rowToRecord(row){
     supporter: pick(row,["支持者候補","supporter"]) || "",
     warning: pick(row,["注意","warning"]) === "○" || pick(row,["注意","warning"]) === "true" || pick(row,["注意","warning"]) === "TRUE",
     warningMemo: pick(row,["注意メモ","warningMemo"]) || "",
-    signboard: pick(row,["看板","signboard"]) === "○" || pick(row,["看板","signboard"]) === "true",
+    signboard: pick(row,["看板","signboard"]) === "○" || pick(row,["看板","signboard"]) === "true" || pick(row,["看板","signboard"]) === "TRUE",
     posterParty: pick(row,["ポスター","ポスター・看板","posterParty"]) || "",
     posterMemo: pick(row,["ポスターメモ","posterMemo"]) || "",
     memo: pick(row,["メモ","memo"]) || "",
@@ -458,11 +483,8 @@ function rowToRecord(row){
     lng: lngNum,
     assignee: pick(row,["担当者","assignee"]) || ""
   };
+  return cleanCoordRecord(rec);
 }
-
-
-
-
 
 async function loadSheet(){
   if(!settings.scriptUrl){
@@ -479,19 +501,20 @@ async function loadSheet(){
 
     const rawRows = Array.isArray(data.rows) ? data.rows : [];
     const converted = rawRows.map(rowToRecord);
-    const withLocation = converted.filter(x => x.lat !== null && x.lng !== null && !isNaN(x.lat) && !isNaN(x.lng));
+    const withLocation = converted.filter(x => isValidMapCoord(x.lat, x.lng));
 
     let added = 0;
     let updated = 0;
+    let skippedBadCoord = converted.length - withLocation.length;
 
-    // 既存ピンは消さない。IDが同じなら更新、なければ追加。
     withLocation.forEach(x => {
       const idx = records.findIndex(r => String(r.id) === String(x.id));
       if(idx >= 0){
-        records[idx] = {...records[idx], ...x};
+        // 既存ピンは座標が正しい場合だけ更新。変な座標で壊さない。
+        records[idx] = {...records[idx], ...x, lat:Number(x.lat), lng:Number(x.lng)};
         updated++;
       }else{
-        records.push(x);
+        records.push({...x, lat:Number(x.lat), lng:Number(x.lng)});
         added++;
       }
     });
@@ -499,27 +522,29 @@ async function loadSheet(){
     saveLocal();
     render();
 
-    // 読み込んだピンが見えるように地図を自動移動
-    if(records.length > 0){
+    if(added + updated > 0){
       setTimeout(()=>fitAllPins(), 150);
+    }else{
+      map.setView([33.6452,130.4319],15);
+      setTimeout(()=>map.invalidateSize(),100);
     }
 
     const afterCount = records.length;
     sheetStatus("読込 追加" + added + "件 更新" + updated + "件");
 
     alert(
-      "安定版9\n" +
+      "安定版10\n" +
       "シート行数：" + rawRows.length + "件\n" +
       "地図表示可能：" + withLocation.length + "件\n" +
+      "座標不正で除外：" + skippedBadCoord + "件\n" +
       "追加：" + added + "件\n" +
       "更新：" + updated + "件\n" +
       "読込前：" + beforeCount + "件\n" +
-      "読込後：" + afterCount + "件\n\n" +
-      "地図を全ピン表示に移動しました。"
+      "読込後：" + afterCount + "件"
     );
 
     if(rawRows.length > 0 && withLocation.length === 0){
-      err("シートは読めていますが、緯度・経度を認識できません。列名が『緯度』『経度』になっているか確認してください。");
+      err("シートは読めていますが、福岡付近として認識できる緯度・経度が0件です。緯度・経度の列を確認してください。");
     }
 
   }catch(e){
@@ -527,6 +552,7 @@ async function loadSheet(){
     err("シート読込エラー：" + e.message);
     alert("シート読込に失敗しました。\n今のピンは消さずに残しました。");
     render();
+    map.setView([33.6452,130.4319],15);
   }
 }
 
