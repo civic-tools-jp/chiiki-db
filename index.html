@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地域活動DB 安定版8</title>
+<title>地域活動DB 安定版9</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -102,6 +102,7 @@ textarea{min-height:80px}
     </div>
     <div class="row">
       <button class="btn" style="flex:1" onclick="loadSheet()">シート読込</button>
+      <button class="btn" style="flex:1" onclick="fitAllPins()">全ピン表示</button>
       <button class="btn" style="flex:1" onclick="syncAll()">全件同期</button>
     </div>
     <div id="map"></div>
@@ -291,7 +292,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版8";
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版9";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
@@ -301,6 +302,23 @@ function iconFor(r){
   const badge=r.signboard?"看":(r.posterParty?"P":"");
   return L.divIcon({className:"",html:`<div style="position:relative;width:22px;height:22px"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:${color};border:3px solid white;box-shadow:0 3px 9px rgba(0,0,0,.32);transform:rotate(-45deg)"></div>${badge?`<div class="pin-badge">${badge}</div>`:""}</div>`,iconSize:[30,30],iconAnchor:[11,22]});
 }
+
+function fitAllPins(){
+  const pts = records
+    .filter(r => r.lat !== null && r.lng !== null && !isNaN(r.lat) && !isNaN(r.lng))
+    .map(r => [Number(r.lat), Number(r.lng)]);
+  if(!pts.length){
+    alert("表示できるピンがありません");
+    return;
+  }
+  if(pts.length === 1){
+    map.setView(pts[0], 18);
+  }else{
+    map.fitBounds(pts, {padding:[35,35]});
+  }
+  setTimeout(()=>map.invalidateSize(),100);
+}
+
 function renderMarkers(){
   Object.values(markers).forEach(m=>map.removeLayer(m));
   markers={};
@@ -445,6 +463,7 @@ function rowToRecord(row){
 
 
 
+
 async function loadSheet(){
   if(!settings.scriptUrl){
     alert("Google連携URLを設定してください");
@@ -455,7 +474,6 @@ async function loadSheet(){
     sheetStatus("読込中");
 
     const beforeCount = records.length;
-
     const response = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
     const data = await response.json();
 
@@ -463,16 +481,15 @@ async function loadSheet(){
     const converted = rawRows.map(rowToRecord);
     const withLocation = converted.filter(x => x.lat !== null && x.lng !== null && !isNaN(x.lat) && !isNaN(x.lng));
 
-    // 安定版8：
-    // 読込では既存ピンを絶対に削除しない。
-    // 既存IDは触らない。新しいIDだけ追加する。
     let added = 0;
-    let skipped = 0;
+    let updated = 0;
 
+    // 既存ピンは消さない。IDが同じなら更新、なければ追加。
     withLocation.forEach(x => {
-      const exists = records.some(r => String(r.id) === String(x.id));
-      if(exists){
-        skipped++;
+      const idx = records.findIndex(r => String(r.id) === String(x.id));
+      if(idx >= 0){
+        records[idx] = {...records[idx], ...x};
+        updated++;
       }else{
         records.push(x);
         added++;
@@ -482,17 +499,23 @@ async function loadSheet(){
     saveLocal();
     render();
 
+    // 読み込んだピンが見えるように地図を自動移動
+    if(records.length > 0){
+      setTimeout(()=>fitAllPins(), 150);
+    }
+
     const afterCount = records.length;
-    sheetStatus("読込 追加" + added + "件");
+    sheetStatus("読込 追加" + added + "件 更新" + updated + "件");
 
     alert(
-      "安定版8：追加のみ\n" +
+      "安定版9\n" +
       "シート行数：" + rawRows.length + "件\n" +
       "地図表示可能：" + withLocation.length + "件\n" +
       "追加：" + added + "件\n" +
-      "既存のためスキップ：" + skipped + "件\n" +
+      "更新：" + updated + "件\n" +
       "読込前：" + beforeCount + "件\n" +
-      "読込後：" + afterCount + "件"
+      "読込後：" + afterCount + "件\n\n" +
+      "地図を全ピン表示に移動しました。"
     );
 
     if(rawRows.length > 0 && withLocation.length === 0){
@@ -520,12 +543,13 @@ function clearLocalData(){
 }
 
 
+
 async function resyncFromSheet(){
   if(!settings.scriptUrl){
     alert("Google連携URLを設定してください");
     return;
   }
-  if(!confirm("スプレッドシートから新しいピンだけ追加します。\n既存ピンは削除・上書きしません。\nよろしいですか？")) return;
+  if(!confirm("スプレッドシートから読み込みます。\n既存ピンは削除しません。\nよろしいですか？")) return;
   await loadSheet();
 }
 
