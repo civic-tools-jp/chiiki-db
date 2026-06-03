@@ -553,9 +553,7 @@ function drawHouseholdHeatmap(){
       const visited=visitsForTown(name);
       const supporters=supportersForTown(name);
       const rate=households?((visited/households)*100).toFixed(1):"0.0";
-      const tip=`${name}：${households.toLocaleString()}世帯 / ${population.toLocaleString()}人 / 訪問${visited}件 / 支持候補${supporters}件 / 進捗${rate}%`;
-      layer.bindTooltip(tip);
-      layer.on("click",()=>alert(`${name}\n世帯数：${households.toLocaleString()}\n人口：${population.toLocaleString()}\n訪問済：${visited}件\n支持者候補：${supporters}件\n進捗：${rate}%`));
+      // 町丁目色分けは背景表示だけにする。クリック時のポップアップやラベル表示は出さない。
     }
   }).addTo(map);
 }
