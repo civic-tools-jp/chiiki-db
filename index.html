@@ -581,6 +581,22 @@ function card(r){
 }
 function renderList(){document.getElementById("view-list").innerHTML=records.length?records.slice().reverse().map(card).join(""):`<div class="empty">まだ記録がありません</div>`;}
 function renderRevisit(){const a=records.filter(r=>r.status==="revisit"||r.revisitPriority);document.getElementById("view-revisit").innerHTML=a.length?a.slice().reverse().map(card).join(""):`<div class="empty">再訪対象はありません</div>`;}
+
+function areaProgressRows(){
+  const groups={};
+  records.forEach(r=>{
+    const name=String(r.area||"その他").trim()||"その他";
+    if(!groups[name])groups[name]={total:0,visited:0,supporters:0,revisit:0};
+    groups[name].total++;
+    if(r.status && r.status!=="unvisited")groups[name].visited++;
+    if(r.supporter==="◎有力" || r.supporter==="○可能性あり")groups[name].supporters++;
+    if(r.status==="revisit" || r.priority==="◎高" || r.priority==="○中")groups[name].revisit++;
+  });
+  const rows=Object.entries(groups).sort((a,b)=>b[1].visited-a[1].visited || b[1].total-a[1].total);
+  if(!rows.length)return `<div class="empty">まだ登録エリアがありません</div>`;
+  return rows.map(([name,g])=>`<div class="analysis-row"><span>${esc(name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
+}
+
 function renderAnalysis(){
   const c=(f,v)=>records.filter(r=>r[f]===v).length;
   const todayRecords=records.filter(r=>r.date===today()&&r.status!=="unvisited");
@@ -601,12 +617,16 @@ function renderAnalysis(){
     <div class="analysis-row"><span>公明ポスター</span><b>${c("posterParty","公明党")}件</b></div>
     <div class="analysis-row"><span>共産ポスター</span><b>${c("posterParty","共産党")}件</b></div>
     <div class="analysis-row"><span>看板件数</span><b>${records.filter(r=>r.signboard).length}件</b></div></div>
-    <div class="analysis-card"><div class="analysis-title">町丁目別進捗（世帯数上位）</div>
-    ${getTownData().slice().sort((a,b)=>b.households-a.households).slice(0,8).map(a=>{
+    <div class="analysis-card"><div class="analysis-title">登録エリア別進捗</div>
+    ${areaProgressRows()}
+    </div>
+    <div class="analysis-card"><div class="analysis-title">町丁目別進捗（世帯数あり・上位）</div>
+    ${getTownData().filter(a=>a.households>0).slice().sort((a,b)=>b.households-a.households).slice(0,10).map(a=>{
       const v=visitsForTown(a.name);
       const rate=a.households?((v/a.households)*100).toFixed(1):"0.0";
       return `<div class="analysis-row"><span>${a.name}</span><b>${v}/${a.households.toLocaleString()}件 ${rate}%</b></div>`;
-    }).join("")}
+    }).join("") || `<div class="empty">世帯数が入っている町丁目データがありません</div>`}
+    <div class="status">※世帯数が0の町丁目は、元データ未設定の可能性があるため非表示にしています。</div>
     </div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
     <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
