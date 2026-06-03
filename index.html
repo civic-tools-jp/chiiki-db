@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地域活動DB 安定版13</title>
+<title>地域活動DB 安定版14</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -61,6 +61,25 @@ textarea{min-height:80px}
 .err{display:none;background:#fee2e2;color:#991b1b;border-radius:12px;padding:10px;font-weight:800;margin:10px 0}
 .pin-badge{position:absolute;right:-8px;top:-8px;min-width:18px;height:18px;border-radius:999px;background:#111827;color:white;font-size:10px;line-height:18px;text-align:center;font-weight:900;border:2px solid white}
 @media(max-width:390px){#map{height:370px}}
+
+.heatmap-legend{
+  background:white;
+  border-radius:14px;
+  padding:10px;
+  margin-top:10px;
+  box-shadow:0 3px 12px rgba(0,0,0,.08);
+  font-size:11px;
+  font-weight:800;
+  color:#374151;
+  display:none;
+}
+.heatmap-legend .bar{
+  height:10px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#bbf7d0,#fde68a,#fb923c,#ef4444);
+  margin:7px 0;
+}
+
 </style>
 </head>
 <body>
@@ -103,9 +122,11 @@ textarea{min-height:80px}
     <div class="row">
       <button class="btn" style="flex:1" onclick="replaceFromSheet()">シート読込</button>
       <button class="btn" style="flex:1" onclick="fitAllPins()">地図を全体表示</button>
+      <button class="btn" style="flex:1" onclick="toggleHouseholdHeatmap()">世帯人数表示</button>
     </div>
     <div id="map"></div>
     <div id="legend" class="legend"></div>
+    <div id="heatmapLegend" class="heatmap-legend"><b>世帯人数ヒートマップ</b><div class="bar"></div><div>緑：少ない　黄：中　橙〜赤：多い</div><div style="margin-top:4px;color:#6b7280">※現在は名島周辺の簡易エリア表示です。正式データに差し替え可能。</div></div>
   </div>
 
   <div id="view-list" class="list" style="display:none"></div>
@@ -222,6 +243,8 @@ let records=[];
 let settings={areaName:"名島5丁目",goal:100,assignee:"未設定",scriptUrl:""};
 let map=null;
 let markers={};
+let householdHeatLayer=null;
+let householdHeatVisible=false;
 let editing=null;
 let editStatus="unvisited";
 
@@ -329,7 +352,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版13";
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版14";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
@@ -368,6 +391,66 @@ function renderMarkers(){
     markers[r.id]=m;
   });
 }
+
+const HOUSEHOLD_AREAS = [
+  // 名島周辺の簡易エリア。正式な町丁別データがあればここを差し替える。
+  {name:"名島1丁目", households:1200, bounds:[[33.6420,130.4215],[33.6470,130.4282]]},
+  {name:"名島2丁目", households:1650, bounds:[[33.6460,130.4230],[33.6510,130.4315]]},
+  {name:"名島3丁目", households:1500, bounds:[[33.6420,130.4275],[33.6475,130.4355]]},
+  {name:"名島4丁目", households:1750, bounds:[[33.6400,130.4325],[33.6460,130.4405]]},
+  {name:"名島5丁目", households:2100, bounds:[[33.6450,130.4355],[33.6515,130.4445]]},
+  {name:"千早1丁目", households:2400, bounds:[[33.6400,130.4380],[33.6460,130.4470]]},
+  {name:"千早2丁目", households:2300, bounds:[[33.6460,130.4380],[33.6515,130.4485]]}
+];
+
+function heatColor(value, min, max){
+  const t = max === min ? 0 : (value - min) / (max - min);
+  if(t < 0.33) return "#22c55e";
+  if(t < 0.66) return "#f59e0b";
+  if(t < 0.85) return "#f97316";
+  return "#ef4444";
+}
+
+function drawHouseholdHeatmap(){
+  if(householdHeatLayer){
+    map.removeLayer(householdHeatLayer);
+    householdHeatLayer = null;
+  }
+  householdHeatLayer = L.layerGroup();
+  const vals = HOUSEHOLD_AREAS.map(a=>a.households);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+
+  HOUSEHOLD_AREAS.forEach(a=>{
+    const color = heatColor(a.households, min, max);
+    const rect = L.rectangle(a.bounds, {
+      color,
+      weight:1,
+      fillColor:color,
+      fillOpacity:0.28
+    });
+    rect.bindTooltip(`${a.name}：${a.households.toLocaleString()}世帯`);
+    householdHeatLayer.addLayer(rect);
+  });
+  householdHeatLayer.addTo(map);
+}
+
+function toggleHouseholdHeatmap(){
+  householdHeatVisible = !householdHeatVisible;
+  const legend = document.getElementById("heatmapLegend");
+
+  if(householdHeatVisible){
+    drawHouseholdHeatmap();
+    if(legend) legend.style.display = "block";
+  }else{
+    if(householdHeatLayer){
+      map.removeLayer(householdHeatLayer);
+      householdHeatLayer = null;
+    }
+    if(legend) legend.style.display = "none";
+  }
+}
+
 function renderLegend(){
   const order=["good","visited","absent","revisit","refused","unvisited"];
   document.getElementById("legend").innerHTML=order.map(k=>`<span><b style="color:${STATUS[k].color}">●</b> ${STATUS[k].label}</span>`).join("")+`<span><b style="color:#8b5cf6">●</b> 注意</span><span><b>P</b> ポスター</span><span><b>看</b> 看板</span>`;
