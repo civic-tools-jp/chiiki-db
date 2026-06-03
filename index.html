@@ -374,7 +374,8 @@ function initMap(){
       addr=j.display_name||addr;
     }catch(ex){}
     const s=shortAddr(addr);
-    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:prettyAddress(addr),area:guessArea(s),status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
+    const townName=findTownByLatLng(lat,lng)||guessArea(s);
+    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:prettyAddress(addr),area:townName,status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
   });
   setTimeout(()=>map.invalidateSize(),200);
 }
@@ -427,6 +428,70 @@ function fitAllPins(){
     map.fitBounds(pts, {padding:[35,35], maxZoom:18});
   }
   setTimeout(()=>map.invalidateSize(),100);
+}
+
+function getTownData(){
+  return (HIGASHIKU_TOWN_GEOJSON.features||[]).map(f=>({
+    name:f.properties?.name||"",
+    households:Number(f.properties?.households)||0,
+    population:Number(f.properties?.population)||0,
+    key:f.properties?.key||""
+  })).filter(x=>x.name);
+}
+
+function findTownByLatLng(lat,lng){
+  if(!HIGASHIKU_TOWN_GEOJSON || !HIGASHIKU_TOWN_GEOJSON.features)return "";
+  const point=[Number(lng),Number(lat)];
+
+  for(const f of HIGASHIKU_TOWN_GEOJSON.features){
+    const g=f.geometry;
+    if(!g)continue;
+
+    if(g.type==="Polygon"){
+      if(pointInPolygon(point,g.coordinates[0])){
+        return f.properties?.name || "";
+      }
+    }
+
+    if(g.type==="MultiPolygon"){
+      for(const poly of g.coordinates){
+        if(pointInPolygon(point,poly[0])){
+          return f.properties?.name || "";
+        }
+      }
+    }
+  }
+  return "";
+}
+
+function pointInPolygon(point, polygon){
+  const x=point[0], y=point[1];
+  let inside=false;
+
+  for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+    const xi=polygon[i][0], yi=polygon[i][1];
+    const xj=polygon[j][0], yj=polygon[j][1];
+
+    const intersect=((yi>y)!==(yj>y)) &&
+      (x < (xj-xi)*(y-yi)/(yj-yi)+xi);
+
+    if(intersect)inside=!inside;
+  }
+
+  return inside;
+}
+
+function ensureAreaOption(name){
+  if(!name)return;
+  const sel=document.getElementById("area");
+  if(!sel)return;
+  const exists=Array.from(sel.options).some(o=>o.value===name || o.textContent===name);
+  if(!exists){
+    const opt=document.createElement("option");
+    opt.value=name;
+    opt.textContent=name;
+    sel.appendChild(opt);
+  }
 }
 
 function renderMarkers(){
@@ -490,7 +555,7 @@ function drawHouseholdHeatmap(){
       const rate=households?((visited/households)*100).toFixed(1):"0.0";
       const tip=`${name}：${households.toLocaleString()}世帯 / ${population.toLocaleString()}人 / 訪問${visited}件 / 支持候補${supporters}件 / 進捗${rate}%`;
       layer.bindTooltip(tip);
-      //layer.on("click",()=>alert(`${name}\n世帯数：${households.toLocaleString()}\n人口：${population.toLocaleString()}\n訪問済：${visited}件\n支持者候補：${supporters}件\n進捗：${rate}%`));
+      layer.on("click",()=>alert(`${name}\n世帯数：${households.toLocaleString()}\n人口：${population.toLocaleString()}\n訪問済：${visited}件\n支持者候補：${supporters}件\n進捗：${rate}%`));
     }
   }).addTo(map);
 }
@@ -539,7 +604,7 @@ function renderAnalysis(){
     <div class="analysis-row"><span>共産ポスター</span><b>${c("posterParty","共産党")}件</b></div>
     <div class="analysis-row"><span>看板件数</span><b>${records.filter(r=>r.signboard).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">町丁目別進捗（世帯数上位）</div>
-    ${(window.HIGASHIKU_TOWN_DATA||[]).slice().sort((a,b)=>b.households-a.households).slice(0,8).map(a=>{
+    ${getTownData().slice().sort((a,b)=>b.households-a.households).slice(0,8).map(a=>{
       const v=visitsForTown(a.name);
       const rate=a.households?((v/a.households)*100).toFixed(1):"0.0";
       return `<div class="analysis-row"><span>${a.name}</span><b>${v}/${a.households.toLocaleString()}件 ${rate}%</b></div>`;
@@ -568,6 +633,7 @@ function openEdit(r,isNew){
   editing={...r,isNew}; editStatus=r.status||"unvisited";
   document.getElementById("editTitle").textContent=isNew?"新規訪問先":"訪問先編集";
   address.value=r.address||""; if(document.getElementById("personName")) personName.value=r.personName||"";lat.value=r.lat||"";lng.value=r.lng||"";
+  ensureAreaOption(r.area||settings.areaName);
   area.value=r.area||settings.areaName;supporter.value=r.supporter||"";household.value=r.householdType||"";contact.value=r.contactPerson||"";priority.value=r.revisitPriority||"";referrer.value=r.referrer||"";
   warning.checked=!!r.warning;warningMemo.value=r.warningMemo||"";toggleWarn();
   signboard.checked=!!r.signboard;poster.value=r.posterParty||"";posterMemo.value=r.posterMemo||"";
