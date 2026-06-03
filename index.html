@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地域活動DB 安定版10</title>
+<title>地域活動DB 安定版12</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -101,9 +101,8 @@ textarea{min-height:80px}
       <button class="btn btn-primary" onclick="searchMap()">検索</button>
     </div>
     <div class="row">
-      <button class="btn" style="flex:1" onclick="loadSheet()">シート読込</button>
-      <button class="btn" style="flex:1" onclick="fitAllPins()">全ピン表示</button>
-      <button class="btn" style="flex:1" onclick="syncAll()">全件同期</button>
+      <button class="btn" style="flex:1" onclick="replaceFromSheet()">シート読込</button>
+      <button class="btn" style="flex:1" onclick="fitAllPins()">地図を全体表示</button>
     </div>
     <div id="map"></div>
     <div id="legend" class="legend"></div>
@@ -151,7 +150,7 @@ textarea{min-height:80px}
       <label class="label" style="margin-top:12px">再訪優先度</label>
       <select id="priority"><option value="">なし</option><option>△低</option><option>○中</option><option>◎高</option></select>
       <label class="label" style="margin-top:12px">紹介者</label>
-      <input id="referrer" placeholder="例：吉田さん、本村さん">
+      <input id="referrer" placeholder="例：紹介者名、紹介元、地域のつながり">
     </div>
 
     <div class="section">
@@ -194,11 +193,15 @@ textarea{min-height:80px}
       <label class="label">活動エリア名</label><input id="setArea">
       <label class="label" style="margin-top:12px">目標件数</label><input id="setGoal" type="number">
       <label class="label" style="margin-top:12px">担当者名</label><input id="setAssignee">
-      <label class="label" style="margin-top:12px">Google連携URL</label><input id="setScript">
+      <label class="label" style="margin-top:12px">Google連携URL</label>
+      <div class="row" style="margin:0">
+        <input id="setScript" placeholder="https://script.google.com/macros/s/.../exec">
+        <button class="btn btn-danger" style="box-shadow:none;white-space:nowrap" onclick="clearScriptUrl()" type="button">クリア</button>
+      </div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveSettings()">設定を保存</button>
-      <button class="btn" style="width:100%;margin-top:10px;background:#eef4ff;color:#1d4ed8" onclick="resyncFromSheet()">🔄 シート読込・追加のみ</button>
+      <button class="btn" style="width:100%;margin-top:10px;background:#eef4ff;color:#1d4ed8" onclick="replaceFromSheet()">🔄 シート完全同期</button>
       <button class="btn btn-danger" style="width:100%;margin-top:10px" onclick="clearLocalData()">🗑️ 端末データ削除</button>
-      <div class="status">※端末データ削除は、このスマホ内の保存だけを消します。スプレッドシートは消えません。</div>
+      <div class="status">※シート読込はスプレッドシートを正として表示します。端末データ削除は、このスマホ内の保存だけを消します。</div>
     </div>
   </div>
 </div>
@@ -216,7 +219,7 @@ const STATUS={
   refused:{label:"断られた",color:"#6b7280"}
 };
 let records=[];
-let settings={areaName:"名島5丁目",goal:100,assignee:"未羽",scriptUrl:""};
+let settings={areaName:"名島5丁目",goal:100,assignee:"未設定",scriptUrl:""};
 let map=null;
 let markers={};
 let editing=null;
@@ -307,7 +310,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版10";
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版12";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
@@ -419,6 +422,10 @@ function saveRecord(){
 }
 function deleteRecord(){if(!editing)return;if(!confirm("削除しますか？"))return;records=records.filter(r=>r.id!==editing.id);saveLocal();render();closeEdit();}
 
+function clearScriptUrl(){
+  const el=document.getElementById("setScript");
+  if(el) el.value="";
+}
 function openSettings(){setArea.value=settings.areaName;setGoal.value=settings.goal;setAssignee.value=settings.assignee;setScript.value=settings.scriptUrl;settingsModal.style.display="flex";}
 function closeSettings(){settingsModal.style.display="none";}
 function saveSettings(){settings.areaName=setArea.value.trim()||"名島5丁目";settings.goal=Number(setGoal.value)||100;settings.assignee=setAssignee.value.trim()||"未設定";settings.scriptUrl=setScript.value.trim();saveLocal();render();sheetStatus("準備OK");closeSettings();}
@@ -486,99 +493,79 @@ function rowToRecord(row){
   return cleanCoordRecord(rec);
 }
 
+
+async function fetchSheetRecords(){
+  const response = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
+  const data = await response.json();
+  const rawRows = Array.isArray(data.rows) ? data.rows : [];
+  const converted = rawRows.map(rowToRecord);
+  const withLocation = converted.filter(x => isValidMapCoord(x.lat, x.lng));
+  return {rawRows, converted, withLocation};
+}
+
+
 async function loadSheet(){
+  await replaceFromSheet();
+}
+
+async function replaceFromSheet(){
   if(!settings.scriptUrl){
     alert("Google連携URLを設定してください");
     return;
   }
 
   try{
-    sheetStatus("読込中");
+    sheetStatus("シート読込中");
 
     const beforeCount = records.length;
-    const response = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
-    const data = await response.json();
+    const {rawRows, converted, withLocation} = await fetchSheetRecords();
+    const skippedBadCoord = converted.length - withLocation.length;
 
-    const rawRows = Array.isArray(data.rows) ? data.rows : [];
-    const converted = rawRows.map(rowToRecord);
-    const withLocation = converted.filter(x => isValidMapCoord(x.lat, x.lng));
-
-    let added = 0;
-    let updated = 0;
-    let skippedBadCoord = converted.length - withLocation.length;
-
-    withLocation.forEach(x => {
-      const idx = records.findIndex(r => String(r.id) === String(x.id));
-      if(idx >= 0){
-        // 既存ピンは座標が正しい場合だけ更新。変な座標で壊さない。
-        records[idx] = {...records[idx], ...x, lat:Number(x.lat), lng:Number(x.lng)};
-        updated++;
-      }else{
-        records.push({...x, lat:Number(x.lat), lng:Number(x.lng)});
-        added++;
-      }
-    });
+    // シンプル運用：スプレッドシートを正本にする
+    records = withLocation.map(x => ({...x, lat:Number(x.lat), lng:Number(x.lng)}));
 
     saveLocal();
     render();
 
-    if(added + updated > 0){
+    if(records.length > 0){
       setTimeout(()=>fitAllPins(), 150);
     }else{
       map.setView([33.6452,130.4319],15);
       setTimeout(()=>map.invalidateSize(),100);
     }
 
-    const afterCount = records.length;
-    sheetStatus("読込 追加" + added + "件 更新" + updated + "件");
+    sheetStatus("読込 " + records.length + "件");
 
     alert(
-      "安定版10\n" +
+      "シート読込\n" +
       "シート行数：" + rawRows.length + "件\n" +
-      "地図表示可能：" + withLocation.length + "件\n" +
+      "地図表示：" + records.length + "件\n" +
       "座標不正で除外：" + skippedBadCoord + "件\n" +
-      "追加：" + added + "件\n" +
-      "更新：" + updated + "件\n" +
       "読込前：" + beforeCount + "件\n" +
-      "読込後：" + afterCount + "件"
+      "読込後：" + records.length + "件"
     );
 
-    if(rawRows.length > 0 && withLocation.length === 0){
-      err("シートは読めていますが、福岡付近として認識できる緯度・経度が0件です。緯度・経度の列を確認してください。");
-    }
-
   }catch(e){
-    sheetStatus("読込失敗・端末データ保持");
+    sheetStatus("読込失敗");
     err("シート読込エラー：" + e.message);
-    alert("シート読込に失敗しました。\n今のピンは消さずに残しました。");
+    alert("シート読込に失敗しました。Google連携URLとApps Scriptの公開設定を確認してください。");
     render();
-    map.setView([33.6452,130.4319],15);
   }
 }
 
-async function syncAll(){if(!settings.scriptUrl){alert("Google連携URLを設定してください");return;}if(!confirm(records.length+"件を同期しますか？"))return;for(const r of records)await sendSheet(r);alert("同期しました");}
-
-
-function clearLocalData(){
-  if(!confirm("この端末に保存されているピンを削除します。\nスプレッドシートのデータは削除されません。\n本当に削除しますか？")) return;
-  records = [];
-  localStorage.removeItem(STORE_KEY);
-  saveLocal();
-  render();
-  alert("この端末のデータを削除しました。");
-}
-
-
-
-async function resyncFromSheet(){
+async function syncAll(){
   if(!settings.scriptUrl){
     alert("Google連携URLを設定してください");
     return;
   }
-  if(!confirm("スプレッドシートから読み込みます。\n既存ピンは削除しません。\nよろしいですか？")) return;
-  await loadSheet();
+  if(!confirm(records.length+"件をスプレッドシートへ送信しますか？")) return;
+  for(const r of records) await sendSheet(r);
+  alert("送信しました");
 }
 
+async function resyncFromSheet(){
+  await replaceFromSheet();
+}
 function downloadCSV(){
   const headers=["ID","担当者","エリア","住所表示","フル住所","状態","対象種別","世帯属性","接触相手","再訪優先度","紹介者","訪問日","訪問開始","訪問終了","滞在時間(分)","支持者候補","注意","注意メモ","看板","ポスター","ポスターメモ","メモ","緯度","経度","GoogleマップURL"];
   const rows=records.map(r=>[r.id,r.assignee,r.area,r.address,r.fullAddress,(STATUS[r.status]||STATUS.unvisited).label,r.type,r.householdType,r.contactPerson,r.revisitPriority,r.referrer,r.date,r.startTime,r.endTime,r.durationMinutes??"",r.supporter,r.warning?"○":"",r.warningMemo,r.signboard?"○":"",r.posterParty,r.posterMemo,r.memo,r.lat,r.lng,gmap(r.lat,r.lng)]);
