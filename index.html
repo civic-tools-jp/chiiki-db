@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地域活動DB 安定版12</title>
+<title>地域活動DB 安定版13</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -251,6 +251,25 @@ function cleanCoordRecord(r){
   return r;
 }
 
+
+function parseLatLngFromText(text){
+  const s = String(text || "");
+  const m = s.match(/q=([0-9.\-]+),([0-9.\-]+)/) || s.match(/@([0-9.\-]+),([0-9.\-]+)/) || s.match(/([0-9]{2}\.[0-9]+)\s*,\s*(1[0-9]{2}\.[0-9]+)/);
+  if(!m) return {lat:null,lng:null};
+  return {lat:Number(m[1]), lng:Number(m[2])};
+}
+function prettyAddress(s){
+  s = norm(s);
+  // Nominatimの「国道3号 千早2丁目 香椎団地 東区 福岡市 福岡県」系を少し読みやすくする
+  const ward = s.includes("東区") ? "東区" : "";
+  const city = s.includes("福岡市") ? "福岡市" : "";
+  const pref = s.includes("福岡県") ? "福岡県" : "";
+  const townMatch = s.match(/(名島[1-5]丁目|千早[1-6]丁目|香椎浜[1-4]丁目|松崎[1-4]丁目|城浜団地|香椎団地)/);
+  const roadMatch = s.match(/(国道[0-9]+号)/);
+  const parts = [pref, city, ward, townMatch ? townMatch[1] : "", roadMatch ? roadMatch[1] : ""].filter(Boolean);
+  return parts.length ? parts.join(" ") : s;
+}
+
 function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 
 window.addEventListener("load",function(){
@@ -283,7 +302,7 @@ function initMap(){
       addr=j.display_name||addr;
     }catch(ex){}
     const s=shortAddr(addr);
-    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:norm(addr),area:guessArea(s),status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
+    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:prettyAddress(addr),area:guessArea(s),status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
   });
   setTimeout(()=>map.invalidateSize(),200);
 }
@@ -310,7 +329,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版12";
+  document.getElementById("areaLabel").textContent=settings.areaName+"｜地図をタップして訪問先を追加｜安定版13";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent=settings.areaName+"｜目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
@@ -415,7 +434,7 @@ function updateDuration(){document.getElementById('duration').textContent="滞�
 function openGoogle(){if(editing)window.open(gmap(editing.lat,editing.lng),"_blank");}
 function saveRecord(){
   if(!editing)return;
-  const r={...editing,address:shortAddr(address.value),lat:Number(lat.value),lng:Number(lng.value),area:area.value,status:editStatus,supporter:supporter.value,householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
+  const r={...editing,address:shortAddr(address.value),fullAddress:prettyAddress(editing.fullAddress||address.value),lat:Number(lat.value),lng:Number(lng.value),area:area.value,status:editStatus,supporter:supporter.value,householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
   delete r.isNew;
   const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
   saveLocal(); render(); sendSheet(r); closeEdit();
@@ -458,10 +477,32 @@ function parseNum(v){
   const n = Number(String(v).replace(/[^\d.\-]/g,""));
   return isNaN(n) ? null : n;
 }
+
+function pick(row, names){
+  for(const name of names){
+    if(row[name] !== undefined && row[name] !== null && row[name] !== "") return row[name];
+  }
+  return "";
+}
+function parseNum(v){
+  if(v === undefined || v === null) return null;
+  const n = Number(String(v).replace(/[^\d.\-]/g,""));
+  return isNaN(n) ? null : n;
+}
 function rowToRecord(row){
   const sm={"未訪問":"unvisited","訪問済み":"visited","手応えあり":"good","不在":"absent","要再訪":"revisit","断られた":"refused"};
-  const latNum = parseNum(pick(row,["緯度","lat","Lat","latitude","Latitude"]));
-  const lngNum = parseNum(pick(row,["経度","lng","Lng","lon","Lon","longitude","Longitude"]));
+  let latNum = parseNum(pick(row,["緯度","lat","Lat","latitude","Latitude"]));
+  let lngNum = parseNum(pick(row,["経度","lng","Lng","lon","Lon","longitude","Longitude"]));
+
+  if(!isValidMapCoord(latNum,lngNum)){
+    const fromUrl = parseLatLngFromText(pick(row,["GoogleマップURL","Google Maps URL","mapUrl"]));
+    latNum = fromUrl.lat;
+    lngNum = fromUrl.lng;
+  }
+
+  const rawFull = pick(row,["フル住所","fullAddress"]) || "";
+  const rawAddress = pick(row,["住所表示","住所","address"]) || "";
+
   const rec = {
     id: pick(row,["ID","id"]) || id(),
     createdAt: pick(row,["登録日時","createdAt"]) || "",
@@ -471,8 +512,8 @@ function rowToRecord(row){
     endTime: pick(row,["訪問終了","endTime"]) || "",
     durationMinutes: Number(pick(row,["滞在時間(分)","durationMinutes"]) || 0) || null,
     area: pick(row,["エリア","area"]) || settings.areaName,
-    address: pick(row,["住所表示","住所","address"]) || "",
-    fullAddress: pick(row,["フル住所","fullAddress"]) || "",
+    address: rawAddress ? shortAddr(rawAddress) : shortAddr(rawFull),
+    fullAddress: rawFull ? prettyAddress(rawFull) : "",
     status: sm[pick(row,["状態","status"])] || pick(row,["状態","status"]) || "unvisited",
     type: pick(row,["対象種別","type"]) || "戸建て",
     householdType: pick(row,["世帯属性","householdType"]) || "",
@@ -492,8 +533,6 @@ function rowToRecord(row){
   };
   return cleanCoordRecord(rec);
 }
-
-
 async function fetchSheetRecords(){
   const response = await fetch(settings.scriptUrl + "?action=list&ts=" + Date.now());
   const data = await response.json();
