@@ -539,7 +539,7 @@ function renderAnalysis(){
     <div class="analysis-row"><span>共産ポスター</span><b>${c("posterParty","共産党")}件</b></div>
     <div class="analysis-row"><span>看板件数</span><b>${records.filter(r=>r.signboard).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">町丁目別進捗（世帯数上位）</div>
-    ${HIGASHIKU_TOWN_DATA.slice().sort((a,b)=>b.households-a.households).slice(0,8).map(a=>{
+    ${(window.HIGASHIKU_TOWN_DATA||[]).slice().sort((a,b)=>b.households-a.households).slice(0,8).map(a=>{
       const v=visitsForTown(a.name);
       const rate=a.households?((v/a.households)*100).toFixed(1):"0.0";
       return `<div class="analysis-row"><span>${a.name}</span><b>${v}/${a.households.toLocaleString()}件 ${rate}%</b></div>`;
