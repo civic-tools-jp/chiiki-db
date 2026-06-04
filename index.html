@@ -870,7 +870,7 @@ function openEdit(r,isNew){
   if(document.getElementById("fullAddress")) fullAddress.value=r.fullAddress||prettyAddress(r.fullAddress||r.address||"");
   if(document.getElementById("personName")) personName.value=r.personName||"";
   lat.value=r.lat||"";lng.value=r.lng||"";
-  const areaName=normalizeTownName(r.area||findTownByLatLng(r.lat,r.lng)||guessArea(r.fullAddress||r.address)||"")||"その他";
+  const areaName=normalizeTownName(findTownByLatLng(r.lat,r.lng)||guessArea(r.fullAddress||r.address)||r.area||"その他");
   populateAreaSelect(areaName);
   area.value=areaName;
   supporter.value=r.supporter||"";household.value=r.householdType||"";contact.value=r.contactPerson||"";priority.value=r.revisitPriority||"";referrer.value=r.referrer||"";
