@@ -469,8 +469,16 @@ function renderTop(){
   document.getElementById("progressFill").style.width=p+"%";
 }
 function iconFor(r){
-  const color=r.warning?"#8b5cf6":(STATUS[r.status]||STATUS.unvisited).color;
-  const badge=(r.signboard||r.posterParty)?"📌":"";
+  const color = (STATUS[r.status] || STATUS.unvisited).color;
+    let badge = "";
+
+  if(r.warning){
+    badge += "⚠️";
+  }
+
+  if(r.signboard || r.posterParty){
+    badge += "📌";
+  }
   return L.divIcon({className:"",html:`<div style="position:relative;width:22px;height:22px"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:${color};border:3px solid white;box-shadow:0 3px 9px rgba(0,0,0,.32);transform:rotate(-45deg)"></div>${badge?`<div class="pin-badge">${badge}</div>`:""}</div>`,iconSize:[30,30],iconAnchor:[11,22]});
 }
 
