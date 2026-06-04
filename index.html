@@ -341,7 +341,7 @@ function guessArea(s){
   const ns=normalizeTownName(s);
   for(const a of data){ if(ns.includes(normalizeTownName(a))) return a; }
   return "";
-}return settings.areaName;}
+}
 function gmap(lat,lng){return "https://www.google.com/maps?q="+lat+","+lng;}
 
 function isValidMapCoord(lat,lng){
