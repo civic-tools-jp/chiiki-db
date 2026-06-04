@@ -880,6 +880,10 @@ function openEdit(r,isNew){
   signboard.checked=!!r.signboard;poster.value=r.posterParty||"";posterMemo.value=r.posterMemo||"";
   type.value=r.type||"戸建て";memo.value=r.memo||"";date.value=r.date||today();startTime.value=r.startTime||now();endTime.value=r.endTime||"";
   updateDuration();renderStatusGrid();editModal.style.display="flex";
+  setTimeout(()=>{
+  const modal=document.querySelector("#editModal .modal");
+  if(modal) modal.scrollTop=0;
+  },0);
 }
 function closeEdit(){editModal.style.display="none";editing=null;}
 function toggleWarn(){warningMemo.style.display=warning.checked?"block":"none";}
