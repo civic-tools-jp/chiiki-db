@@ -83,7 +83,14 @@ textarea{min-height:80px}
 
 .lock-note{font-size:12px;color:#6b7280;line-height:1.6;margin-top:8px}
 .sync-box{background:#eef4ff;color:#1d4ed8;border-radius:12px;padding:12px;font-weight:800;margin-top:12px;line-height:1.7}
-
+.address-view{
+  background:#f9fafb;
+  border-radius:12px;
+  padding:16px;
+  color:#374151;
+  font-size:16px;
+  margin-bottom:8px;
+}
 </style>
 </head>
 <body>
@@ -148,7 +155,8 @@ textarea{min-height:80px}
 
     <div class="section">
       <label class="label">表示住所・目印</label>
-      <input id="address" readonly style="background:#f9fafb;color:#374151">
+      <div id="addressView" class="address-view"></div>
+      <input id="address" type="hidden">
       <label class="label" style="margin-top:12px">フル住所（番地まで必要ならここに入力）</label>
       <input id="fullAddress">
       <input id="lat" type="hidden"><input id="lng" type="hidden">
@@ -855,6 +863,10 @@ function openEdit(r,isNew){
   editing={...r,isNew}; editStatus=r.status||"unvisited";
   document.getElementById("editTitle").textContent=isNew?"新規訪問先":"訪問先編集";
   address.value=r.address||"";
+  const addressView=document.getElementById("addressView");
+　if(addressView){
+  　addressView.textContent=r.address||"";
+　}
   if(document.getElementById("fullAddress")) fullAddress.value=r.fullAddress||prettyAddress(r.fullAddress||r.address||"");
   if(document.getElementById("personName")) personName.value=r.personName||"";
   lat.value=r.lat||"";lng.value=r.lng||"";
