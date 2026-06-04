@@ -793,7 +793,7 @@ function renderAnalysis(){
     <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">組織・注意</div>
     <div class="analysis-row"><span>注意件数</span><b>${records.filter(r=>r.warning).length}件</b></div>
-    <div class="analysis-row"><span>看板件数</span><b>${records.filter(r=>r.signboard).length}件</b></div></div>
+    <div class="analysis-row"><span>政治看板・ポスター件数</span><b>${records.filter(r => r.signboard || r.posterParty).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
     <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
     <div class="analysis-row"><span>計測時間</span><b>${dtext(total)}</b></div></div>`;
