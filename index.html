@@ -462,7 +462,7 @@ function render(){
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
-  document.getElementById("areaLabel").textContent="地図をタップして訪問先を追加｜安定版17";
+  document.getElementById("areaLabel").textContent="地図をタップして訪問先を追加｜おためし版";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
   document.getElementById("goalText").textContent="目標"+g+"件｜達成率"+p+"%";
   document.getElementById("progressFill").style.width=p+"%";
