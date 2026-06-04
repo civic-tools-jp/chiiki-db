@@ -712,7 +712,7 @@ function toggleHouseholdHeatmap(){
 
 function renderLegend(){
   const order=["good","visited","absent","revisit","refused","unvisited"];
-  document.getElementById("legend").innerHTML=order.map(k=>`<span><b style="color:${STATUS[k].color}">●</b> ${STATUS[k].label}</span>`).join("")+`<span><b style="color:#8b5cf6">●</b> 注意</span><span><b>P</b> ポスター</span><span><b>看</b> 看板</span>`;
+  document.getElementById("legend").innerHTML=order.map(k=>`<span><b style="color:${STATUS[k].color}">●</b> ${STATUS[k].label}</span>`).join("")+`<span><b style="color:#8b5cf6">●</b> 注意</span><span>📌 ポスター・看板</span>`;
 }
 function card(r){
   const st=STATUS[r.status]||STATUS.unvisited;
