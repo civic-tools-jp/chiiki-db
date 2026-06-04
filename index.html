@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地上戦支援 β版</title>
+<title>地上戦活動DB β版</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
@@ -59,8 +59,8 @@ textarea{min-height:80px}
 .analysis-row{display:flex;justify-content:space-between;border-top:1px solid #eef0f2;padding:9px 0}
 .analysis-row:first-of-type{border-top:0}
 .err{display:none;background:#fee2e2;color:#991b1b;border-radius:12px;padding:10px;font-weight:800;margin:10px 0}
-.pin-badge{position:absolute;right:-8px;top:-8px;min-width:18px;height:18px;border-radius:999px;background:#111827;color:white;font-size:10px;line-height:18px;text-align:center;font-weight:900;border:2px solid white}
-@media(max-width:390px){#map{height:370px}}
+.pin-badge{position:absolute;right:-10px;top:-10px;background:transparent;border:none;box-shadow:none;font-size:16px;line-height:1;z-index:1000;}  
+  @media(max-width:390px){#map{height:370px}}
 
 .heatmap-legend{
   background:white;
@@ -97,7 +97,7 @@ textarea{min-height:80px}
 <div id="app">
   <div class="header">
     <div>
-      <h1>🏘️ 地上戦支援</h1>
+      <h1>🏘️ 地上戦活動DB</h1>
       <div class="sub" id="areaLabel">地図をタップして訪問先を追加</div>
     </div>
   </div>
@@ -235,7 +235,7 @@ textarea{min-height:80px}
 <div id="lockModal" class="modal-bg" style="display:none;align-items:center">
   <div class="modal" style="border-radius:24px;max-height:none" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <div class="modal-title">🔒 地上戦支援</div>
+      <div class="modal-title">🔒 地上戦活動DB</div>
     </div>
     <div class="section">
       <label class="label">閲覧パスコード</label>
