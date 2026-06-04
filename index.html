@@ -271,6 +271,7 @@ let householdHeatLayer=null;
 let householdHeatVisible=false;
 let editing=null;
 let editStatus="unvisited";
+let selectedAnalysisTown="";
 
 
 function requireUnlock(){
@@ -625,11 +626,82 @@ function areaProgressRows(){
   return rows.map(g=>`<div class="analysis-row"><span>${esc(g.name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
 }
 
+
+function preferredTownNames(){
+  const names=[];
+  ["名島","千早","香椎浜","松崎"].forEach(base=>{
+    const max=base==="千早"?6:base==="香椎浜"?4:5;
+    for(let i=1;i<=max;i++) names.push(base+i+"丁目");
+  });
+  return names;
+}
+
+function townOptions(){
+  const data=getTownData();
+  const byNorm={};
+  data.forEach(t=>{ byNorm[t.normName]=t; });
+  const used=new Set();
+  const opts=[];
+  preferredTownNames().forEach(name=>{
+    const t=byNorm[normalizeTownName(name)] || {name:name,normName:normalizeTownName(name),households:0,population:0,key:""};
+    opts.push(t); used.add(t.normName);
+  });
+  data.filter(t=>t.households>0 && !used.has(t.normName)).sort((a,b)=>a.name.localeCompare(b.name,"ja")).forEach(t=>opts.push(t));
+  return opts;
+}
+
+function currentAnalysisTown(){
+  const opts=townOptions();
+  if(!opts.length)return {name:settings.areaName,normName:normalizeTownName(settings.areaName),households:0,population:0};
+  const currentNorm=normalizeTownName(selectedAnalysisTown || settings.areaName);
+  return opts.find(t=>t.normName===currentNorm) || opts[0];
+}
+
+function townSelectHtml(){
+  const current=currentAnalysisTown();
+  selectedAnalysisTown=current.name;
+  return `<label class="label">町丁目を選択</label><select id="analysisTown" onchange="setAnalysisTown(this.value)">${townOptions().map(t=>`<option value="${esc(t.name)}" ${t.normName===current.normName?"selected":""}>${esc(t.name)}${t.households?"":"（世帯数未設定）"}</option>`).join("")}</select>`;
+}
+
+function setAnalysisTown(name){
+  selectedAnalysisTown=name;
+  renderAnalysis();
+}
+
+function selectedTownAnalysisHtml(){
+  const t=currentAnalysisTown();
+  const visited=visitsForTown(t.name);
+  const supporters=supportersForTown(t.name);
+  const revisit=records.filter(r=>recordMatchesTown(r,t.name) && (r.status==="revisit" || r.revisitPriority==="◎高" || r.revisitPriority==="○中")).length;
+  const all=records.filter(r=>recordMatchesTown(r,t.name)).length;
+  const absent=records.filter(r=>recordMatchesTown(r,t.name) && r.status==="absent").length;
+  const rate=t.households?((visited/t.households)*100).toFixed(1):"-";
+  const barWidth=t.households?Math.min(100,visited/t.households*100):0;
+  return `
+    <div class="analysis-row"><span>世帯数</span><b>${t.households?t.households.toLocaleString()+"世帯":"未設定"}</b></div>
+    <div class="analysis-row"><span>人口</span><b>${t.population?t.population.toLocaleString()+"人":"未設定"}</b></div>
+    <div class="analysis-row"><span>登録件数</span><b>${all}件</b></div>
+    <div class="analysis-row"><span>訪問済</span><b>${visited}件</b></div>
+    <div class="analysis-row"><span>進捗率</span><b>${rate}%</b></div>
+    <div class="progress-bar" style="margin:6px 0 10px"><div class="progress-fill" style="width:${barWidth}%"></div></div>
+    <div class="analysis-row"><span>支持者候補</span><b>${supporters}件</b></div>
+    <div class="analysis-row"><span>再訪候補</span><b>${revisit}件</b></div>
+    <div class="analysis-row"><span>不在</span><b>${absent}件</b></div>`;
+}
+
 function renderAnalysis(){
   const c=(f,v)=>records.filter(r=>r[f]===v).length;
   const todayRecords=records.filter(r=>r.date===today()&&r.status!=="unvisited");
   const total=todayRecords.reduce((s,r)=>s+(Number(r.durationMinutes)||0),0);
   document.getElementById("view-analysis").innerHTML=`
+    <div class="analysis-card"><div class="analysis-title">町丁目分析</div>
+    ${townSelectHtml()}
+    ${selectedTownAnalysisHtml()}
+    <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数・人口が0の場合は、元データ未設定の可能性があります。</div>
+    </div>
+    <div class="analysis-card"><div class="analysis-title">登録エリア別進捗</div>
+    ${areaProgressRows()}
+    </div>
     <div class="analysis-card"><div class="analysis-title">名簿化サマリー</div>
     <div class="analysis-row"><span>訪問済み</span><b>${visitedCount()}/${settings.goal}</b></div>
     <div class="analysis-row"><span>◎有力</span><b>${c("supporter","◎有力")}件</b></div>
@@ -645,17 +717,6 @@ function renderAnalysis(){
     <div class="analysis-row"><span>公明ポスター</span><b>${c("posterParty","公明党")}件</b></div>
     <div class="analysis-row"><span>共産ポスター</span><b>${c("posterParty","共産党")}件</b></div>
     <div class="analysis-row"><span>看板件数</span><b>${records.filter(r=>r.signboard).length}件</b></div></div>
-    <div class="analysis-card"><div class="analysis-title">登録エリア別進捗</div>
-    ${areaProgressRows()}
-    </div>
-    <div class="analysis-card"><div class="analysis-title">町丁目別進捗（世帯数あり・上位）</div>
-    ${getTownData().filter(a=>a.households>0).slice().sort((a,b)=>b.households-a.households).slice(0,10).map(a=>{
-      const v=visitsForTown(a.name);
-      const rate=a.households?((v/a.households)*100).toFixed(1):"0.0";
-      return `<div class="analysis-row"><span>${a.name}</span><b>${v}/${a.households.toLocaleString()}件 ${rate}%</b></div>`;
-    }).join("") || `<div class="empty">世帯数が入っている町丁目データがありません</div>`}
-    <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数が0の町丁目は、元データ未設定の可能性があるため非表示にしています。</div>
-    </div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
     <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
     <div class="analysis-row"><span>計測時間</span><b>${dtext(total)}</b></div></div>`;
