@@ -82,6 +82,7 @@ textarea{min-height:80px}
 
 
 .lock-note{font-size:12px;color:#6b7280;line-height:1.6;margin-top:8px}
+.sync-box{background:#eef4ff;color:#1d4ed8;border-radius:12px;padding:12px;font-weight:800;margin-top:12px;line-height:1.7}
 
 </style>
 </head>
@@ -220,10 +221,10 @@ textarea{min-height:80px}
       <label class="label">活動エリア名</label><input id="setArea">
       <label class="label" style="margin-top:12px">目標件数</label><input id="setGoal" type="number">
       <label class="label" style="margin-top:12px">担当者名</label><input id="setAssignee">
-      <label class="label" style="margin-top:12px">Google連携URL</label>
-      <div class="row" style="margin:0">
-        <input id="setScript" placeholder="https://script.google.com/macros/s/.../exec">
-        <button class="btn btn-danger" style="box-shadow:none;white-space:nowrap" onclick="clearScriptUrl()" type="button">クリア</button>
+      <div class="sync-box">
+        Googleシート連携：固定URLを使用<br>
+        <span id="settingsSheetStatus">接続状態：確認中</span><br>
+        <span id="settingsLastSync">最終同期：未実行</span>
       </div>
       <label class="label" style="margin-top:12px">閲覧パスコード</label>
       <input id="setPasscode" type="password" placeholder="例：4桁以上。共有メンバーだけに伝える">
@@ -255,6 +256,8 @@ textarea{min-height:80px}
 <script>
 const STORE_KEY="chiiki-katsudo-db-simple-records";
 const SETTING_KEY="chiiki-katsudo-db-simple-settings";
+// Apps Scriptの固定URL。完全固定する場合は、この空文字の中に /exec までのURLを入れてください。
+const FIXED_SCRIPT_URL="";
 const STATUS={
   unvisited:{label:"未訪問",color:"#94a3b8"},
   visited:{label:"訪問済み",color:"#3b82f6"},
@@ -264,7 +267,7 @@ const STATUS={
   refused:{label:"断られた",color:"#6b7280"}
 };
 let records=[];
-let settings={areaName:"名島5丁目",goal:100,assignee:"未設定",scriptUrl:"",passcode:""};
+let settings={areaName:"名島5丁目",goal:100,assignee:"未設定",scriptUrl:"",passcode:"",lastSyncAt:""};
 let map=null;
 let markers={};
 let householdHeatLayer=null;
@@ -383,7 +386,18 @@ function saveLocal(){
   localStorage.setItem(SETTING_KEY,JSON.stringify(settings));
   document.getElementById("localStatus").textContent="端末保存：完了（"+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})+"）";
 }
-function sheetStatus(m){document.getElementById("sheetStatus").textContent="シート連携："+(settings.scriptUrl?(m||"準備OK"):"未設定");}
+function getScriptUrl(){return (FIXED_SCRIPT_URL || settings.scriptUrl || "").trim();}
+function syncTimeText(){return settings.lastSyncAt ? new Date(settings.lastSyncAt).toLocaleString("ja-JP") : "未実行";}
+function updateSettingsSyncStatus(){
+  const st=document.getElementById("settingsSheetStatus");
+  const ls=document.getElementById("settingsLastSync");
+  if(st)st.textContent="接続状態："+(getScriptUrl()?"固定URLあり":"未設定");
+  if(ls)ls.textContent="最終同期："+syncTimeText();
+}
+function sheetStatus(m){
+  document.getElementById("sheetStatus").textContent="シート連携："+(getScriptUrl()?(m||"準備OK") : "未設定");
+  updateSettingsSyncStatus();
+}
 
 function initMap(){
   map=L.map("map").setView([33.6452,130.4319],15);
@@ -761,16 +775,29 @@ function saveRecord(){
 function deleteRecord(){if(!editing)return;if(!confirm("削除しますか？"))return;records=records.filter(r=>r.id!==editing.id);saveLocal();render();closeEdit();}
 
 function clearScriptUrl(){
-  const el=document.getElementById("setScript");
-  if(el) el.value="";
+  // URL欄は設定画面から削除済み。既存データ互換のため関数だけ残しています。
 }
-function openSettings(){setArea.value=settings.areaName;setGoal.value=settings.goal;setAssignee.value=settings.assignee;setScript.value=settings.scriptUrl; if(document.getElementById('setPasscode')) setPasscode.value=settings.passcode||'';settingsModal.style.display="flex";}
+function openSettings(){
+  setArea.value=settings.areaName;
+  setGoal.value=settings.goal;
+  setAssignee.value=settings.assignee;
+  if(document.getElementById('setPasscode')) setPasscode.value=settings.passcode||'';
+  updateSettingsSyncStatus();
+  settingsModal.style.display="flex";
+}
 function closeSettings(){settingsModal.style.display="none";}
-function saveSettings(){settings.areaName=setArea.value.trim()||"名島5丁目";settings.goal=Number(setGoal.value)||100;settings.assignee=setAssignee.value.trim()||"未設定";settings.scriptUrl=setScript.value.trim();settings.passcode=(document.getElementById('setPasscode')?setPasscode.value.trim():settings.passcode)||'';saveLocal();render();sheetStatus("準備OK");closeSettings();}
+function saveSettings(){
+  settings.areaName=setArea.value.trim()||"名島5丁目";
+  settings.goal=Number(setGoal.value)||100;
+  settings.assignee=setAssignee.value.trim()||"未設定";
+  // Google連携URLは固定URL、または既に端末保存されているURLを使用します。
+  settings.passcode=(document.getElementById('setPasscode')?setPasscode.value.trim():settings.passcode)||'';
+  saveLocal();render();sheetStatus("準備OK");closeSettings();
+}
 
 async function sendSheet(r){
-  if(!settings.scriptUrl)return;
-  try{sheetStatus("送信中");await fetch(settings.scriptUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({item:r,passcode:settings.passcode||''})});sheetStatus("送信しました");}catch(e){sheetStatus("送信失敗");}
+  if(!getScriptUrl())return;
+  try{sheetStatus("送信中");await fetch(getScriptUrl(),{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({item:r,passcode:settings.passcode||''})});settings.lastSyncAt=new Date().toISOString();saveLocal();sheetStatus("送信しました");}catch(e){sheetStatus("送信失敗");}
 }
 
 function pick(row, names){
@@ -854,7 +881,7 @@ function rowToRecord(row){
   return cleanCoordRecord(rec);
 }
 async function fetchSheetRecords(){
-  const response = await fetch(settings.scriptUrl + "?action=list&passcode=" + encodeURIComponent(settings.passcode||"") + "&ts=" + Date.now());
+  const response = await fetch(getScriptUrl() + "?action=list&passcode=" + encodeURIComponent(settings.passcode||"") + "&ts=" + Date.now());
   const data = await response.json();
   const rawRows = Array.isArray(data.rows) ? data.rows : [];
   const converted = rawRows.map(rowToRecord);
@@ -868,8 +895,8 @@ async function loadSheet(){
 }
 
 async function replaceFromSheet(){
-  if(!settings.scriptUrl){
-    alert("Google連携URLを設定してください");
+  if(!getScriptUrl()){
+    alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
     return;
   }
 
@@ -893,7 +920,7 @@ async function replaceFromSheet(){
       setTimeout(()=>map.invalidateSize(),100);
     }
 
-    sheetStatus("読込 " + records.length + "件");
+    settings.lastSyncAt=new Date().toISOString();saveLocal();sheetStatus("読込 " + records.length + "件");
 
     alert(
       "シート読込\n" +
@@ -913,8 +940,8 @@ async function replaceFromSheet(){
 }
 
 async function syncAll(){
-  if(!settings.scriptUrl){
-    alert("Google連携URLを設定してください");
+  if(!getScriptUrl()){
+    alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
     return;
   }
   if(!confirm(records.length+"件をスプレッドシートへ送信しますか？")) return;
