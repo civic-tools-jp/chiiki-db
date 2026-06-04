@@ -432,7 +432,8 @@ function initMap(){
     }catch(ex){}
     const s=shortAddr(addr);
     const townName=findTownByLatLng(lat,lng)||guessArea(s);
-    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:prettyAddress(addr),area:normalizeTownName(townName),status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
+    const townName =normalizeTownName(findTownByLatLng(lat,lng) || guessArea(s));
+    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:prettyAddress(addr),area:townName,status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
   });
   setTimeout(()=>map.invalidateSize(),200);
 }
