@@ -231,9 +231,7 @@ textarea{min-height:80px}
       <input id="setPasscode" type="password" placeholder="例：4桁以上。共有メンバーだけに伝える">
       <div class="lock-note">※名前・フル住所を扱うため、メンバーで同じパスコードを設定してください。</div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveSettings()">設定を保存</button>
-      <button class="btn" style="width:100%;margin-top:10px;background:#eef4ff;color:#1d4ed8" onclick="replaceFromSheet()">🔄 シート完全同期</button>
-      <button class="btn btn-danger" style="width:100%;margin-top:10px" onclick="clearLocalData()">🗑️ 端末データ削除</button>
-      <div class="status">※シート読込はスプレッドシートを正として表示します。端末データ削除は、このスマホ内の保存だけを消します。</div>
+      <div class="status">※アプリ起動時とパスコード解除後に自動でシート同期します。</div>
     </div>
   </div>
 </div>
@@ -296,6 +294,7 @@ function unlockApp(){
     sessionStorage.setItem("chiiki-db-unlocked","1");
     const modal = document.getElementById("lockModal");
     if(modal) modal.style.display = "none";
+    autoSyncFromSheet();
   }else{
     alert("パスコードが違います");
   }
@@ -398,8 +397,9 @@ window.addEventListener("load",function(){
     settings={...settings,...JSON.parse(localStorage.getItem(SETTING_KEY)||"{}")};
     initMap();
     render();
-    requireUnlock();
+    const locked=requireUnlock();
     saveLocal();
+    if(!locked) autoSyncFromSheet();
   }catch(e){err("起動エラー："+e.message);}
 });
 
@@ -419,6 +419,12 @@ function updateSettingsSyncStatus(){
 function sheetStatus(m){
   document.getElementById("sheetStatus").textContent="シート連携："+(getScriptUrl()?(m||"準備OK") : "未設定");
   updateSettingsSyncStatus();
+}
+
+function autoSyncFromSheet(){
+  if(!getScriptUrl()) return;
+  if(settings.passcode && sessionStorage.getItem("chiiki-db-unlocked") !== "1") return;
+  setTimeout(()=>replaceFromSheet(true), 500);
 }
 
 function initMap(){
@@ -1004,9 +1010,9 @@ async function loadSheet(){
   await replaceFromSheet();
 }
 
-async function replaceFromSheet(){
+async function replaceFromSheet(silent=false){
   if(!getScriptUrl()){
-    alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
+    if(!silent) alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
     return;
   }
 
@@ -1032,19 +1038,21 @@ async function replaceFromSheet(){
 
     settings.lastSyncAt=new Date().toISOString();saveLocal();sheetStatus("読込 " + records.length + "件");
 
-    alert(
-      "シート読込\n" +
-      "シート行数：" + rawRows.length + "件\n" +
-      "地図表示：" + records.length + "件\n" +
-      "座標不正で除外：" + skippedBadCoord + "件\n" +
-      "読込前：" + beforeCount + "件\n" +
-      "読込後：" + records.length + "件"
-    );
+    if(!silent){
+      alert(
+        "シート読込\n" +
+        "シート行数：" + rawRows.length + "件\n" +
+        "地図表示：" + records.length + "件\n" +
+        "座標不正で除外：" + skippedBadCoord + "件\n" +
+        "読込前：" + beforeCount + "件\n" +
+        "読込後：" + records.length + "件"
+      );
+    }
 
   }catch(e){
     sheetStatus("読込失敗");
     err("シート読込エラー：" + e.message);
-    alert("シート読込に失敗しました。Google連携URLとApps Scriptの公開設定を確認してください。");
+    if(!silent) alert("シート読込に失敗しました。Google連携URLとApps Scriptの公開設定を確認してください。");
     render();
   }
 }
