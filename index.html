@@ -257,7 +257,7 @@ textarea{min-height:80px}
 const STORE_KEY="chiiki-katsudo-db-simple-records";
 const SETTING_KEY="chiiki-katsudo-db-simple-settings";
 // Apps Scriptの固定URL。完全固定する場合は、この空文字の中に /exec までのURLを入れてください。
-const FIXED_SCRIPT_URL="";
+const FIXED_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx13_8c49n5tleryZNbfaLqJK8Qx70jVYRMoIISOjBjJ-31pahVgJrFJLMlyJIlZvV-/exec";
 const STATUS={
   unvisited:{label:"未訪問",color:"#94a3b8"},
   visited:{label:"訪問済み",color:"#3b82f6"},
@@ -279,7 +279,15 @@ let selectedAnalysisTown="";
 // 町丁目別の世帯数・人口の補正データ。
 // GeoJSON側で0になっている町丁目は、ここを優先して表示します。
 const TOWN_STATS_OVERRIDE={
+  "名島1丁目":{households:519,population:891},
+  "名島2丁目":{households:943,population:1963},
+  "名島3丁目":{households:1207,population:1873},
+  "名島4丁目":{households:1126,population:2362},
   "名島5丁目":{households:1287,population:3244},
+  "松崎1丁目":{households:582,population:1281},
+  "松崎2丁目":{households:423,population:781},
+  "松崎3丁目":{households:1128,population:2637},
+  "松崎4丁目":{households:789,population:1527},
   "香椎団地":{households:696,population:1463},
   "千早1丁目":{households:1209,population:2363},
   "千早2丁目":{households:1671,population:3381},
@@ -672,7 +680,7 @@ function areaProgressRows(){
 function preferredTownNames(){
   const names=[];
   ["名島","千早","香椎浜","松崎"].forEach(base=>{
-    const max=base==="千早"?6:base==="香椎浜"?4:5;
+    const max=base==="千早"?6:4;
     for(let i=1;i<=max;i++) names.push(base+i+"丁目");
   });
   return names;
