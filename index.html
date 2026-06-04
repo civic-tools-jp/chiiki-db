@@ -149,6 +149,8 @@ textarea{min-height:80px}
     <div class="section">
       <label class="label">表示住所・目印</label>
       <input id="address">
+      <label class="label" style="margin-top:12px">フル住所（番地まで必要ならここに入力）</label>
+      <input id="fullAddress" placeholder="例：福岡県福岡市東区千早2丁目○番○号">
       <input id="lat" type="hidden"><input id="lng" type="hidden">
       <button class="btn" style="width:100%;margin-top:10px" onclick="openGoogle()">Googleマップで開く</button>
       <label class="label" style="margin-top:12px">名前・呼び名</label>
@@ -218,8 +220,7 @@ textarea{min-height:80px}
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-head"><div class="modal-title">設定</div><button class="close" onclick="closeSettings()">×</button></div>
     <div class="section">
-      <label class="label">活動エリア名</label><input id="setArea">
-      <label class="label" style="margin-top:12px">目標件数</label><input id="setGoal" type="number">
+      <label class="label">目標件数</label><input id="setGoal" type="number">
       <label class="label" style="margin-top:12px">担当者名</label><input id="setAssignee">
       <div class="sync-box">
         Googleシート連携：固定URLを使用<br>
@@ -446,7 +447,7 @@ function initMap(){
     }catch(ex){}
     const s=shortAddr(addr);
     const townName=findTownByLatLng(lat,lng)||guessArea(s);
-    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:prettyAddress(addr),area:townName,status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
+    openEdit({id:id(),lat:lat,lng:lng,address:s,fullAddress:addr,area:townName,status:"unvisited",type:"戸建て",date:today(),startTime:now(),endTime:"",createdAt:new Date().toISOString()},true);
   });
   setTimeout(()=>map.invalidateSize(),200);
 }
@@ -789,7 +790,7 @@ function editById(id){const r=records.find(x=>x.id===id);if(r)openEdit({...r},fa
 function openEdit(r,isNew){
   editing={...r,isNew}; editStatus=r.status||"unvisited";
   document.getElementById("editTitle").textContent=isNew?"新規訪問先":"訪問先編集";
-  address.value=r.address||""; if(document.getElementById("personName")) personName.value=r.personName||"";lat.value=r.lat||"";lng.value=r.lng||"";
+  address.value=r.address||""; if(document.getElementById("fullAddress")) fullAddress.value=r.fullAddress||""; if(document.getElementById("personName")) personName.value=r.personName||"";lat.value=r.lat||"";lng.value=r.lng||"";
   ensureAreaOption(r.area||settings.areaName);
   area.value=r.area||settings.areaName;supporter.value=r.supporter||"";household.value=r.householdType||"";contact.value=r.contactPerson||"";priority.value=r.revisitPriority||"";referrer.value=r.referrer||"";
   warning.checked=!!r.warning;warningMemo.value=r.warningMemo||"";toggleWarn();
@@ -803,7 +804,8 @@ function updateDuration(){document.getElementById('duration').textContent="滞�
 function openGoogle(){if(editing)window.open(gmap(editing.lat,editing.lng),"_blank");}
 function saveRecord(){
   if(!editing)return;
-  const r={...editing,address:shortAddr(address.value),fullAddress:prettyAddress(editing.fullAddress||address.value),lat:Number(lat.value),lng:Number(lng.value),area:area.value,status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
+  const fa=(document.getElementById("fullAddress")?fullAddress.value.trim():"");
+  const r={...editing,address:shortAddr(address.value),fullAddress:fa||editing.fullAddress||address.value,lat:Number(lat.value),lng:Number(lng.value),area:area.value,status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
   delete r.isNew;
   const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
   saveLocal(); render(); sendSheet(r); closeEdit();
@@ -814,7 +816,6 @@ function clearScriptUrl(){
   // URL欄は設定画面から削除済み。既存データ互換のため関数だけ残しています。
 }
 function openSettings(){
-  setArea.value=settings.areaName;
   setGoal.value=settings.goal;
   setAssignee.value=settings.assignee;
   if(document.getElementById('setPasscode')) setPasscode.value=settings.passcode||'';
@@ -823,7 +824,6 @@ function openSettings(){
 }
 function closeSettings(){settingsModal.style.display="none";}
 function saveSettings(){
-  settings.areaName=setArea.value.trim()||"名島5丁目";
   settings.goal=Number(setGoal.value)||100;
   settings.assignee=setAssignee.value.trim()||"未設定";
   // Google連携URLは固定URL、または既に端末保存されているURLを使用します。
@@ -895,7 +895,7 @@ function rowToRecord(row){
     durationMinutes: Number(pick(row,["滞在時間(分)","durationMinutes"]) || 0) || null,
     area: pick(row,["エリア","area"]) || settings.areaName,
     address: rawAddress ? shortAddr(rawAddress) : shortAddr(rawFull),
-    fullAddress: rawFull ? prettyAddress(rawFull) : "",
+    fullAddress: rawFull || "",
     status: sm[pick(row,["状態","status"])] || pick(row,["状態","status"]) || "unvisited",
     type: pick(row,["対象種別","type"]) || "戸建て",
     householdType: pick(row,["世帯属性","householdType"]) || "",
@@ -932,7 +932,7 @@ async function loadSheet(){
 
 async function replaceFromSheet(){
   if(!getScriptUrl()){
-    alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
+    alert("Googleシート連携URLが未設定です。固定URLをコードに入れてください。");
     return;
   }
 
@@ -977,7 +977,7 @@ async function replaceFromSheet(){
 
 async function syncAll(){
   if(!getScriptUrl()){
-    alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
+    alert("Googleシート連携URLが未設定です。固定URLをコードに入れてください。");
     return;
   }
   if(!confirm(records.length+"件をスプレッドシートへ送信しますか？")) return;
