@@ -148,7 +148,7 @@ textarea{min-height:80px}
 
     <div class="section">
       <label class="label">表示住所・目印</label>
-      <input id="address">
+      <input id="address" readonly style="background:#f9fafb;color:#374151">
       <label class="label" style="margin-top:12px">フル住所（番地まで必要ならここに入力）</label>
       <input id="fullAddress">
       <input id="lat" type="hidden"><input id="lng" type="hidden">
@@ -571,17 +571,58 @@ function pointInPolygon(point, polygon){
   return inside;
 }
 
-function ensureAreaOption(name){
-  if(!name)return;
+function areaDisplayName(name){
+  return normalizeTownName(name||"");
+}
+
+function populateAreaSelect(selected){
   const sel=document.getElementById("area");
   if(!sel)return;
-  const exists=Array.from(sel.options).some(o=>o.value===name || o.textContent===name);
-  if(!exists){
+  const selectedName=areaDisplayName(selected)||"その他";
+  const preferred=[
+    "名島1丁目","名島2丁目","名島3丁目","名島4丁目","名島5丁目",
+    "千早1丁目","千早2丁目","千早3丁目","千早4丁目","千早5丁目","千早6丁目",
+    "香椎浜1丁目","香椎浜2丁目","香椎浜3丁目","香椎浜4丁目",
+    "松崎1丁目","松崎2丁目","松崎3丁目","松崎4丁目"
+  ];
+  const skip=new Set(["松崎5丁目"]);
+  const townMap=new Map();
+  try{
+    getTownData().forEach(t=>{
+      const n=areaDisplayName(t.name);
+      if(n && !skip.has(n)) townMap.set(n,n);
+    });
+  }catch(e){}
+  preferred.forEach(n=>townMap.set(n,n));
+  if(selectedName && !skip.has(selectedName)) townMap.set(selectedName,selectedName);
+
+  const addOption=(parent,value,label)=>{
     const opt=document.createElement("option");
-    opt.value=name;
-    opt.textContent=name;
-    sel.appendChild(opt);
-  }
+    opt.value=value;
+    opt.textContent=label||value;
+    parent.appendChild(opt);
+  };
+
+  sel.innerHTML="";
+  const g1=document.createElement("optgroup");
+  g1.label="よく使うエリア";
+  preferred.filter(n=>townMap.has(n)).forEach(n=>addOption(g1,n));
+  sel.appendChild(g1);
+
+  const g2=document.createElement("optgroup");
+  g2.label="東区全域";
+  Array.from(townMap.keys())
+    .filter(n=>!preferred.includes(n) && n!=="その他")
+    .sort((a,b)=>a.localeCompare(b,"ja"))
+    .forEach(n=>addOption(g2,n));
+  sel.appendChild(g2);
+
+  addOption(sel,"その他","その他");
+  sel.value=selectedName;
+}
+
+function ensureAreaOption(name){
+  populateAreaSelect(name);
 }
 
 function renderMarkers(){
@@ -817,8 +858,8 @@ function openEdit(r,isNew){
   if(document.getElementById("fullAddress")) fullAddress.value=r.fullAddress||prettyAddress(r.fullAddress||r.address||"");
   if(document.getElementById("personName")) personName.value=r.personName||"";
   lat.value=r.lat||"";lng.value=r.lng||"";
-  const areaName=r.area||findTownByLatLng(r.lat,r.lng)||guessArea(r.fullAddress||r.address)||"その他";
-  ensureAreaOption(areaName);
+  const areaName=normalizeTownName(r.area||findTownByLatLng(r.lat,r.lng)||guessArea(r.fullAddress||r.address)||"")||"その他";
+  populateAreaSelect(areaName);
   area.value=areaName;
   supporter.value=r.supporter||"";household.value=r.householdType||"";contact.value=r.contactPerson||"";priority.value=r.revisitPriority||"";referrer.value=r.referrer||"";
   warning.checked=!!r.warning;warningMemo.value=r.warningMemo||"";toggleWarn();
@@ -833,7 +874,7 @@ function openGoogle(){if(editing)window.open(gmap(editing.lat,editing.lng),"_bla
 function saveRecord(){
   if(!editing)return;
   const fa=(document.getElementById("fullAddress")?fullAddress.value.trim():"") || prettyAddress(editing.fullAddress||address.value);
-  const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:area.value,status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
+  const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:normalizeTownName(area.value)||"その他",status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
   delete r.isNew;
   const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
   saveLocal(); render(); sendSheet(r); closeEdit();
