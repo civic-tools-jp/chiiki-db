@@ -166,11 +166,6 @@ textarea{min-height:80px}
     </div>
 
     <div class="section">
-      <label class="label">エリア</label>
-　    <select id="area"></select>
-    </div>
-
-    <div class="section">
       <label class="label">状態</label>
       <div id="statusGrid" class="status-grid"></div>
       <label class="label" style="margin-top:12px">支持者候補</label>
@@ -871,8 +866,6 @@ function openEdit(r,isNew){
   if(document.getElementById("personName")) personName.value=r.personName||"";
   lat.value=r.lat||"";lng.value=r.lng||"";
   const areaName=normalizeTownName(findTownByLatLng(r.lat,r.lng)||guessArea(r.fullAddress||r.address)||r.area||"その他");
-  populateAreaSelect(areaName);
-  area.value=areaName;
   supporter.value=r.supporter||"";household.value=r.householdType||"";contact.value=r.contactPerson||"";priority.value=r.revisitPriority||"";referrer.value=r.referrer||"";
   warning.checked=!!r.warning;warningMemo.value=r.warningMemo||"";toggleWarn();
   signboard.checked=!!r.signboard;poster.value=r.posterParty||"";posterMemo.value=r.posterMemo||"";
@@ -886,7 +879,7 @@ function openGoogle(){if(editing)window.open(gmap(editing.lat,editing.lng),"_bla
 function saveRecord(){
   if(!editing)return;
   const fa=(document.getElementById("fullAddress")?fullAddress.value.trim():"") || prettyAddress(editing.fullAddress||address.value);
-  const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:normalizeTownName(area.value)||"その他",status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
+  const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:normalizeTownName(findTownByLatLng(Number(lat.value),Number(lng.value))||guessArea(fa||address.value)||editing.area||"その他"),status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
   delete r.isNew;
   const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
   saveLocal(); render(); sendSheet(r); closeEdit();
