@@ -100,12 +100,6 @@ textarea{min-height:80px}
       <h1>🏘️ 地域活動DB</h1>
       <div class="sub" id="areaLabel">地図をタップして訪問先を追加</div>
     </div>
-    <div style="display:flex;gap:8px">
-      <!--<button class="btn" onclick="downloadJSON()">📤</button>
-      <button class="btn" onclick="downloadCSV()">CSV</button>
-      <button class="btn" onclick="downloadMeiboCSV()">名簿CSV</button>
-      -->
-    </div>
   </div>
 
   <div id="err" class="err"></div>
@@ -117,7 +111,7 @@ textarea{min-height:80px}
     </div>
     <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
     <div class="status" id="localStatus">端末保存：準備中</div>
-    <div class="status" id="sheetStatus">シート連携：未設定</div>
+    <div class="status" id="sheetStatus">シート同期：未設定</div>
   </div>
 
   <div class="tabs">
@@ -133,7 +127,7 @@ textarea{min-height:80px}
       <button class="btn btn-primary" onclick="searchMap()">検索</button>
     </div>
     <div class="row">
-      <button class="btn" style="flex:1" onclick="replaceFromSheet()">シート読込</button>
+      <button class="btn" style="flex:1" onclick="replaceFromSheet()">🔄 最新表示</button>
       <button class="btn" style="flex:1" onclick="fitAllPins()">地図を全体表示</button>
       <button class="btn" style="flex:1" onclick="toggleHouseholdHeatmap()">町丁目色分け</button>
     </div>
@@ -407,7 +401,7 @@ window.addEventListener("load",function(){
 function saveLocal(){
   localStorage.setItem(STORE_KEY,JSON.stringify(records));
   localStorage.setItem(SETTING_KEY,JSON.stringify(settings));
-  document.getElementById("localStatus").textContent="端末保存：完了（"+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"})+"）";
+  document.getElementById("localStatus").textContent="端末保存：完了";
 }
 function getScriptUrl(){return (FIXED_SCRIPT_URL || settings.scriptUrl || "").trim();}
 function syncTimeText(){return settings.lastSyncAt ? new Date(settings.lastSyncAt).toLocaleString("ja-JP") : "未実行";}
@@ -418,7 +412,7 @@ function updateSettingsSyncStatus(){
   if(ls)ls.textContent="最終同期："+syncTimeText();
 }
 function sheetStatus(m){
-  document.getElementById("sheetStatus").textContent="シート連携："+(getScriptUrl()?(m||"準備OK") : "未設定");
+  document.getElementById("sheetStatus").textContent="シート同期："+(getScriptUrl()?(m||"正常") : "未設定");
   updateSettingsSyncStatus();
 }
 
@@ -465,7 +459,7 @@ function render(){
   renderList();
   renderRevisit();
   renderAnalysis();
-  sheetStatus("準備OK");
+  sheetStatus("正常");
 }
 function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
@@ -476,7 +470,7 @@ function renderTop(){
 }
 function iconFor(r){
   const color=r.warning?"#8b5cf6":(STATUS[r.status]||STATUS.unvisited).color;
-  const badge=r.signboard?"看":(r.posterParty?"P":"");
+  const badge=(r.signboard||r.posterParty)?"📌":"";
   return L.divIcon({className:"",html:`<div style="position:relative;width:22px;height:22px"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:${color};border:3px solid white;box-shadow:0 3px 9px rgba(0,0,0,.32);transform:rotate(-45deg)"></div>${badge?`<div class="pin-badge">${badge}</div>`:""}</div>`,iconSize:[30,30],iconAnchor:[11,22]});
 }
 
@@ -909,7 +903,7 @@ function saveSettings(){
   settings.assignee=setAssignee.value.trim()||"未設定";
   // Google連携URLは固定URL、または既に端末保存されているURLを使用します。
   settings.passcode=(document.getElementById('setPasscode')?setPasscode.value.trim():settings.passcode)||'';
-  saveLocal();render();sheetStatus("準備OK");closeSettings();
+  saveLocal();render();sheetStatus("正常");closeSettings();
 }
 
 async function sendSheet(r){
@@ -1018,7 +1012,7 @@ async function replaceFromSheet(silent=false){
   }
 
   try{
-    sheetStatus("シート読込中");
+    sheetStatus("更新中...");
 
     const beforeCount = records.length;
     const {rawRows, converted, withLocation} = await fetchSheetRecords();
@@ -1037,7 +1031,7 @@ async function replaceFromSheet(silent=false){
       setTimeout(()=>map.invalidateSize(),100);
     }
 
-    settings.lastSyncAt=new Date().toISOString();saveLocal();sheetStatus("読込 " + records.length + "件");
+    settings.lastSyncAt=new Date().toISOString();saveLocal();sheetStatus("正常");
 
     if(!silent){
       alert(
@@ -1051,8 +1045,8 @@ async function replaceFromSheet(silent=false){
     }
 
   }catch(e){
-    sheetStatus("読込失敗");
-    err("シート読込エラー：" + e.message);
+    sheetStatus("更新失敗");
+    err("シート同期エラー：" + e.message);
     if(!silent) alert("シート読込に失敗しました。Google連携URLとApps Scriptの公開設定を確認してください。");
     render();
   }
