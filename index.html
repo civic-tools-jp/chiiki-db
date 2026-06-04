@@ -304,6 +304,29 @@ function min(t){if(!t)return null;const a=t.split(":").map(Number);return a[0]*6
 function calcDur(s,e){const a=min(s),b=min(e);if(a===null||b===null)return null;let d=b-a;if(d<0)d+=1440;return d;}
 function dtext(m){if(m===null||m===undefined||isNaN(m))return"未入力";return m<60?m+"分":Math.floor(m/60)+"時間"+(m%60?m%60+"分":"");}
 function norm(s){return String(s||"").replace(/日本/g,"").replace(/〒?\d{3}-?\d{4}/g,"").replace(/一丁目/g,"1丁目").replace(/二丁目/g,"2丁目").replace(/三丁目/g,"3丁目").replace(/四丁目/g,"4丁目").replace(/五丁目/g,"5丁目").replace(/,/g," ").replace(/、/g," ").replace(/\s+/g," ").trim();}
+function normalizeTownName(s){
+  return String(s||"")
+    .replace(/福岡県/g,"")
+    .replace(/福岡市/g,"")
+    .replace(/東区/g,"")
+    .replace(/日本/g,"")
+    .replace(/〒?\d{3}-?\d{4}/g,"")
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0xFEE0))
+    .replace(/一丁目/g,"1丁目")
+    .replace(/二丁目/g,"2丁目")
+    .replace(/三丁目/g,"3丁目")
+    .replace(/四丁目/g,"4丁目")
+    .replace(/五丁目/g,"5丁目")
+    .replace(/六丁目/g,"6丁目")
+    .replace(/七丁目/g,"7丁目")
+    .replace(/八丁目/g,"8丁目")
+    .replace(/九丁目/g,"9丁目")
+    .replace(/十丁目/g,"10丁目")
+    .replace(/,/g,"")
+    .replace(/、/g,"")
+    .replace(/\s+/g,"")
+    .trim();
+}
 function shortAddr(s){s=norm(s);const p=s.split(/\s+/).filter(Boolean);return p.find(x=>/(名島|千早|香椎浜|城浜|松崎|若宮|水谷)/.test(x))||p.slice(0,2).join(" ")||s;}
 function guessArea(s){s=norm(s);for(const a of ["名島1丁目","名島2丁目","名島3丁目","名島4丁目","名島5丁目","千早","香椎浜"]){if(s.includes(a))return a;}return settings.areaName;}
 function gmap(lat,lng){return "https://www.google.com/maps?q="+lat+","+lng;}
@@ -431,12 +454,16 @@ function fitAllPins(){
 }
 
 function getTownData(){
-  return (HIGASHIKU_TOWN_GEOJSON.features||[]).map(f=>({
-    name:f.properties?.name||"",
-    households:Number(f.properties?.households)||0,
-    population:Number(f.properties?.population)||0,
-    key:f.properties?.key||""
-  })).filter(x=>x.name);
+  return (HIGASHIKU_TOWN_GEOJSON.features||[]).map(f=>{
+    const name=f.properties?.name||"";
+    return {
+      name:name,
+      normName:normalizeTownName(name),
+      households:Number(f.properties?.households)||0,
+      population:Number(f.properties?.population)||0,
+      key:f.properties?.key||""
+    };
+  }).filter(x=>x.name);
 }
 
 function findTownByLatLng(lat,lng){
@@ -518,21 +545,21 @@ function heatColor(value, min, max){
   return "#ef4444";
 }
 
+function recordMatchesTown(r,name){
+  const target=normalizeTownName(name);
+  if(!target)return false;
+  const area=normalizeTownName(r.area||"");
+  const addr=normalizeTownName(r.address||"");
+  const full=normalizeTownName(r.fullAddress||"");
+  return area.includes(target) || target.includes(area) || addr.includes(target) || full.includes(target);
+}
+
 function visitsForTown(name){
-  name = String(name || "");
-  return records.filter(r => {
-    const area=String(r.area||""), addr=String(r.address||""), full=String(r.fullAddress||"");
-    return (area.includes(name)||addr.includes(name)||full.includes(name)) && r.status && r.status !== "unvisited";
-  }).length;
+  return records.filter(r => recordMatchesTown(r,name) && r.status && r.status !== "unvisited").length;
 }
 
 function supportersForTown(name){
-  name = String(name || "");
-  return records.filter(r => {
-    const area=String(r.area||""), addr=String(r.address||""), full=String(r.fullAddress||"");
-    const hit = area.includes(name)||addr.includes(name)||full.includes(name);
-    return hit && (r.supporter === "◎有力" || r.supporter === "○可能性あり");
-  }).length;
+  return records.filter(r => recordMatchesTown(r,name) && (r.supporter === "◎有力" || r.supporter === "○可能性あり")).length;
 }
 
 function drawHouseholdHeatmap(){
@@ -585,16 +612,17 @@ function renderRevisit(){const a=records.filter(r=>r.status==="revisit"||r.revis
 function areaProgressRows(){
   const groups={};
   records.forEach(r=>{
-    const name=String(r.area||"その他").trim()||"その他";
-    if(!groups[name])groups[name]={total:0,visited:0,supporters:0,revisit:0};
-    groups[name].total++;
-    if(r.status && r.status!=="unvisited")groups[name].visited++;
-    if(r.supporter==="◎有力" || r.supporter==="○可能性あり")groups[name].supporters++;
-    if(r.status==="revisit" || r.priority==="◎高" || r.priority==="○中")groups[name].revisit++;
+    const raw=String(r.area||"その他").trim()||"その他";
+    const key=normalizeTownName(raw)||raw;
+    if(!groups[key])groups[key]={name:raw,total:0,visited:0,supporters:0,revisit:0};
+    groups[key].total++;
+    if(r.status && r.status!=="unvisited")groups[key].visited++;
+    if(r.supporter==="◎有力" || r.supporter==="○可能性あり")groups[key].supporters++;
+    if(r.status==="revisit" || r.priority==="◎高" || r.priority==="○中")groups[key].revisit++;
   });
-  const rows=Object.entries(groups).sort((a,b)=>b[1].visited-a[1].visited || b[1].total-a[1].total);
+  const rows=Object.values(groups).sort((a,b)=>b.visited-a.visited || b.total-a.total);
   if(!rows.length)return `<div class="empty">まだ登録エリアがありません</div>`;
-  return rows.map(([name,g])=>`<div class="analysis-row"><span>${esc(name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
+  return rows.map(g=>`<div class="analysis-row"><span>${esc(g.name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
 }
 
 function renderAnalysis(){
@@ -626,7 +654,7 @@ function renderAnalysis(){
       const rate=a.households?((v/a.households)*100).toFixed(1):"0.0";
       return `<div class="analysis-row"><span>${a.name}</span><b>${v}/${a.households.toLocaleString()}件 ${rate}%</b></div>`;
     }).join("") || `<div class="empty">世帯数が入っている町丁目データがありません</div>`}
-    <div class="status">※世帯数が0の町丁目は、元データ未設定の可能性があるため非表示にしています。</div>
+    <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数が0の町丁目は、元データ未設定の可能性があるため非表示にしています。</div>
     </div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
     <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
