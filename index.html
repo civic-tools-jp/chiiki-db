@@ -257,7 +257,7 @@ textarea{min-height:80px}
 const STORE_KEY="chiiki-katsudo-db-simple-records";
 const SETTING_KEY="chiiki-katsudo-db-simple-settings";
 // Apps Scriptの固定URL。完全固定する場合は、この空文字の中に /exec までのURLを入れてください。
-const FIXED_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx13_8c49n5tleryZNbfaLqJK8Qx70jVYRMoIISOjBjJ-31pahVgJrFJLMlyJIlZvV-/exec";
+const FIXED_SCRIPT_URL="";
 const STATUS={
   unvisited:{label:"未訪問",color:"#94a3b8"},
   visited:{label:"訪問済み",color:"#3b82f6"},
@@ -275,6 +275,31 @@ let householdHeatVisible=false;
 let editing=null;
 let editStatus="unvisited";
 let selectedAnalysisTown="";
+
+// 町丁目別の世帯数・人口の補正データ。
+// GeoJSON側で0になっている町丁目は、ここを優先して表示します。
+const TOWN_STATS_OVERRIDE={
+  "名島5丁目":{households:1287,population:3244},
+  "香椎団地":{households:696,population:1463},
+  "千早1丁目":{households:1209,population:2363},
+  "千早2丁目":{households:1671,population:3381},
+  "千早3丁目":{households:374,population:701},
+  "千早4丁目":{households:2515,population:5429},
+  "千早5丁目":{households:3115,population:5765},
+  "千早6丁目":{households:805,population:1672},
+  "香椎浜1丁目":{households:1091,population:2137},
+  "香椎浜2丁目":{households:2199,population:3985},
+  "香椎浜3丁目":{households:1839,population:4151},
+  "香椎浜4丁目":{households:1778,population:4540},
+  "香椎照葉1丁目":{households:711,population:1946},
+  "香椎照葉2丁目":{households:591,population:1987},
+  "香椎照葉3丁目":{households:1361,population:3282}
+};
+
+function getTownStatsOverride(name){
+  const key=normalizeTownName(name);
+  return TOWN_STATS_OVERRIDE[key] || null;
+}
 
 
 function requireUnlock(){
@@ -471,11 +496,14 @@ function fitAllPins(){
 function getTownData(){
   return (HIGASHIKU_TOWN_GEOJSON.features||[]).map(f=>{
     const name=f.properties?.name||"";
+    const ov=getTownStatsOverride(name);
+    const households=(Number(f.properties?.households)||0) || (ov?ov.households:0);
+    const population=(Number(f.properties?.population)||0) || (ov?ov.population:0);
     return {
       name:name,
       normName:normalizeTownName(name),
-      households:Number(f.properties?.households)||0,
-      population:Number(f.properties?.population)||0,
+      households:households,
+      population:population,
       key:f.properties?.key||""
     };
   }).filter(x=>x.name);
