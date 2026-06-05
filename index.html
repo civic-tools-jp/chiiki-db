@@ -139,8 +139,22 @@ textarea{min-height:80px}
     <div id="heatmapLegend" class="heatmap-legend"><b>東区 町丁目別 色分け</b><div class="bar"></div><div>緑：少ない　黄：中　橙〜赤：多い</div><div style="margin-top:4px;color:#6b7280">※2026年4月30日町丁目別データ（東区）を使用。町丁目境界を直接塗っています。</div></div>
   </div>
 
-  <div id="view-list" class="list" style="display:none"></div>
-  <div id="view-revisit" class="list" style="display:none"></div>
+  <div id="view-list" class="list" style="display:none">
+    <div class="panel" style="margin-bottom:0">
+      <label class="label">🔍 一覧検索</label>
+      <input id="listSearch" placeholder="名前・住所・メモ・紹介者・担当者" oninput="renderListCards()">
+      <div class="status">名前、住所、メモ、紹介者、担当者、ポスター、注意メモで検索できます。</div>
+    </div>
+    <div id="listCards" class="list"></div>
+  </div>
+  <div id="view-revisit" class="list" style="display:none">
+    <div class="panel" style="margin-bottom:0">
+      <label class="label">🔍 再訪検索</label>
+      <input id="revisitSearch" placeholder="名前・住所・メモ・紹介者・担当者" oninput="renderRevisitCards()">
+      <div class="status">再訪対象の中から検索できます。</div>
+    </div>
+    <div id="revisitCards" class="list"></div>
+  </div>
   <div id="view-analysis" style="display:none"></div>
 </div>
 
@@ -809,8 +823,52 @@ function card(r){
   const b=[r.personName?"名前:"+r.personName:"",r.area,st.label,r.supporter,r.householdType,r.contactPerson,r.revisitPriority?"再訪:"+r.revisitPriority:"",r.referrer?"紹介:"+r.referrer:"",r.warning?"⚠️注意":"",r.signboard?"看板あり":"",r.posterParty?"ポスター:"+r.posterParty:"",r.assignee?"担当:"+r.assignee:""].filter(Boolean);
   return `<div class="card" style="border-left-color:${r.warning?"#8b5cf6":st.color}"><div class="card-title">${esc(r.address||"住所未設定")}</div><div class="card-sub">${esc(r.memo||r.fullAddress||"")}</div><div class="badges">${b.map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div><div class="card-actions"><button class="btn" onclick="editById('${r.id}')">編集</button><button class="btn" onclick="window.open('${gmap(r.lat,r.lng)}','_blank')">Google</button></div></div>`;
 }
-function renderList(){document.getElementById("view-list").innerHTML=records.length?records.slice().reverse().map(card).join(""):`<div class="empty">まだ記録がありません</div>`;}
-function renderRevisit(){const a=records.filter(r=>r.status==="revisit"||r.revisitPriority);document.getElementById("view-revisit").innerHTML=a.length?a.slice().reverse().map(card).join(""):`<div class="empty">再訪対象はありません</div>`;}
+function searchTextOfRecord(r){
+  return [
+    r.personName,
+    r.address,
+    r.fullAddress,
+    r.area,
+    r.memo,
+    r.warningMemo,
+    r.posterMemo,
+    r.referrer,
+    r.assignee,
+    r.updatedBy,
+    r.supporter,
+    r.householdType,
+    r.contactPerson,
+    r.revisitPriority,
+    r.posterParty,
+    r.signboard ? "看板 政治看板 ポスター" : "",
+    r.warning ? "注意 警告" : "",
+    (STATUS[r.status]||STATUS.unvisited).label
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+function filterByKeyword(arr, keyword){
+  const q=String(keyword||"").trim().toLowerCase();
+  if(!q)return arr;
+  return arr.filter(r=>searchTextOfRecord(r).includes(q));
+}
+function renderList(){renderListCards();}
+function renderListCards(){
+  const box=document.getElementById("listCards");
+  if(!box)return;
+  const input=document.getElementById("listSearch");
+  const keyword=input?input.value:"";
+  const list=filterByKeyword(records,keyword);
+  box.innerHTML=list.length?list.slice().reverse().map(card).join(""):`<div class="empty">該当する記録がありません</div>`;
+}
+function renderRevisit(){renderRevisitCards();}
+function renderRevisitCards(){
+  const box=document.getElementById("revisitCards");
+  if(!box)return;
+  const input=document.getElementById("revisitSearch");
+  const keyword=input?input.value:"";
+  const base=records.filter(r=>r.status==="revisit"||r.revisitPriority);
+  const list=filterByKeyword(base,keyword);
+  box.innerHTML=list.length?list.slice().reverse().map(card).join(""):`<div class="empty">該当する再訪対象はありません</div>`;
+}
 
 function areaProgressRows(){
   const groups={};
@@ -927,7 +985,8 @@ function renderAnalysis(){
     <div class="analysis-card"><div class="analysis-title">世帯属性</div>
     <div class="analysis-row"><span>ファミリー</span><b>${c("householdType","ファミリー")}件</b></div>
     <div class="analysis-row"><span>高齢者世帯</span><b>${c("householdType","高齢者世帯")}件</b></div>
-    <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div></div>
+    <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div>
+    <div class="analysis-row"><span>多世代同居</span><b>${c("householdType","多世代同居")}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">組織・注意</div>
     <div class="analysis-row"><span>注意件数</span><b>${records.filter(r=>r.warning).length}件</b></div>
     <div class="analysis-row"><span>政治看板・ポスター件数</span><b>${records.filter(r => r.signboard || r.posterParty).length}件</b></div></div>
