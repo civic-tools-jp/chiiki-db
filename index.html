@@ -224,7 +224,7 @@ textarea{min-height:80px}
       </div>
       <label class="label" style="margin-top:12px">閲覧パスコード</label>
       <input id="setPasscode" type="password" placeholder="例：4桁以上。共有メンバーだけに伝える">
-      <div class="lock-note">※名前・フル住所を扱うため、メンバーで同じパスコードを設定してください。</div>
+      <div class="lock-note">※名前・フル住所を扱うため、メンバーで同じパスコードを共有してください。</div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveSettings()">設定を保存</button>
       <div class="status">※アプリ起動時とパスコード解除後に自動でシート同期します。</div>
     </div>
@@ -241,7 +241,7 @@ textarea{min-height:80px}
       <label class="label">閲覧パスコード</label>
       <input id="unlockPasscode" type="password" placeholder="パスコードを入力">
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="unlockApp()">開く</button>
-      <div class="lock-note">名前や住所を扱うため、共有メンバー以外には開かせない運用にしてください。</div>
+      <div class="lock-note">名前や住所を扱うため、共有メンバー以外にはパスコードを共有しないでください。</div>
     </div>
   </div>
 </div>
@@ -250,6 +250,8 @@ textarea{min-height:80px}
 <script>
 const STORE_KEY="chiiki-katsudo-db-simple-records";
 const SETTING_KEY="chiiki-katsudo-db-simple-settings";
+// 初回アクセス用の共有パスコード。公開前に必ず変更してください。
+const DEFAULT_ACCESS_PASSCODE="1234";
 // Apps Scriptの固定URL。完全固定する場合は、この空文字の中に /exec までのURLを入れてください。
 const FIXED_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx13_8c49n5tleryZNbfaLqJK8Qx70jVYRMoIISOjBjJ-31pahVgJrFJLMlyJIlZvV-/exec";
 const STATUS={
@@ -271,24 +273,42 @@ let editStatus="unvisited";
 let selectedAnalysisTown="";
 
 
+function getRequiredPasscode(){
+  return String(settings.passcode || DEFAULT_ACCESS_PASSCODE || "").trim();
+}
+function lockAppScreen(){
+  const app=document.getElementById("app");
+  if(app) app.style.display="none";
+  const modal=document.getElementById("lockModal");
+  if(modal) modal.style.display="flex";
+}
+function showAppScreen(){
+  const app=document.getElementById("app");
+  if(app) app.style.display="block";
+  const modal=document.getElementById("lockModal");
+  if(modal) modal.style.display="none";
+  setTimeout(()=>{ if(map) map.invalidateSize(); },100);
+}
 function requireUnlock(){
-  if(!settings.passcode){
+  const required=getRequiredPasscode();
+  if(!required){
+    showAppScreen();
     return false;
   }
   if(sessionStorage.getItem("chiiki-db-unlocked") === "1"){
+    showAppScreen();
     return false;
   }
-  const modal = document.getElementById("lockModal");
-  if(modal) modal.style.display = "flex";
+  lockAppScreen();
   return true;
 }
 function unlockApp(){
   const input = document.getElementById("unlockPasscode");
   const val = input ? input.value : "";
-  if(!settings.passcode || val === settings.passcode){
+  const required=getRequiredPasscode();
+  if(required && val === required){
     sessionStorage.setItem("chiiki-db-unlocked","1");
-    const modal = document.getElementById("lockModal");
-    if(modal) modal.style.display = "none";
+    showAppScreen();
     autoSyncFromSheet();
   }else{
     alert("パスコードが違います");
