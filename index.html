@@ -127,7 +127,10 @@ textarea{min-height:80px}
       <button class="btn btn-primary" onclick="searchMap()">検索</button>
     </div>
     <div class="row">
+      <button class="btn btn-primary" style="flex:1" onclick="addCurrentLocation()">📍 現在地で登録</button>
       <button class="btn" style="flex:1" onclick="replaceFromSheet()">🔄 最新表示</button>
+    </div>
+    <div class="row">
       <button class="btn" style="flex:1" onclick="fitAllPins()">地図を全体表示</button>
       <button class="btn" style="flex:1" onclick="toggleHouseholdHeatmap()">町丁目色分け</button>
     </div>
@@ -251,7 +254,7 @@ textarea{min-height:80px}
 const STORE_KEY="chiiki-katsudo-db-simple-records";
 const SETTING_KEY="chiiki-katsudo-db-simple-settings";
 // 初回アクセス用の共有パスコード。公開前に必ず変更してください。
-const DEFAULT_ACCESS_PASSCODE="sanseito";
+const DEFAULT_ACCESS_PASSCODE="1234";
 // Apps Scriptの固定URL。完全固定する場合は、この空文字の中に /exec までのURLを入れてください。
 const FIXED_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx13_8c49n5tleryZNbfaLqJK8Qx70jVYRMoIISOjBjJ-31pahVgJrFJLMlyJIlZvV-/exec";
 const STATUS={
@@ -470,6 +473,70 @@ async function searchMap(){
     if(j&&j[0])map.setView([Number(j[0].lat),Number(j[0].lon)],17);
     else alert("見つかりませんでした");
   }catch(e){alert("検索に失敗しました");}
+}
+
+function addCurrentLocation(){
+  if(!navigator.geolocation){
+    alert("この端末では現在地を取得できません");
+    return;
+  }
+
+  sheetStatus("現在地取得中...");
+
+  navigator.geolocation.getCurrentPosition(
+    async function(pos){
+      const lat=Number(pos.coords.latitude.toFixed(6));
+      const lng=Number(pos.coords.longitude.toFixed(6));
+
+      if(!isValidMapCoord(lat,lng)){
+        sheetStatus("正常");
+        alert("現在地が福岡市周辺ではないため登録できませんでした");
+        return;
+      }
+
+      let addr=lat+", "+lng;
+
+      try{
+        const r=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lng+"&accept-language=ja");
+        const j=await r.json();
+        addr=j.display_name||addr;
+      }catch(e){}
+
+      const s=shortAddr(addr);
+      const townName=normalizeTownName(findTownByLatLng(lat,lng)||guessArea(s));
+      if(map) map.setView([lat,lng],18);
+
+      sheetStatus("正常");
+
+      openEdit({
+        id:id(),
+        lat:lat,
+        lng:lng,
+        address:s,
+        fullAddress:prettyAddress(addr),
+        area:townName,
+        status:"visited",
+        type:"戸建て",
+        date:today(),
+        startTime:now(),
+        endTime:"",
+        createdAt:new Date().toISOString()
+      },true);
+    },
+    function(error){
+      sheetStatus("正常");
+      let msg="現在地を取得できませんでした";
+      if(error && error.code===1) msg="現在地の利用が許可されていません。ブラウザの位置情報許可を確認してください";
+      if(error && error.code===2) msg="現在地を取得できませんでした。屋外で再度お試しください";
+      if(error && error.code===3) msg="現在地取得がタイムアウトしました。もう一度お試しください";
+      alert(msg);
+    },
+    {
+      enableHighAccuracy:true,
+      timeout:12000,
+      maximumAge:0
+    }
+  );
 }
 
 function render(){
