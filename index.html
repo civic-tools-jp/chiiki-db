@@ -1016,7 +1016,7 @@ function openEdit(r,isNew){
   address.value=r.address||"";
   const addressView=document.getElementById("addressView");
 　if(addressView){
-  　addressView.textContent=r.address||"";
+  　addressView.textContent=r.address ? `自動取得：${r.address}` : "";
 　}
   if(document.getElementById("fullAddress")) fullAddress.value=r.fullAddress||prettyAddress(r.fullAddress||r.address||"");
   if(document.getElementById("personName")) personName.value=r.personName||"";
