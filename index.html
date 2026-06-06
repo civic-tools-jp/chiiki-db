@@ -264,7 +264,7 @@ textarea{min-height:80px}
         <span id="settingsLastSync">最終同期：未実行</span>
       </div>
       <label class="label" style="margin-top:12px">閲覧パスコード</label>
-      <input id="setPasscode" type="password" placeholder="例：4桁以上。共有メンバーだけに伝える">
+      <input id="setPasscode" type="password" placeholder="例：4桁以上。共有メンバーだけに伝える"><div style="margin-top:8px"><label><input type="checkbox" onchange="togglePasswordVisible('setPasscode', this)"> パスコードを表示</label></div>
       <div class="lock-note">※名前・フル住所を扱うため、メンバーで同じパスコードを共有してください。</div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="saveSettings()">設定を保存</button>
       <div class="status">※アプリ起動時とパスコード解除後に自動でシート同期します。</div>
@@ -280,7 +280,7 @@ textarea{min-height:80px}
     </div>
     <div class="section">
       <label class="label">閲覧パスコード</label>
-      <input id="unlockPasscode" type="password" placeholder="パスコードを入力">
+      <input id="unlockPasscode" type="password" placeholder="パスコードを入力"><div style="margin-top:8px"><label><input type="checkbox" onchange="togglePasswordVisible('unlockPasscode', this)"> パスコードを表示</label></div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="unlockApp()">開く</button>
       <div class="lock-note">名前や住所を扱うため、共有メンバー以外にはパスコードを共有しないでください。</div>
     </div>
@@ -344,6 +344,12 @@ function requireUnlock(){
   lockAppScreen();
   return true;
 }
+function togglePasswordVisible(id, chk){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.type = chk.checked ? "text" : "password";
+}
+
 function unlockApp(){
   const input = document.getElementById("unlockPasscode");
   const val = input ? input.value : "";
