@@ -715,10 +715,11 @@ function renderTop(){
   document.getElementById("areaLabel").textContent="地図をタップして訪問先を追加｜β版";
   const total=currentWardRecords().length;
   const v=visitedCount();
+  const revisitCount = currentWardRecords().filter(r => r.status === "revisit").length;
   const g=Number(settings.goal)||100;
   const p=Math.min(100,Math.round(v/g*100));
 
-  document.getElementById("goalText").textContent="登録"+total+"件｜訪問済"+v+"件";
+  document.getElementById("goalText").textContent="登録"+total+"件｜訪問済"+v+"件｜再訪"+revisitCount+"件";
   const sub=document.getElementById("goalSubText");
   if(sub) sub.textContent="目標"+g+"件（達成率"+p+"%）";
   document.getElementById("progressFill").style.width=p+"%";
