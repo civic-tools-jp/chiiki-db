@@ -1095,8 +1095,6 @@ function renderAnalysis(){
     <div class="analysis-card"><div class="analysis-title">町丁目分析</div>
     ${townSelectHtml()}
     ${selectedTownAnalysisHtml()}
-    <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数・人口が0の場合は、町丁目マスタ未設定の可能性があります。</div>
-    </div>
     <div class="analysis-card"><div class="analysis-title">重要サマリー</div>
     ${analysisPlainRow("訪問済み", `${visited}/${settings.goal}`)}
     ${analysisGroup("支持者候補")}
