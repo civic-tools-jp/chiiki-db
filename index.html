@@ -136,7 +136,7 @@ textarea{min-height:80px}
     </div>
     <div id="map"></div>
     <div id="legend" class="legend"></div>
-    <div id="heatmapLegend" class="heatmap-legend"><b>東区 町丁目別 色分け</b><div class="bar"></div><div>緑：少ない　黄：中　橙〜赤：多い</div><div style="margin-top:4px;color:#6b7280">※2026年4月30日町丁目別データ（東区）を使用。町丁目境界を直接塗っています。</div></div>
+    <div id="heatmapLegend" class="heatmap-legend"><b>町丁目別 色分け</b><div class="bar"></div><div>緑：少ない　黄：中　橙〜赤：多い</div><div style="margin-top:4px;color:#6b7280">※町丁目境界データがある地域のみ色分けできます。</div></div>
   </div>
 
   <div id="view-list" class="list" style="display:none">
@@ -235,6 +235,9 @@ textarea{min-height:80px}
     <div class="section">
       <label class="label">目標件数</label><input id="setGoal" type="number">
       <label class="label" style="margin-top:12px">担当者名</label><input id="setAssignee">
+      <label class="label" style="margin-top:12px">活動区</label>
+      <select id="setWard"></select>
+      <div class="lock-note">※分析の町丁目は、ここで選んだ区を優先して表示します。</div>
       <div class="sync-box">
         Googleシート連携：固定URLを使用<br>
         <span id="settingsSheetStatus">接続状態：確認中</span><br>
@@ -281,7 +284,7 @@ const STATUS={
   refused:{label:"断られた",color:"#6b7280"}
 };
 let records=[];
-let settings={areaName:"名島5丁目",goal:100,assignee:"未設定",scriptUrl:"",passcode:"",lastSyncAt:""};
+let settings={areaName:"",ward:"東区",goal:100,assignee:"未設定",scriptUrl:"",passcode:"",lastSyncAt:""};
 let map=null;
 let markers={};
 let householdHeatLayer=null;
@@ -369,7 +372,70 @@ function extractWard(s){
   return m ? m[1] : "";
 }
 
-function shortAddr(s){s=norm(s);const p=s.split(/\s+/).filter(Boolean);return p.find(x=>/(名島|千早|香椎浜|城浜|松崎|若宮|水谷)/.test(x))||p.slice(0,2).join(" ")||s;}
+function getActiveWard(){
+  return settings.ward || "東区";
+}
+function isAllWard(){
+  return getActiveWard()==="全区";
+}
+function wardMatchesSetting(ward){
+  return isAllWard() || !ward || ward===getActiveWard();
+}
+function getAvailableWards(){
+  const set=new Set(["東区","博多区","中央区","南区","城南区","早良区","西区"]);
+  try{
+    Object.keys(townMaster||{}).forEach(k=>{
+      const w=(townMaster[k]||{}).ward;
+      if(w) set.add(w);
+    });
+    records.forEach(r=>{
+      const w=extractWard((r.fullAddress||"")+" "+(r.address||"")+" "+(r.area||""));
+      if(w) set.add(w);
+    });
+  }catch(e){}
+  return Array.from(set);
+}
+function updateWardSelect(){
+  const sel=document.getElementById("setWard");
+  if(!sel) return;
+  const current=getActiveWard();
+  const wards=getAvailableWards();
+  sel.innerHTML="";
+  ["全区",...wards].forEach(w=>{
+    const opt=document.createElement("option");
+    opt.value=w;
+    opt.textContent=w;
+    sel.appendChild(opt);
+  });
+  sel.value=current;
+  if(!sel.value) sel.value="東区";
+}
+function currentWardRecords(){
+  if(isAllWard()) return records;
+  return records.filter(r=>{
+    const w=extractWard((r.fullAddress||"")+" "+(r.address||"")+" "+(r.area||""));
+    return !w || w===getActiveWard();
+  });
+}
+function masterTownFromText(text){
+  const ns=normalizeTownName(text||"");
+  const ward=extractWard(text||"");
+  const data=getTownData();
+  const match=data.find(t=>{
+    const sameTown=ns.includes(t.normName) || t.normName.includes(ns);
+    const sameWard=!ward || !t.ward || t.ward===ward;
+    return sameTown && sameWard;
+  });
+  return match ? match : null;
+}
+
+function shortAddr(s){
+  s=norm(s);
+  const mt=masterTownFromText(s);
+  if(mt) return mt.town || mt.name;
+  const p=s.split(/\s+/).filter(Boolean);
+  return p.find(x=>/(名島|千早|香椎浜|城浜|松崎|若宮|水谷|美野島|博多駅|東比恵|住吉|那珂|諸岡)/.test(x))||p.slice(0,2).join(" ")||s;
+}
 function guessArea(s){
   s=norm(s);
   const data=(typeof HIGASHIKU_TOWN_GEOJSON!=="undefined" && HIGASHIKU_TOWN_GEOJSON.features)
@@ -413,17 +479,28 @@ function prettyAddress(s){
     .replace(/\s+/g," ")
     .trim();
 
-  // 町丁目を最優先で抽出。郵便番号・日本・団地名だけの余計な表示を避ける。
+  const ward = extractWard(cleaned) || (isAllWard() ? "" : getActiveWard());
+  const mt = masterTownFromText(cleaned);
+  if(mt){
+    const town = mt.town || normalizeTownName(mt.name);
+    const idx = cleaned.indexOf(town);
+    const after = idx>=0 ? cleaned.slice(idx+town.length) : "";
+    const b = after.match(/^\s*([0-9]+(?:[-−ー][0-9]+){0,2})/);
+    return "福岡市"+(mt.ward||ward||"")+town+(b?b[1]:"");
+  }
+
+  // 町丁目を最優先で抽出。町丁目マスタ未読込時の東区用フォールバック。
   const townRe = /(名島[1-5]丁目|千早[1-6]丁目|香椎浜[1-4]丁目|香椎照葉[1-7]丁目|松崎[1-4]丁目|香住ケ丘[1-7]丁目|美和台[1-7]丁目|和白丘[1-4]丁目|和白東[1-5]丁目|和白[1-6]丁目|高美台[1-4]丁目|三苫[1-8]丁目|奈多[1-3]丁目|青葉[1-7]丁目|若宮[1-5]丁目|舞松原[1-6]丁目|土井[1-4]丁目|箱崎[1-7]丁目|馬出[1-6]丁目|香椎[1-6]丁目|香椎駅前[1-3]丁目|香椎駅東[1-4]丁目|香椎台[1-5]丁目|香椎団地|城浜団地|貝塚団地|筥松[1-4]丁目|筥松新町|二又瀬|二又瀬新町|社領[1-3]丁目|多の津[1-5]丁目|松田[1-3]丁目|原田[1-4]丁目|郷口町|東浜[1-2]丁目|東浜|みなと香椎[1-3]丁目|蒲田[1-5]丁目)/;
   const m = cleaned.match(townRe);
   if(m){
     const town = m[1];
     const after = cleaned.slice(cleaned.indexOf(town)+town.length);
     const b = after.match(/^\s*([0-9]+(?:[-−ー][0-9]+){0,2})/);
-    return "福岡市東区"+town+(b?b[1]:"");
+    return "福岡市"+(ward||"東区")+town+(b?b[1]:"");
   }
 
-  if(cleaned.includes("東区")) return cleaned.replace(/福岡県/g,"").replace(/福岡市/g,"福岡市").trim();
+  const anyWard=extractWard(cleaned);
+  if(anyWard) return cleaned.replace(/福岡県/g,"").replace(/福岡市/g,"福岡市").trim();
   return cleaned;
 }
 
@@ -488,7 +565,7 @@ async function searchMap(){
   const q=document.getElementById("searchText").value.trim();
   if(!q)return;
   try{
-    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q="+encodeURIComponent("福岡市東区 "+q));
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q="+encodeURIComponent("福岡市"+(isAllWard()?"":getActiveWard()+" ")+q));
     const j=await r.json();
     if(j&&j[0])map.setView([Number(j[0].lat),Number(j[0].lon)],17);
     else alert("見つかりませんでした");
@@ -568,7 +645,7 @@ function render(){
   renderAnalysis();
   sheetStatus("正常");
 }
-function visitedCount(){return records.filter(r=>r.status&&r.status!=="unvisited").length;}
+function visitedCount(){return currentWardRecords().filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
   document.getElementById("areaLabel").textContent="地図をタップして訪問先を追加｜β版";
   const v=visitedCount(),g=Number(settings.goal)||100,p=Math.min(100,Math.round(v/g*100));
@@ -621,10 +698,12 @@ function getTownData(){
   }).filter(x=>x.town||x.name);
 
   if(masterRows.length){
-    return masterRows.sort((a,b)=>{
-      const w=(a.ward||"").localeCompare(b.ward||"","ja");
-      return w || (a.town||a.name).localeCompare(b.town||b.name,"ja");
-    });
+    return masterRows
+      .filter(t=>wardMatchesSetting(t.ward))
+      .sort((a,b)=>{
+        const w=(a.ward||"").localeCompare(b.ward||"","ja");
+        return w || (a.town||a.name).localeCompare(b.town||b.name,"ja");
+      });
   }
 
   // 町丁目マスタが未読込の時だけ、従来の東区GeoJSON内データを使う
@@ -752,7 +831,7 @@ function populateAreaSelect(selected){
   sel.appendChild(g1);
 
   const g2=document.createElement("optgroup");
-  g2.label="東区全域";
+  g2.label="全エリア";
   Array.from(townMap.keys())
     .filter(n=>!preferred.includes(n) && n!=="その他")
     .sort((a,b)=>a.localeCompare(b,"ja"))
@@ -904,7 +983,7 @@ function renderRevisitCards(){
 
 function areaProgressRows(){
   const groups={};
-  records.forEach(r=>{
+  currentWardRecords().forEach(r=>{
     const raw=String(r.area||"その他").trim()||"その他";
     const key=normalizeTownName(raw)||raw;
     if(!groups[key])groups[key]={name:raw,total:0,visited:0,supporters:0,revisit:0};
@@ -959,7 +1038,7 @@ function townSelectHtml(){
   const opts=townOptions();
   const optHtml=(list)=>list.map(t=>`<option value="${esc(t.name)}" ${t.name===current.name?"selected":""}>${townOptionLabel(t)}</option>`).join("");
   const preferredBlock=opts.preferred.length ? `<optgroup label="よく使うエリア">${optHtml(opts.preferred)}</optgroup>` : "";
-  return `<label class="label">町丁目を選択</label><select id="analysisTown" onchange="setAnalysisTown(this.value)">
+  return `<label class="label">町丁目を選択（${esc(getActiveWard())}）</label><select id="analysisTown" onchange="setAnalysisTown(this.value)">
     ${preferredBlock}
     <optgroup label="全エリア">${optHtml(opts.all)}</optgroup>
   </select>`;
@@ -969,7 +1048,7 @@ function currentAnalysisTown(){
   const optsObj=townOptions();
   const flat=[...optsObj.preferred,...optsObj.all];
   if(!flat.length)return {name:"未設定",normName:"",households:0,population:0};
-  const currentName=selectedAnalysisTown || records[0]?.area || "名島5丁目";
+  const currentName=selectedAnalysisTown || currentWardRecords()[0]?.area || "";
   const currentNorm=normalizeTownName(currentName);
   const currentWard=extractWard(currentName);
   return flat.find(t=>t.name===currentName) || flat.find(t=>{
@@ -1006,8 +1085,9 @@ function selectedTownAnalysisHtml(){
 }
 
 function renderAnalysis(){
-  const c=(f,v)=>records.filter(r=>r[f]===v).length;
-  const todayRecords=records.filter(r=>r.date===today()&&r.status!=="unvisited");
+  const scopedRecords=currentWardRecords();
+  const c=(f,v)=>scopedRecords.filter(r=>r[f]===v).length;
+  const todayRecords=scopedRecords.filter(r=>r.date===today()&&r.status!=="unvisited");
   const total=todayRecords.reduce((s,r)=>s+(Number(r.durationMinutes)||0),0);
   document.getElementById("view-analysis").innerHTML=`
     <div class="analysis-card"><div class="analysis-title">町丁目分析</div>
@@ -1023,15 +1103,15 @@ function renderAnalysis(){
     <div class="analysis-row"><span>◎有力</span><b>${c("supporter","◎有力")}件</b></div>
     <div class="analysis-row"><span>○可能性あり</span><b>${c("supporter","○可能性あり")}件</b></div>
     <div class="analysis-row"><span>再訪◎高</span><b>${c("revisitPriority","◎高")}件</b></div>
-    <div class="analysis-row"><span>紹介者あり</span><b>${records.filter(r=>r.referrer).length}件</b></div></div>
+    <div class="analysis-row"><span>紹介者あり</span><b>${scopedRecords.filter(r=>r.referrer).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">世帯属性</div>
     <div class="analysis-row"><span>ファミリー</span><b>${c("householdType","ファミリー")}件</b></div>
     <div class="analysis-row"><span>高齢者世帯</span><b>${c("householdType","高齢者世帯")}件</b></div>
     <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div>
     <div class="analysis-row"><span>多世代同居</span><b>${c("householdType","多世代同居")}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">組織・注意</div>
-    <div class="analysis-row"><span>注意件数</span><b>${records.filter(r=>r.warning).length}件</b></div>
-    <div class="analysis-row"><span>政治看板・ポスター件数</span><b>${records.filter(r => r.signboard || r.posterParty).length}件</b></div></div>
+    <div class="analysis-row"><span>注意件数</span><b>${scopedRecords.filter(r=>r.warning).length}件</b></div>
+    <div class="analysis-row"><span>政治看板・ポスター件数</span><b>${scopedRecords.filter(r => r.signboard || r.posterParty).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
     <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
     <div class="analysis-row"><span>計測時間</span><b>${dtext(total)}</b></div></div>`;
@@ -1088,7 +1168,7 @@ function areaFromSavedAddress(fullAddressValue,addressValue){
 function saveRecord(){
   if(!editing)return;
   const fa=(document.getElementById("fullAddress")?fullAddress.value.trim():"") || prettyAddress(editing.fullAddress||address.value);
-  const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:areaFromSavedAddress(fa,address.value),status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
+  const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:areaFromSavedAddress(fa,address.value),ward:extractWard(fa)||extractWard(address.value)||getActiveWard(),status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
   delete r.isNew;
   const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
   saveLocal(); render(); sendSheet(r); closeEdit();
@@ -1101,6 +1181,7 @@ function clearScriptUrl(){
 function openSettings(){
   setGoal.value=settings.goal;
   setAssignee.value=settings.assignee;
+  updateWardSelect();
   if(document.getElementById('setPasscode')) setPasscode.value=settings.passcode||'';
   updateSettingsSyncStatus();
   settingsModal.style.display="flex";
@@ -1109,6 +1190,8 @@ function closeSettings(){settingsModal.style.display="none";}
 function saveSettings(){
   settings.goal=Number(setGoal.value)||100;
   settings.assignee=setAssignee.value.trim()||"未設定";
+  if(document.getElementById("setWard")) settings.ward=setWard.value||"東区";
+  selectedAnalysisTown="";
   // Google連携URLは固定URL、または既に端末保存されているURLを使用します。
   settings.passcode=(document.getElementById('setPasscode')?setPasscode.value.trim():settings.passcode)||'';
   saveLocal();render();sheetStatus("正常");closeSettings();
@@ -1176,7 +1259,7 @@ function rowToRecord(row){
     startTime: pick(row,["訪問開始","startTime"]) || "",
     endTime: pick(row,["訪問終了","endTime"]) || "",
     durationMinutes: Number(pick(row,["滞在時間(分)","durationMinutes"]) || 0) || null,
-    area: pick(row,["エリア","area"]) || settings.areaName,
+    area: pick(row,["エリア","area"]) || areaFromSavedAddress(rawFull, rawAddress),
     address: rawAddress ? shortAddr(rawAddress) : shortAddr(rawFull),
     fullAddress: rawFull ? prettyAddress(rawFull) : "",
     status: sm[pick(row,["状態","status"])] || pick(row,["状態","status"]) || "unvisited",
@@ -1217,6 +1300,8 @@ async function fetchSheetRecords(){
       };
     });
   }
+
+  updateWardSelect();
 
   const rawRows = Array.isArray(data.rows) ? data.rows : [];
   const converted = rawRows.map(rowToRecord);
