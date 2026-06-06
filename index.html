@@ -413,10 +413,22 @@ function updateWardSelect(){
 function currentWardRecords(){
   if(isAllWard()) return records;
   return records.filter(r=>{
-    const w=extractWard((r.fullAddress||"")+" "+(r.address||"")+" "+(r.area||""));
+    const w=r.ward || extractWard((r.fullAddress||"")+" "+(r.address||"")+" "+(r.area||""));
     return !w || w===getActiveWard();
   });
 }
+function recordsForCurrentWardAndTown(townName){
+  return currentWardRecords().filter(r=>recordMatchesTown(r,townName));
+}
+
+function isRevisitTarget(r){
+  return r.status === "revisit" || r.revisitPriority === "◎高" || r.revisitPriority === "○中";
+}
+
+function isPosterOrSignboard(r){
+  return !!(r.signboard || r.posterParty);
+}
+
 function masterTownFromText(text){
   const ns=normalizeTownName(text||"");
   const ward=extractWard(text||"");
@@ -667,7 +679,7 @@ function iconFor(r){
 }
 
 function fitAllPins(){
-  const pts = records
+  const pts = currentWardRecords()
     .filter(r => isValidMapCoord(r.lat,r.lng))
     .map(r => [Number(r.lat), Number(r.lng)]);
   if(!pts.length){
@@ -792,64 +804,13 @@ function pointInPolygon(point, polygon){
   return inside;
 }
 
-function areaDisplayName(name){
-  return normalizeTownName(name||"");
-}
 
-function populateAreaSelect(selected){
-  const sel=document.getElementById("area");
-  if(!sel)return;
-  const selectedName=areaDisplayName(selected)||"その他";
-  const preferred=[
-    "名島1丁目","名島2丁目","名島3丁目","名島4丁目","名島5丁目",
-    "千早1丁目","千早2丁目","千早3丁目","千早4丁目","千早5丁目","千早6丁目",
-    "香椎浜1丁目","香椎浜2丁目","香椎浜3丁目","香椎浜4丁目",
-    "松崎1丁目","松崎2丁目","松崎3丁目","松崎4丁目"
-  ];
-  const skip=new Set(["松崎5丁目"]);
-  const townMap=new Map();
-  try{
-    getTownData().forEach(t=>{
-      const n=areaDisplayName(t.name);
-      if(n && !skip.has(n)) townMap.set(n,n);
-    });
-  }catch(e){}
-  preferred.forEach(n=>townMap.set(n,n));
-  if(selectedName && !skip.has(selectedName)) townMap.set(selectedName,selectedName);
 
-  const addOption=(parent,value,label)=>{
-    const opt=document.createElement("option");
-    opt.value=value;
-    opt.textContent=label||value;
-    parent.appendChild(opt);
-  };
-
-  sel.innerHTML="";
-  const g1=document.createElement("optgroup");
-  g1.label="よく使うエリア";
-  preferred.filter(n=>townMap.has(n)).forEach(n=>addOption(g1,n));
-  sel.appendChild(g1);
-
-  const g2=document.createElement("optgroup");
-  g2.label="全エリア";
-  Array.from(townMap.keys())
-    .filter(n=>!preferred.includes(n) && n!=="その他")
-    .sort((a,b)=>a.localeCompare(b,"ja"))
-    .forEach(n=>addOption(g2,n));
-  sel.appendChild(g2);
-
-  addOption(sel,"その他","その他");
-  sel.value=selectedName;
-}
-
-function ensureAreaOption(name){
-  populateAreaSelect(name);
-}
 
 function renderMarkers(){
   Object.values(markers).forEach(m=>map.removeLayer(m));
   markers={};
-  records.forEach(r=>{
+  currentWardRecords().forEach(r=>{
     if(!isValidMapCoord(r.lat,r.lng)) return;
     const m=L.marker([Number(r.lat),Number(r.lng)],{icon:iconFor(r)}).addTo(map);
     m.on("click",()=>openEdit({...r},false));
@@ -883,11 +844,11 @@ function recordMatchesTown(r,name){
 }
 
 function visitsForTown(name){
-  return records.filter(r => recordMatchesTown(r,name) && r.status && r.status !== "unvisited").length;
+  return recordsForCurrentWardAndTown(name).filter(r => r.status && r.status !== "unvisited").length;
 }
 
 function supportersForTown(name){
-  return records.filter(r => recordMatchesTown(r,name) && (r.supporter === "◎有力" || r.supporter === "○可能性あり")).length;
+  return recordsForCurrentWardAndTown(name).filter(r => r.supporter === "◎有力" || r.supporter === "○可能性あり").length;
 }
 
 function drawHouseholdHeatmap(){
@@ -967,7 +928,7 @@ function renderListCards(){
   if(!box)return;
   const input=document.getElementById("listSearch");
   const keyword=input?input.value:"";
-  const list=filterByKeyword(records,keyword);
+  const list=filterByKeyword(currentWardRecords(),keyword);
   box.innerHTML=list.length?list.slice().reverse().map(card).join(""):`<div class="empty">該当する記録がありません</div>`;
 }
 function renderRevisit(){renderRevisitCards();}
@@ -976,7 +937,7 @@ function renderRevisitCards(){
   if(!box)return;
   const input=document.getElementById("revisitSearch");
   const keyword=input?input.value:"";
-  const base=records.filter(r=>r.status==="revisit"||r.revisitPriority);
+  const base=currentWardRecords().filter(r=>r.status==="revisit"||r.revisitPriority);
   const list=filterByKeyword(base,keyword);
   box.innerHTML=list.length?list.slice().reverse().map(card).join(""):`<div class="empty">該当する再訪対象はありません</div>`;
 }
@@ -990,24 +951,13 @@ function areaProgressRows(){
     groups[key].total++;
     if(r.status && r.status!=="unvisited")groups[key].visited++;
     if(r.supporter==="◎有力" || r.supporter==="○可能性あり")groups[key].supporters++;
-    if(r.status==="revisit" || r.priority==="◎高" || r.priority==="○中")groups[key].revisit++;
+    if(r.status==="revisit" || r.revisitPriority==="◎高" || r.revisitPriority==="○中")groups[key].revisit++;
   });
   const rows=Object.values(groups).sort((a,b)=>b.visited-a.visited || b.total-a.total);
   if(!rows.length)return `<div class="empty">まだ登録エリアがありません</div>`;
   return rows.map(g=>`<div class="analysis-row"><span>${esc(g.name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
 }
 
-
-function preferredTownNames(){
-  const names=[];
-  const ranges=[
-    ["名島",5],["千早",6],["香椎浜",4],["松崎",4]
-  ];
-  ranges.forEach(([base,max])=>{
-    for(let i=1;i<=max;i++) names.push(base+i+"丁目");
-  });
-  return names;
-}
 
 function townOptions(){
   const data=getTownData();
@@ -1065,11 +1015,16 @@ function setAnalysisTown(name){
 
 function selectedTownAnalysisHtml(){
   const t=currentAnalysisTown();
-  const visited=visitsForTown(t.name);
-  const supporters=supportersForTown(t.name);
-  const revisit=records.filter(r=>recordMatchesTown(r,t.name) && (r.status==="revisit" || r.revisitPriority==="◎高" || r.revisitPriority==="○中")).length;
-  const all=records.filter(r=>recordMatchesTown(r,t.name)).length;
-  const absent=records.filter(r=>recordMatchesTown(r,t.name) && r.status==="absent").length;
+  const townRecords=recordsForCurrentWardAndTown(t.name);
+  const visited=townRecords.filter(r=>r.status && r.status!=="unvisited").length;
+  const all=townRecords.length;
+  const strong=townRecords.filter(r=>r.supporter==="◎有力").length;
+  const possible=townRecords.filter(r=>r.supporter==="○可能性あり").length;
+  const wait=townRecords.filter(r=>r.supporter==="△様子見").length;
+  const revisit=townRecords.filter(isRevisitTarget).length;
+  const warningCount=townRecords.filter(r=>r.warning).length;
+  const absent=townRecords.filter(r=>r.status==="absent").length;
+  const posterSignboard=townRecords.filter(isPosterOrSignboard).length;
   const rate=t.households?((visited/t.households)*100).toFixed(1):"-";
   const barWidth=t.households?Math.min(100,visited/t.households*100):0;
   return `
@@ -1079,44 +1034,56 @@ function selectedTownAnalysisHtml(){
     <div class="analysis-row"><span>訪問済</span><b>${visited}件</b></div>
     <div class="analysis-row"><span>進捗率</span><b>${rate}%</b></div>
     <div class="progress-bar" style="margin:6px 0 10px"><div class="progress-fill" style="width:${barWidth}%"></div></div>
-    <div class="analysis-row"><span>支持者候補</span><b>${supporters}件</b></div>
+    <div class="analysis-row"><span>◎有力支持者</span><b>${strong}件</b></div>
+    <div class="analysis-row"><span>○可能性あり</span><b>${possible}件</b></div>
+    <div class="analysis-row"><span>△様子見</span><b>${wait}件</b></div>
     <div class="analysis-row"><span>再訪候補</span><b>${revisit}件</b></div>
-    <div class="analysis-row"><span>不在</span><b>${absent}件</b></div>`;
+    <div class="analysis-row"><span>⚠️注意先</span><b>${warningCount}件</b></div>
+    <div class="analysis-row"><span>不在</span><b>${absent}件</b></div>
+    <div class="analysis-row"><span>政治看板・ポスター</span><b>${posterSignboard}件</b></div>`;
 }
 
 function renderAnalysis(){
   const scopedRecords=currentWardRecords();
-  const c=(f,v)=>scopedRecords.filter(r=>r[f]===v).length;
+  const count=(fn)=>scopedRecords.filter(fn).length;
+  const c=(f,v)=>count(r=>r[f]===v);
+  const visited=count(r=>r.status && r.status!=="unvisited");
+  const strong=c("supporter","◎有力");
+  const possible=c("supporter","○可能性あり");
+  const wait=c("supporter","△様子見");
+  const revisit=count(isRevisitTarget);
+  const warningCount=count(r=>r.warning);
+  const posterSignboard=count(isPosterOrSignboard);
+  const referrerCount=count(r=>r.referrer);
   const todayRecords=scopedRecords.filter(r=>r.date===today()&&r.status!=="unvisited");
   const total=todayRecords.reduce((s,r)=>s+(Number(r.durationMinutes)||0),0);
   document.getElementById("view-analysis").innerHTML=`
     <div class="analysis-card"><div class="analysis-title">町丁目分析</div>
     ${townSelectHtml()}
     ${selectedTownAnalysisHtml()}
-    <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数・人口が0の場合は、元データ未設定の可能性があります。</div>
+    <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数・人口が0の場合は、町丁目マスタ未設定の可能性があります。</div>
     </div>
+    <div class="analysis-card"><div class="analysis-title">重要サマリー</div>
+    <div class="analysis-row"><span>訪問済み</span><b>${visited}/${settings.goal}</b></div>
+    <div class="analysis-row"><span>◎有力支持者</span><b>${strong}件</b></div>
+    <div class="analysis-row"><span>○可能性あり</span><b>${possible}件</b></div>
+    <div class="analysis-row"><span>△様子見</span><b>${wait}件</b></div>
+    <div class="analysis-row"><span>再訪候補</span><b>${revisit}件</b></div>
+    <div class="analysis-row"><span>⚠️注意先</span><b>${warningCount}件</b></div>
+    <div class="analysis-row"><span>政治看板・ポスター</span><b>${posterSignboard}件</b></div>
+    <div class="analysis-row"><span>紹介者あり</span><b>${referrerCount}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">登録エリア別進捗</div>
     ${areaProgressRows()}
     </div>
-    <div class="analysis-card"><div class="analysis-title">名簿化サマリー</div>
-    <div class="analysis-row"><span>訪問済み</span><b>${visitedCount()}/${settings.goal}</b></div>
-    <div class="analysis-row"><span>◎有力</span><b>${c("supporter","◎有力")}件</b></div>
-    <div class="analysis-row"><span>○可能性あり</span><b>${c("supporter","○可能性あり")}件</b></div>
-    <div class="analysis-row"><span>再訪◎高</span><b>${c("revisitPriority","◎高")}件</b></div>
-    <div class="analysis-row"><span>紹介者あり</span><b>${scopedRecords.filter(r=>r.referrer).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">世帯属性</div>
     <div class="analysis-row"><span>ファミリー</span><b>${c("householdType","ファミリー")}件</b></div>
     <div class="analysis-row"><span>高齢者世帯</span><b>${c("householdType","高齢者世帯")}件</b></div>
     <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div>
     <div class="analysis-row"><span>多世代同居</span><b>${c("householdType","多世代同居")}件</b></div></div>
-    <div class="analysis-card"><div class="analysis-title">組織・注意</div>
-    <div class="analysis-row"><span>注意件数</span><b>${scopedRecords.filter(r=>r.warning).length}件</b></div>
-    <div class="analysis-row"><span>政治看板・ポスター件数</span><b>${scopedRecords.filter(r => r.signboard || r.posterParty).length}件</b></div></div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
     <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
     <div class="analysis-row"><span>計測時間</span><b>${dtext(total)}</b></div></div>`;
 }
-
 function showView(v){
   ["map","list","revisit","analysis"].forEach(x=>{
     document.getElementById("tab-"+x).className="tab"+(x===v?" active":"");
@@ -1136,9 +1103,9 @@ function openEdit(r,isNew){
   document.getElementById("editTitle").textContent=isNew?"新規訪問先":"訪問先編集";
   address.value=r.address||"";
   const addressView=document.getElementById("addressView");
-　if(addressView){
-  　addressView.textContent=r.address ? `自動取得：${r.address}` : "";
-　}
+  if(addressView){
+    addressView.textContent=r.address ? `自動取得：${r.address}` : "";
+  }
   if(document.getElementById("fullAddress")) fullAddress.value=r.fullAddress||prettyAddress(r.fullAddress||r.address||"");
   if(document.getElementById("personName")) personName.value=r.personName||"";
   lat.value=r.lat||"";lng.value=r.lng||"";
@@ -1175,9 +1142,6 @@ function saveRecord(){
 }
 function deleteRecord(){if(!editing)return;if(!confirm("削除しますか？"))return;records=records.filter(r=>r.id!==editing.id);saveLocal();render();closeEdit();}
 
-function clearScriptUrl(){
-  // URL欄は設定画面から削除済み。既存データ互換のため関数だけ残しています。
-}
 function openSettings(){
   setGoal.value=settings.goal;
   setAssignee.value=settings.assignee;
@@ -1214,29 +1178,6 @@ function parseNum(v){
   return isNaN(n) ? null : n;
 }
 
-function pick(row, names){
-  for(const name of names){
-    if(row[name] !== undefined && row[name] !== null && row[name] !== "") return row[name];
-  }
-  return "";
-}
-function parseNum(v){
-  if(v === undefined || v === null) return null;
-  const n = Number(String(v).replace(/[^\d.\-]/g,""));
-  return isNaN(n) ? null : n;
-}
-
-function pick(row, names){
-  for(const name of names){
-    if(row[name] !== undefined && row[name] !== null && row[name] !== "") return row[name];
-  }
-  return "";
-}
-function parseNum(v){
-  if(v === undefined || v === null) return null;
-  const n = Number(String(v).replace(/[^\d.\-]/g,""));
-  return isNaN(n) ? null : n;
-}
 function rowToRecord(row){
   const sm={"未訪問":"unvisited","訪問済み":"visited","手応えあり":"good","不在":"absent","要再訪":"revisit","断られた":"refused"};
   let latNum = parseNum(pick(row,["緯度","lat","Lat","latitude","Latitude"]));
@@ -1278,7 +1219,8 @@ function rowToRecord(row){
     memo: pick(row,["メモ","memo"]) || "",
     lat: latNum,
     lng: lngNum,
-    assignee: pick(row,["担当者","assignee"]) || ""
+    assignee: pick(row,["担当者","assignee"]) || "",
+    ward: pick(row,["区","ward"]) || extractWard(rawFull) || extractWard(rawAddress) || ""
   };
   return cleanCoordRecord(rec);
 }
@@ -1310,9 +1252,6 @@ async function fetchSheetRecords(){
 }
 
 
-async function loadSheet(){
-  await replaceFromSheet();
-}
 
 async function replaceFromSheet(silent=false){
   if(!getScriptUrl()){
@@ -1361,35 +1300,6 @@ async function replaceFromSheet(silent=false){
   }
 }
 
-async function syncAll(){
-  if(!getScriptUrl()){
-    alert("Google連携URLが未設定です。固定URLをコードに入れるか、この端末に保存済みのURLが必要です。");
-    return;
-  }
-  if(!confirm(records.length+"件をスプレッドシートへ送信しますか？")) return;
-  for(const r of records) await sendSheet(r);
-  alert("送信しました");
-}
-
-async function resyncFromSheet(){
-  await replaceFromSheet();
-}
-function downloadCSV(){
-  const headers=["ID","担当者","エリア","住所表示","フル住所","状態","対象種別","世帯属性","接触相手","再訪優先度","紹介者","訪問日","訪問開始","訪問終了","滞在時間(分)","支持者候補","注意","注意メモ","看板","ポスター","ポスターメモ","メモ","緯度","経度","GoogleマップURL"];
-  const rows=records.map(r=>[r.id,r.assignee,r.area,r.address,r.fullAddress,(STATUS[r.status]||STATUS.unvisited).label,r.type,r.householdType,r.contactPerson,r.revisitPriority,r.referrer,r.date,r.startTime,r.endTime,r.durationMinutes??"",r.supporter,r.warning?"○":"",r.warningMemo,r.signboard?"○":"",r.posterParty,r.posterMemo,r.memo,r.lat,r.lng,gmap(r.lat,r.lng)]);
-  const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>`"${String(v||"").replace(/"/g,'""')}"`).join(",")).join("\n");
-  download(csv,"chiiki-katsudo-db.csv","text/csv");
-}
-
-function downloadMeiboCSV(){
-  const headers=["ID","名前","担当者","エリア","表示住所","フル住所","状態","対象種別","世帯属性","接触相手","再訪優先度","紹介者","訪問日","訪問開始","訪問終了","滞在時間(分)","支持者候補","注意","注意メモ","看板","ポスター","ポスターメモ","メモ","緯度","経度","GoogleマップURL"];
-  const rows=records.map(r=>[r.id,r.personName||"",r.assignee,r.area,r.address,r.fullAddress,(STATUS[r.status]||STATUS.unvisited).label,r.type,r.householdType,r.contactPerson,r.revisitPriority,r.referrer,r.date,r.startTime,r.endTime,r.durationMinutes??"",r.supporter,r.warning?"○":"",r.warningMemo,r.signboard?"○":"",r.posterParty,r.posterMemo,r.memo,r.lat,r.lng,gmap(r.lat,r.lng)]);
-  const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>`"${String(v||"").replace(/"/g,'""')}"`).join(",")).join("\n");
-  download(csv,"chiiki-katsudo-db-meibo.csv","text/csv");
-}
-
-function downloadJSON(){download(JSON.stringify({settings,records},null,2),"chiiki-katsudo-db-backup.json","application/json");}
-function download(content,name,type){const b=new Blob([content],{type});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
 </script>
 </body>
 </html>
