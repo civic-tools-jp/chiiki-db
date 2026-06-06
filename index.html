@@ -958,24 +958,15 @@ function areaProgressRows(){
   return rows.map(g=>`<div class="analysis-row"><span>${esc(g.name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
 }
 
-
 function townOptions(){
-  const data=getTownData();
-  if(Object.keys(townMaster||{}).length){
-    return {preferred:[], all:data};
-  }
-  const byNorm={};
-  data.forEach(t=>{ byNorm[t.normName]=t; });
-  const used=new Set();
-  const preferred=[];
-  preferredTownNames().forEach(name=>{
-    const t=byNorm[normalizeTownName(name)];
-    if(t){ preferred.push(t); used.add(t.normName); }
-  });
-  const all=data
-    .filter(t=>!used.has(t.normName))
-    .sort((a,b)=>a.name.localeCompare(b.name,"ja"));
-  return {preferred, all};
+  const data = getTownData();
+
+  return {
+    preferred: [],
+    all: data.sort((a,b)=>
+      (a.name || "").localeCompare(b.name || "", "ja")
+    )
+  };
 }
 
 function townOptionLabel(t){
