@@ -345,7 +345,7 @@ function normalizeTownName(s){
   return String(s||"")
     .replace(/福岡県/g,"")
     .replace(/福岡市/g,"")
-    .replace(/東区/g,"")
+    .replace(/(東区|博多区|中央区|南区|城南区|早良区|西区)/g,"")
     .replace(/日本/g,"")
     .replace(/〒?\d{3}-?\d{4}/g,"")
     .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0xFEE0))
@@ -364,6 +364,11 @@ function normalizeTownName(s){
     .replace(/\s+/g,"")
     .trim();
 }
+function extractWard(s){
+  const m=String(s||"").match(/(東区|博多区|中央区|南区|城南区|早良区|西区)/);
+  return m ? m[1] : "";
+}
+
 function shortAddr(s){s=norm(s);const p=s.split(/\s+/).filter(Boolean);return p.find(x=>/(名島|千早|香椎浜|城浜|松崎|若宮|水谷)/.test(x))||p.slice(0,2).join(" ")||s;}
 function guessArea(s){
   s=norm(s);
@@ -602,6 +607,27 @@ function fitAllPins(){
 }
 
 function getTownData(){
+  const masterRows=Object.keys(townMaster||{}).map(key=>{
+    const t=townMaster[key]||{};
+    return {
+      ward:t.ward||"",
+      name:t.ward ? (t.ward+" "+t.town) : t.town,
+      town:t.town||"",
+      normName:normalizeTownName(t.town||key),
+      households:Number(t.households)||0,
+      population:Number(t.population)||0,
+      key:key
+    };
+  }).filter(x=>x.town||x.name);
+
+  if(masterRows.length){
+    return masterRows.sort((a,b)=>{
+      const w=(a.ward||"").localeCompare(b.ward||"","ja");
+      return w || (a.town||a.name).localeCompare(b.town||b.name,"ja");
+    });
+  }
+
+  // 町丁目マスタが未読込の時だけ、従来の東区GeoJSON内データを使う
   const statFix={
     "名島1丁目":{households:519,population:891},
     "名島2丁目":{households:943,population:1963},
@@ -634,7 +660,9 @@ function getTownData(){
     const normName=normalizeTownName(name);
     const fix=fixByNorm[normName]||null;
     return {
+      ward:"東区",
       name:name,
+      town:name,
       normName:normName,
       households:fix?fix.households:(Number(f.properties?.households)||0),
       population:fix?fix.population:(Number(f.properties?.population)||0),
@@ -766,6 +794,9 @@ function heatColor(value, min, max){
 function recordMatchesTown(r,name){
   const target=normalizeTownName(name);
   if(!target)return false;
+  const targetWard=extractWard(name);
+  const recordWard=extractWard((r.fullAddress||"")+" "+(r.address||"")+" "+(r.area||""));
+  if(targetWard && recordWard && targetWard!==recordWard) return false;
   const area=normalizeTownName(r.area||"");
   const addr=normalizeTownName(r.address||"");
   const full=normalizeTownName(r.fullAddress||"");
@@ -901,6 +932,9 @@ function preferredTownNames(){
 
 function townOptions(){
   const data=getTownData();
+  if(Object.keys(townMaster||{}).length){
+    return {preferred:[], all:data};
+  }
   const byNorm={};
   data.forEach(t=>{ byNorm[t.normName]=t; });
   const used=new Set();
@@ -923,10 +957,11 @@ function townSelectHtml(){
   const current=currentAnalysisTown();
   selectedAnalysisTown=current.name;
   const opts=townOptions();
-  const optHtml=(list)=>list.map(t=>`<option value="${esc(t.name)}" ${t.normName===current.normName?"selected":""}>${townOptionLabel(t)}</option>`).join("");
+  const optHtml=(list)=>list.map(t=>`<option value="${esc(t.name)}" ${t.name===current.name?"selected":""}>${townOptionLabel(t)}</option>`).join("");
+  const preferredBlock=opts.preferred.length ? `<optgroup label="よく使うエリア">${optHtml(opts.preferred)}</optgroup>` : "";
   return `<label class="label">町丁目を選択</label><select id="analysisTown" onchange="setAnalysisTown(this.value)">
-    <optgroup label="よく使うエリア">${optHtml(opts.preferred)}</optgroup>
-    <optgroup label="東区全域">${optHtml(opts.all)}</optgroup>
+    ${preferredBlock}
+    <optgroup label="全エリア">${optHtml(opts.all)}</optgroup>
   </select>`;
 }
 
@@ -934,8 +969,14 @@ function currentAnalysisTown(){
   const optsObj=townOptions();
   const flat=[...optsObj.preferred,...optsObj.all];
   if(!flat.length)return {name:"未設定",normName:"",households:0,population:0};
-  const currentNorm=normalizeTownName(selectedAnalysisTown || records[0]?.area || "名島5丁目");
-  return flat.find(t=>t.normName===currentNorm) || flat[0];
+  const currentName=selectedAnalysisTown || records[0]?.area || "名島5丁目";
+  const currentNorm=normalizeTownName(currentName);
+  const currentWard=extractWard(currentName);
+  return flat.find(t=>t.name===currentName) || flat.find(t=>{
+    const sameTown=t.normName===currentNorm;
+    const sameWard=!currentWard || !t.ward || t.ward===currentWard;
+    return sameTown && sameWard;
+  }) || flat[0];
 }
 
 function setAnalysisTown(name){
@@ -1158,9 +1199,25 @@ function rowToRecord(row){
   };
   return cleanCoordRecord(rec);
 }
-async function fetchSheetRecords(){
+async async function fetchSheetRecords(){
   const response = await fetch(getScriptUrl() + "?action=list&passcode=" + encodeURIComponent(settings.passcode||"") + "&ts=" + Date.now());
   const data = await response.json();
+
+  townMaster = {};
+  if(Array.isArray(data.townMaster)){
+    data.townMaster.forEach(t=>{
+      const ward=String(t.ward||"").trim();
+      const town=normalizeTownName(t.town||"");
+      if(!ward || !town) return;
+      townMaster[ward+"_"+town]={
+        ward,
+        town,
+        households:Number(t.households)||0,
+        population:Number(t.population)||0
+      };
+    });
+  }
+
   const rawRows = Array.isArray(data.rows) ? data.rows : [];
   const converted = rawRows.map(rowToRecord);
   const withLocation = converted.filter(x => isValidMapCoord(x.lat, x.lng));
