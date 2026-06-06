@@ -1199,7 +1199,7 @@ function rowToRecord(row){
   };
   return cleanCoordRecord(rec);
 }
-async async function fetchSheetRecords(){
+async function fetchSheetRecords(){
   const response = await fetch(getScriptUrl() + "?action=list&passcode=" + encodeURIComponent(settings.passcode||"") + "&ts=" + Date.now());
   const data = await response.json();
 
