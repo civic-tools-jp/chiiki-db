@@ -310,6 +310,7 @@ let markers={};
 let householdHeatLayer=null;
 let householdHeatVisible=false;
 let editing=null;
+let editingOriginalUpdatedAt="";
 let editStatus="unvisited";
 let selectedAnalysisTown="";
 let townMaster = {};
@@ -1139,7 +1140,9 @@ function renderStatusGrid(){
 function setEditStatus(k){editStatus=k;renderStatusGrid();}
 function editById(id){const r=records.find(x=>x.id===id);if(r)openEdit({...r},false);}
 function openEdit(r,isNew){
-  editing={...r,isNew}; editStatus=r.status||"unvisited";
+  editing={...r,isNew};
+  editingOriginalUpdatedAt = r.updatedAt || "";
+  editStatus=r.status||"unvisited";
   document.getElementById("editTitle").textContent=isNew?"新規訪問先":"訪問先編集";
   address.value=r.address||"";
   const addressView=document.getElementById("addressView");
@@ -1160,7 +1163,7 @@ function openEdit(r,isNew){
   if(modal) modal.scrollTop=0;
   },0);
 }
-function closeEdit(){editModal.style.display="none";editing=null;}
+function closeEdit(){editModal.style.display="none";editing=null;editingOriginalUpdatedAt="";}
 function toggleWarn(){warningMemo.style.display=warning.checked?"block":"none";}
 function updateDuration(){document.getElementById('duration').textContent="滞在時間："+dtext(calcDur(startTime.value,endTime.value));}
 function openGoogle(){if(editing)window.open(gmap(editing.lat,editing.lng),"_blank");}
@@ -1172,13 +1175,37 @@ function areaFromSavedAddress(fullAddressValue,addressValue){
   if(fromDisplay) return normalizeTownName(fromDisplay);
   return "";
 }
-function saveRecord(){
+async function saveRecord(){
   if(!editing)return;
+
+  // 同時編集対策：編集開始後に他の人が同じ記録を更新していたら保存を止める
+  if(!editing.isNew && getScriptUrl()){
+    try{
+      sheetStatus("最新確認中...");
+      const latestData = await fetchSheetRecords();
+      const latest = latestData.converted.find(x=>String(x.id)===String(editing.id));
+      const latestUpdatedAt = latest ? (latest.updatedAt || "") : "";
+      if(latest && latestUpdatedAt && editingOriginalUpdatedAt && latestUpdatedAt !== editingOriginalUpdatedAt){
+        records = latestData.withLocation.map(x => ({...x, lat:Number(x.lat), lng:Number(x.lng)}));
+        saveLocal();
+        render();
+        closeEdit();
+        alert("他の人が先にこの記録を更新しました。\n最新の内容を読み込みましたので、もう一度開いて編集してください。");
+        return;
+      }
+    }catch(e){
+      const ok = confirm("最新データの確認に失敗しました。\nこのまま保存すると他の人の更新を上書きする可能性があります。\n保存を続けますか？");
+      if(!ok){ sheetStatus("保存中止"); return; }
+    }
+  }
   const fa=(document.getElementById("fullAddress")?fullAddress.value.trim():"") || prettyAddress(editing.fullAddress||address.value);
   const r={...editing,address:shortAddr(address.value),fullAddress:fa,lat:Number(lat.value),lng:Number(lng.value),area:areaFromSavedAddress(fa,address.value),ward:extractWard(fa)||extractWard(address.value)||getActiveWard(),status:editStatus,supporter:supporter.value,personName:(document.getElementById("personName")?personName.value.trim():""),householdType:household.value,contactPerson:contact.value,revisitPriority:priority.value,referrer:referrer.value.trim(),warning:warning.checked,warningMemo:warningMemo.value.trim(),signboard:signboard.checked,posterParty:poster.value,posterMemo:posterMemo.value.trim(),type:type.value,memo:memo.value.trim(),date:date.value,startTime:startTime.value,endTime:endTime.value,durationMinutes:calcDur(startTime.value,endTime.value),assignee:settings.assignee,updatedBy:settings.assignee,updatedAt:new Date().toISOString()};
   delete r.isNew;
   const i=records.findIndex(x=>x.id===r.id); if(i>=0)records[i]=r; else records.push(r);
-  saveLocal(); render(); sendSheet(r); closeEdit();
+  saveLocal(); render(); await sendSheet(r); closeEdit();
+  if(getScriptUrl()){
+    setTimeout(()=>replaceFromSheet(true), 700);
+  }
 }
 function deleteRecord(){if(!editing)return;if(!confirm("削除しますか？"))return;records=records.filter(r=>r.id!==editing.id);saveLocal();render();closeEdit();}
 
@@ -1260,6 +1287,7 @@ function rowToRecord(row){
     lat: latNum,
     lng: lngNum,
     assignee: pick(row,["担当者","assignee"]) || "",
+    updatedBy: pick(row,["更新者","updatedBy"]) || "",
     ward: pick(row,["区","ward"]) || extractWard(rawFull) || extractWard(rawAddress) || ""
   };
   return cleanCoordRecord(rec);
