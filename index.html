@@ -147,6 +147,7 @@ textarea{min-height:80px}
       <button class="btn" style="box-shadow:none;padding:7px 10px" onclick="openSettings()">⚙️ 設定</button>
     </div>
     <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <div class="status" id="goalSubText">目標100件（達成率0%）</div>
     <div class="status" id="localStatus">端末保存：準備中</div>
     <div class="status" id="sheetStatus">シート同期：未設定</div>
   </div>
@@ -712,8 +713,14 @@ function render(){
 function visitedCount(){return currentWardRecords().filter(r=>r.status&&r.status!=="unvisited").length;}
 function renderTop(){
   document.getElementById("areaLabel").textContent="地図をタップして訪問先を追加｜β版";
-  const v=visitedCount(),g=Number(settings.goal)||100,total=currentWardRecords().length;
-  document.getElementById("goalText").textContent="登録"+total+"件｜訪問済"+v+"件｜目標"+g+"件";
+  const total=currentWardRecords().length;
+  const v=visitedCount();
+  const g=Number(settings.goal)||100;
+  const p=Math.min(100,Math.round(v/g*100));
+
+  document.getElementById("goalText").textContent="登録"+total+"件｜訪問済"+v+"件";
+  const sub=document.getElementById("goalSubText");
+  if(sub) sub.textContent="目標"+g+"件（達成率"+p+"%）";
   document.getElementById("progressFill").style.width=p+"%";
 }
 function iconFor(r){
