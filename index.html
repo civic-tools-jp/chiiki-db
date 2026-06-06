@@ -58,6 +58,26 @@ textarea{min-height:80px}
 .analysis-title{font-weight:900;margin-bottom:8px}
 .analysis-row{display:flex;justify-content:space-between;border-top:1px solid #eef0f2;padding:9px 0}
 .analysis-row:first-of-type{border-top:0}
+
+.analysis-group{
+  margin-top:18px;
+  padding:10px 0 6px;
+  font-size:14px;
+  font-weight:900;
+  color:#374151;
+  border-top:1px solid #e5e7eb;
+}
+.analysis-row.clickable{
+  cursor:pointer;
+}
+.analysis-row.clickable:hover{
+  background:#f9fafb;
+}
+.analysis-row.clickable span::after{
+  content:"  ＞";
+  color:#9ca3af;
+  font-size:12px;
+}
 .err{display:none;background:#fee2e2;color:#991b1b;border-radius:12px;padding:10px;font-weight:800;margin:10px 0}
 .pin-badge{position:absolute;right:-10px;top:-10px;background:transparent;border:none;box-shadow:none;font-size:16px;line-height:1;z-index:1000;}  
   @media(max-width:390px){#map{height:370px}}
@@ -958,15 +978,12 @@ function areaProgressRows(){
   return rows.map(g=>`<div class="analysis-row"><span>${esc(g.name)}</span><b>訪問${g.visited}件 / 支持候補${g.supporters}件 / 再訪${g.revisit}件</b></div>`).join("");
 }
 
-function townOptions(){
-  const data = getTownData();
 
-  return {
-    preferred: [],
-    all: data.sort((a,b)=>
-      (a.name || "").localeCompare(b.name || "", "ja")
-    )
-  };
+function townOptions(){
+  const data=getTownData().slice().sort((a,b)=>
+    (a.name || "").localeCompare(b.name || "", "ja")
+  );
+  return {preferred:[], all:data};
 }
 
 function townOptionLabel(t){
@@ -1034,6 +1051,30 @@ function selectedTownAnalysisHtml(){
     <div class="analysis-row"><span>政治看板・ポスター</span><b>${posterSignboard}件</b></div>`;
 }
 
+
+function analysisGroup(title){
+  return `<div class="analysis-group">${esc(title)}</div>`;
+}
+function analysisPlainRow(label,value){
+  return `<div class="analysis-row"><span>${esc(label)}</span><b>${value}</b></div>`;
+}
+function analysisLinkRow(label,value,keyword){
+  const k=String(keyword||"").replace(/'/g,"\\'");
+  return `<div class="analysis-row clickable" onclick="jumpToListSearch('${k}')"><span>${esc(label)}</span><b>${value}</b></div>`;
+}
+function jumpToListSearch(keyword){
+  showView('list');
+  setTimeout(()=>{
+    const input=document.getElementById('listSearch');
+    if(input){
+      input.value=keyword||'';
+    }
+    renderListCards();
+    const box=document.getElementById('view-list');
+    if(box) box.scrollIntoView({behavior:'smooth',block:'start'});
+  },0);
+}
+
 function renderAnalysis(){
   const scopedRecords=currentWardRecords();
   const count=(fn)=>scopedRecords.filter(fn).length;
@@ -1044,6 +1085,7 @@ function renderAnalysis(){
   const wait=c("supporter","△様子見");
   const revisit=count(isRevisitTarget);
   const warningCount=count(r=>r.warning);
+  const absentCount=c("status","absent");
   const posterSignboard=count(isPosterOrSignboard);
   const referrerCount=count(r=>r.referrer);
   const todayRecords=scopedRecords.filter(r=>r.date===today()&&r.status!=="unvisited");
@@ -1055,25 +1097,32 @@ function renderAnalysis(){
     <div class="status">※町丁目名は「一丁目／1丁目／１丁目」を同じものとして集計します。世帯数・人口が0の場合は、町丁目マスタ未設定の可能性があります。</div>
     </div>
     <div class="analysis-card"><div class="analysis-title">重要サマリー</div>
-    <div class="analysis-row"><span>訪問済み</span><b>${visited}/${settings.goal}</b></div>
-    <div class="analysis-row"><span>◎有力支持者</span><b>${strong}件</b></div>
-    <div class="analysis-row"><span>○可能性あり</span><b>${possible}件</b></div>
-    <div class="analysis-row"><span>△様子見</span><b>${wait}件</b></div>
-    <div class="analysis-row"><span>再訪候補</span><b>${revisit}件</b></div>
-    <div class="analysis-row"><span>⚠️注意先</span><b>${warningCount}件</b></div>
-    <div class="analysis-row"><span>政治看板・ポスター</span><b>${posterSignboard}件</b></div>
-    <div class="analysis-row"><span>紹介者あり</span><b>${referrerCount}件</b></div></div>
+    ${analysisPlainRow("訪問済み", `${visited}/${settings.goal}`)}
+    ${analysisGroup("支持者候補")}
+    ${analysisLinkRow("◎有力支持者", `${strong}件`, "◎有力")}
+    ${analysisLinkRow("○可能性あり", `${possible}件`, "○可能性あり")}
+    ${analysisLinkRow("△様子見", `${wait}件`, "△様子見")}
+    ${analysisGroup("活動管理")}
+    ${analysisLinkRow("再訪候補", `${revisit}件`, "再訪")}
+    ${analysisLinkRow("⚠️注意先", `${warningCount}件`, "注意")}
+    ${analysisLinkRow("不在", `${absentCount}件`, "不在")}
+    ${analysisGroup("地域情報")}
+    ${analysisLinkRow("政治看板・ポスター", `${posterSignboard}件`, "ポスター")}
+    ${analysisLinkRow("紹介者あり", `${referrerCount}件`, "紹介")}
+    </div>
     <div class="analysis-card"><div class="analysis-title">登録エリア別進捗</div>
     ${areaProgressRows()}
     </div>
     <div class="analysis-card"><div class="analysis-title">世帯属性</div>
-    <div class="analysis-row"><span>ファミリー</span><b>${c("householdType","ファミリー")}件</b></div>
-    <div class="analysis-row"><span>高齢者世帯</span><b>${c("householdType","高齢者世帯")}件</b></div>
-    <div class="analysis-row"><span>若い単身</span><b>${c("householdType","若い単身")}件</b></div>
-    <div class="analysis-row"><span>多世代同居</span><b>${c("householdType","多世代同居")}件</b></div></div>
+    ${analysisLinkRow("ファミリー", `${c("householdType","ファミリー")}件`, "ファミリー")}
+    ${analysisLinkRow("高齢者世帯", `${c("householdType","高齢者世帯")}件`, "高齢者世帯")}
+    ${analysisLinkRow("若い単身", `${c("householdType","若い単身")}件`, "若い単身")}
+    ${analysisLinkRow("多世代同居", `${c("householdType","多世代同居")}件`, "多世代同居")}
+    </div>
     <div class="analysis-card"><div class="analysis-title">今日の活動</div>
-    <div class="analysis-row"><span>訪問件数</span><b>${todayRecords.length}件</b></div>
-    <div class="analysis-row"><span>計測時間</span><b>${dtext(total)}</b></div></div>`;
+    ${analysisPlainRow("訪問件数", `${todayRecords.length}件`)}
+    ${analysisPlainRow("計測時間", dtext(total))}
+    </div>`;
 }
 function showView(v){
   ["map","list","revisit","analysis"].forEach(x=>{
