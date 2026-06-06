@@ -289,7 +289,7 @@ let householdHeatVisible=false;
 let editing=null;
 let editStatus="unvisited";
 let selectedAnalysisTown="";
-
+let townMaster = {};
 
 function getRequiredPasscode(){
   return String(settings.passcode || DEFAULT_ACCESS_PASSCODE || "").trim();
