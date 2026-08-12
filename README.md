@@ -1,63 +1,30 @@
-# 地上戦活動DB Ver.2（分割版）
+# アイサポ Ver.2.1
 
-HTML・CSS・JavaScript・Google Apps Scriptを分け、GitHubで管理しやすくした構成です。
+地域活動・訪問記録・名簿管理を、支部と活動エリアを分けて管理するWebアプリです。
 
-## 構成
+## データ構成
+- Users: 利用者
+- Branches: 支部
+- Areas: 活動エリア（東区・博多区・中央区など）
+- Contacts: 名簿
+- Records: 訪問履歴
+- Sessions: ログインセッション
 
-```text
-ground-campaign-db-v2/
-├── index.html
-├── assets/
-│   ├── css/styles.css
-│   └── js/
-│       ├── config.js
-│       ├── state.js
-│       ├── utils.js
-│       ├── api.js
-│       ├── auth.js
-│       ├── map.js
-│       ├── records.js
-│       ├── views.js
-│       ├── admin.js
-│       └── main.js
-├── gas/Code.gs
-└── README.md
-```
+## Ver.2から更新する場合
+1. Apps Script の Code.gs を Ver.2.1 のものへ全置換して保存
+2. 関数一覧から `upgradeV21` を1回だけ実行
+3. Areas / Contacts が作成され、Branches / Records がVer.2.1構造へ移行されます
+4. Apps Scriptを「新しいデプロイ」または「デプロイを管理」から更新
+5. 発行された `/exec` URLを `assets/js/config.js` の SCRIPT_URL に設定
+6. GitHubの `v2-dev` ブランチへVer.2.1ファイルをアップロード
 
-## 設定
+## 注意
+Contactsには氏名・住所・電話等の個人情報を保存できます。利用者権限、Googleアカウント、GitHub公開ファイルに認証情報を置かないこと、Apps Script側のアクセス制御を必ず維持してください。
 
-1. Googleスプレッドシートを作成します。
-2. Apps Scriptへ `gas/Code.gs` を貼り付けます。
-3. Apps Scriptエディタで次を一度実行します。
-
-```javascript
-setup_({
-  adminLoginId: 'admin',
-  adminPassword: '必ず強いパスワードに変更',
-  adminName: '管理者'
-});
-```
-
-4. Apps Scriptをウェブアプリとしてデプロイします。
-5. 発行された `/exec` URLを `assets/js/config.js` の `SCRIPT_URL` に設定します。
-6. フォルダ一式をGitHubへ置き、GitHub Pagesを有効にします。
-
-## GitHub運用例
-
-現在の公開版を残したまま、`v2-dev` ブランチへ入れる方法が安全です。
-
-```bash
-git checkout -b v2-dev
-git add .
-git commit -m "地上戦活動DB Ver.2を分割構成へ変更"
-git push -u origin v2-dev
-```
-
-## 権限
-
-- `member`：所属支部のデータ閲覧・登録・編集
-- `leader`：所属支部のユーザー管理
-- `prefecture_admin`：全支部閲覧・管理
-- `system_admin`：全権限
-
-氏名・住所を扱うため、公開前にダミーデータで動作確認してください。
+## Ver.2.1.1 認証拡張
+- 管理者がユーザーIDと仮パスワードを発行します。
+- 新規ユーザーは初回ログイン時にパスワード変更が必須です。
+- 本人は画面右上の「PW変更」からいつでも変更できます。
+- 管理者はユーザー一覧の「PWリセット」から仮パスワードへ戻せます。
+- 仮パスワード/新パスワードは10文字以上、英字と数字を含む必要があります。
+- 既にVer.2.1をセットアップ済みの場合、Code.gsを更新後に Apps Script で `upgradeV211` を1回だけ実行してください。
