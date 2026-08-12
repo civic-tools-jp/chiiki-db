@@ -1,0 +1,4 @@
+"use strict";
+async function loadAdmin(){try{const d=await api('adminData');branches=d.branches||[];users=d.users||[];$('newBranch').innerHTML=branches.map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');renderUsers()}catch(e){msg('appMsg',e.message)}}
+function renderUsers(){$('usersTable').innerHTML=`<table class="admin-table"><tr><th>ID</th><th>氏名</th><th>支部</th><th>権限</th><th>状態</th></tr>${users.map(u=>`<tr><td>${esc(u.loginId)}</td><td>${esc(u.name)}</td><td>${esc(u.branchName)}</td><td>${esc(u.role)}</td><td>${u.active?'有効':'停止'}</td></tr>`).join('')}</table>`}
+async function createUser(){try{await api('createUser',{user:{loginId:$('newLoginId').value.trim(),name:$('newName').value.trim(),password:$('newPassword').value,role:$('newRole').value,branchId:$('newBranch').value}});$('newLoginId').value=$('newName').value=$('newPassword').value='';await loadAdmin();alert('追加しました')}catch(e){alert(e.message)}}

@@ -1,0 +1,9 @@
+"use strict";
+async function loadRecords(){try{setBusy(true);const d=await api('listRecords');records=d.records||[];renderAll();}catch(e){if(/セッション/.test(e.message)){logout();return}msg('appMsg',e.message)}finally{setBusy(false)}}
+function setBusy(v){$('app').classList.toggle('spinner',v)}
+function isRevisit(r){return r.status==='revisit'||['○中','◎高'].includes(r.revisitPriority)}
+function renderStatus(){ $('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()">${v.label}</button>`).join('')}
+function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('type').value=r.type||'戸建て';$('date').value=r.date||today();$('memo').value=r.memo||'';editStatus=r.status||'unvisited';renderStatus();$('editModal').style.display='flex'}
+function closeEdit(){$('editModal').style.display='none';editing=null}
+async function saveRecord(){try{const rec={id:$('recordId').value,lat:Number($('lat').value),lng:Number($('lng').value),fullAddress:$('fullAddress').value.trim(),personName:$('personName').value.trim(),status:editStatus,supporter:$('supporter').value,revisitPriority:$('priority').value,type:$('type').value,date:$('date').value,memo:$('memo').value.trim(),updatedAt:editing?.updatedAt||''};await api('saveRecord',{record:rec});closeEdit();await loadRecords()}catch(e){alert(e.message)}}
+async function deleteRecord(){if(!editing?.id){closeEdit();return}if(!confirm('削除しますか？'))return;try{await api('deleteRecord',{recordId:editing.id,updatedAt:editing.updatedAt||''});closeEdit();await loadRecords()}catch(e){alert(e.message)}}

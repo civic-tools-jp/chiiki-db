@@ -1,0 +1,4 @@
+"use strict";
+async function login(){try{msg("loginMsg","");const data=await api("login",{loginId:$('loginId').value.trim(),password:$('loginPassword').value});session=data.session;localStorage.setItem("gdbv2_session",JSON.stringify(session));startApp();}catch(e){msg("loginMsg",e.message)}}
+function logout(){localStorage.removeItem("gdbv2_session");session=null;location.reload()}
+async function startApp(){if(!session)return;$('loginView').classList.add('hidden');$('app').classList.remove('hidden');$('userName').textContent=session.name;$('userRole').textContent=({member:'一般',leader:'支部管理者',prefecture_admin:'県連管理者',system_admin:'システム管理者'}[session.role]||session.role);$('branchLabel').textContent=session.branchName||'全支部';if(['leader','prefecture_admin','system_admin'].includes(session.role))$('adminTab').classList.remove('hidden');initMap();await loadRecords();if(['leader','prefecture_admin','system_admin'].includes(session.role))await loadAdmin();}
