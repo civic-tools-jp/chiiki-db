@@ -108,3 +108,6 @@
     font-size:12px!important;
   }
 }
+
+/* Ver.2.3 contact/profile */
+.contact-link-info{margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:#f1f6f1;font-size:13px;line-height:1.6}.contact-extra{margin:14px 0;padding:10px 12px;border-radius:12px;background:#f7f8f7}.contact-extra summary{font-weight:800;cursor:pointer}.contact-extra[open] summary{margin-bottom:10px}
