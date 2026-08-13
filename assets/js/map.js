@@ -128,7 +128,7 @@ function renderMarkers(){
     posters.forEach(p=>{
       const isOther=String(p.posterType||'own')==='other';
       if((isOther&&!showOtherPosters)||(!isOther&&!showOwnPosters))return;
-      if(currentAreaId&&String(p.areaId||'')!==String(currentAreaId))return;
+      if(currentAreaId&&normalizePosterAreaId(p.areaId)!==normalizePosterAreaId(currentAreaId))return;
       if(String(p.status||'')==='removed')return;
       const lat=Number(p.lat),lng=Number(p.lng);
       if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng)return;

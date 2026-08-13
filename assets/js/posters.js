@@ -21,9 +21,14 @@ async function loadPosters(){
 
 function posterStatusInfo(v){return POSTER_STATUS[v]||POSTER_STATUS.requested}
 
+function normalizePosterAreaId(v){
+  const s=String(v||'').trim(),m={area_higashi:'fukuoka_higashi',area_hakata:'fukuoka_hakata',area_chuo:'fukuoka_chuo',area_minami:'fukuoka_minami',area_jonan:'fukuoka_jonan',area_sawara:'fukuoka_sawara',area_nishi:'fukuoka_nishi'};
+  return m[s]||s;
+}
 function renderPosters(){
   const el=$('posterCards');if(!el)return;
-  const list=posters.filter(p=>!currentAreaId||String(p.areaId||'')===String(currentAreaId));
+  const target=normalizePosterAreaId(currentAreaId);
+  const list=posters.filter(p=>!target||normalizePosterAreaId(p.areaId)===target);
   const countEl=$('posterCount');if(countEl)countEl.textContent=`${list.length}件`;
   el.innerHTML=list.length?list.map(p=>{
     const other=String(p.posterType||'own')==='other';const st=other?POSTER_STATUS.observed:posterStatusInfo(p.status);
@@ -49,6 +54,10 @@ function newPoster(){
 
 function openPoster(p,isNew=false){
   editingPoster={...p,isNew};
+  const areaId=p.areaId||currentAreaId;
+  const area=areas.find(a=>String(a.areaId)===String(areaId));
+  const areaText=area?((area.city?area.city+' ':'')+area.name):'未設定';
+  if($('posterAreaDisplay'))$('posterAreaDisplay').textContent=areaText;
   $('posterId').value=p.posterId||'';
   $('posterType').value=p.posterType||'own';$('posterPartyName').value=p.partyName||'';togglePosterTypeFields();
   $('posterStatus').value=p.status||'requested';
