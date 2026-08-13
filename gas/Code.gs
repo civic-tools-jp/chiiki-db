@@ -7,7 +7,7 @@ const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy
 const POSTER_HEADERS=['posterId','branchId','areaId','posterType','partyName','status','placeName','fullAddress','lat','lng','ownerName','phone','postedAt','checkedAt','replaceNeeded','memo','createdBy','createdAt','updatedBy','updatedAt'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.8 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.9 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));case'listPosters':return json_(listPosters_(user,p));case'savePoster':return json_(savePoster_(user,p.poster||{}));case'deletePoster':return json_(deletePoster_(user,p));
@@ -269,6 +269,28 @@ function deleteRecord_(u,p){
 }
 
 
+
+function writePosterByHeader_(sh,rowNumber,item){
+  const headers=ensureHeadersByName_(sh,POSTER_HEADERS);
+  const width=headers.length;
+  let values=new Array(width).fill('');
+  if(rowNumber&&rowNumber<=sh.getLastRow()){
+    values=sh.getRange(rowNumber,1,1,width).getValues()[0];
+  }else{
+    rowNumber=sh.getLastRow()+1;
+  }
+  POSTER_HEADERS.forEach(h=>{
+    const c=headers.indexOf(h);
+    if(c>=0)values[c]=item[h]??'';
+  });
+  ['posterId','branchId','areaId','posterType','partyName','status','placeName','fullAddress','ownerName','phone','memo','createdBy','updatedBy'].forEach(h=>{
+    const c=headers.indexOf(h);
+    if(c>=0)sh.getRange(rowNumber,c+1).setNumberFormat('@');
+  });
+  sh.getRange(rowNumber,1,1,width).setValues([values]);
+  return rowNumber;
+}
+
 function listPosters_(u,p){
   const area=allowedArea_(u,p.areaId||u.areaId||'');
   if(!area)return{ok:true,posters:[]};
@@ -305,9 +327,7 @@ function savePoster_(u,p){
     createdAt:old?old.createdAt:now,
     updatedBy:u.name||u.userId,updatedAt:now
   };
-  const vals=POSTER_HEADERS.map(h=>item[h]??'');
-  if(old)sh.getRange(old._row,1,1,POSTER_HEADERS.length).setValues([vals]);
-  else sh.appendRow(vals);
+  writePosterByHeader_(sh,old?old._row:null,item);
   return{ok:true,poster:item};
 }
 function deletePoster_(u,p){
@@ -1067,7 +1087,7 @@ function upgradeV253(){
   if(!sh)throw Error('Recordsシートがありません');
   ensureHeadersByName_(sh,RECORD_HEADERS);
   const rs=rowsWithRow_(SHEETS.RECORDS);let changed=0;
-  rs.forEach(r=>{if(r.active===''||r.active==null){r.active=true;writeRecordByHeader_(sh,r._row,r);changed++;}});
+  rs.forEach(r=>{if(r.active===''||r.active==null){r.active=true;writePosterByHeader_(sh,r._row,r);changed++;}});
   return 'Ver.2.5.3移行完了：active初期化 '+changed+'件';
 }
 
@@ -1085,4 +1105,64 @@ function upgradeV257(){
   const rows=rowsWithRow_(SHEETS.POSTERS);let changed=0;
   rows.forEach(r=>{if(!r.posterType){r.posterType='own';writeRecordByHeader_(sh,r._row,r);changed++;}});
   return 'Ver.2.5.7移行完了：既存ポスターを自党ポスターとして '+changed+'件初期化';
+}
+
+
+function upgradeV259(){
+  const ss=SpreadsheetApp.getActive();
+  const sh=ss.getSheetByName(SHEETS.POSTERS);
+  if(!sh)throw Error('Postersシートがありません');
+  ensureHeadersByName_(sh,POSTER_HEADERS);
+
+  const vals=sh.getDataRange().getValues();
+  if(vals.length<2)return 'Ver.2.5.9移行完了：修復対象なし';
+  const headers=vals[0].map(String);
+  const idx=Object.fromEntries(headers.map((h,i)=>[h,i]));
+  let repaired=0;
+
+  // 2.5.7/2.5.8で旧列順のPostersシートへ新POSTER_HEADERS順で保存された行を復元。
+  // 判定：status列に own/other が入っている。
+  for(let r=1;r<vals.length;r++){
+    const row=vals[r];
+    const shiftedType=String(row[idx.status]||'');
+    if(shiftedType!=='own'&&shiftedType!=='other')continue;
+
+    const old={
+      posterId:row[idx.posterId]||'',
+      branchId:row[idx.branchId]||'',
+      areaId:row[idx.areaId]||'',
+      posterType:shiftedType,
+      partyName:row[idx.placeName]||'',
+      status:row[idx.fullAddress]||'requested',
+      placeName:row[idx.lat]||'',
+      fullAddress:row[idx.lng]||'',
+      lat:row[idx.ownerName]||'',
+      lng:row[idx.phone]||'',
+      ownerName:row[idx.postedAt]||'',
+      phone:row[idx.checkedAt]||'',
+      postedAt:row[idx.replaceNeeded]||'',
+      checkedAt:row[idx.memo]||'',
+      replaceNeeded:row[idx.createdBy]||false,
+      memo:row[idx.createdAt]||'',
+      createdBy:row[idx.updatedBy]||'',
+      createdAt:row[idx.updatedAt]||'',
+      updatedBy:row[idx.posterType]||'',
+      updatedAt:row[idx.partyName]||''
+    };
+    writePosterByHeader_(sh,r+1,old);
+    repaired++;
+  }
+
+  // posterTypeが空の正常な旧データは自党扱い
+  const rows=rowsWithRow_(SHEETS.POSTERS);
+  let initialized=0;
+  rows.forEach(p=>{
+    if(!p.posterType){
+      p.posterType='own';
+      writePosterByHeader_(sh,p._row,p);
+      initialized++;
+    }
+  });
+
+  return 'Ver.2.5.9移行完了：Posters修復 '+repaired+'件／種別初期化 '+initialized+'件';
 }

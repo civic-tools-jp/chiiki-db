@@ -24,6 +24,7 @@ function posterStatusInfo(v){return POSTER_STATUS[v]||POSTER_STATUS.requested}
 function renderPosters(){
   const el=$('posterCards');if(!el)return;
   const list=posters.filter(p=>!currentAreaId||String(p.areaId||'')===String(currentAreaId));
+  const countEl=$('posterCount');if(countEl)countEl.textContent=`${list.length}件`;
   el.innerHTML=list.length?list.map(p=>{
     const other=String(p.posterType||'own')==='other';const st=other?POSTER_STATUS.observed:posterStatusInfo(p.status);
     return `<div class="card poster-card" onclick='openPoster(${JSON.stringify(p).replace(/'/g,"&#39;")},false)'>
@@ -37,6 +38,7 @@ function renderPosters(){
         ${p.checkedAt?`<span class="badge">確認 ${esc(formatShortDate(p.checkedAt))}</span>`:''}
       </div>
       ${p.memo?`<div class="card-sub">${esc(p.memo)}</div>`:''}
+      <div class="poster-card-actions"><button class="btn small" onclick="event.stopPropagation();openPoster(${JSON.stringify(p).replace(/'/g,"&#39;")},false)">編集</button></div>
     </div>`;
   }).join(''):'<div class="panel notice">この活動エリアのポスター情報はまだありません。</div>';
 }

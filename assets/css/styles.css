@@ -321,3 +321,6 @@
 .poster-map-pin{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid #2d743e;font-size:20px;box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .poster-card{border-left:8px solid #2d743e}
 .poster-toolbar{padding:12px}
+
+.poster-toolbar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.poster-card-actions{display:flex;justify-content:flex-end;margin-top:10px}

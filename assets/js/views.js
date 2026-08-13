@@ -166,4 +166,4 @@ function renderAnalysis(){
       <div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div>
     </div>`;
 }
-function showView(v){['map','list','posters','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='analysis')renderAnalysis();if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}
+function showView(v){['map','list','posters','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='posters'&&typeof loadPosters==='function')loadPosters();if(v==='analysis')renderAnalysis();if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}
