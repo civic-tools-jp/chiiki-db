@@ -111,3 +111,98 @@
 
 /* Ver.2.3 contact/profile */
 .contact-link-info{margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:#f1f6f1;font-size:13px;line-height:1.6}.contact-extra{margin:14px 0;padding:10px 12px;border-radius:12px;background:#f7f8f7}.contact-extra summary{font-weight:800;cursor:pointer}.contact-extra[open] summary{margin-bottom:10px}
+
+/* Ver.2.3.1 */
+.map-command-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto auto;
+  gap:7px;
+  align-items:center;
+  margin-bottom:7px;
+}
+.map-command-row input{min-width:0;padding:10px 11px}
+.search-mini,.map-mini{
+  width:auto!important;
+  min-width:0!important;
+  min-height:38px!important;
+  height:38px!important;
+  padding:5px 11px!important;
+  font-size:12px!important;
+  border-radius:10px!important;
+  white-space:nowrap;
+}
+.search-mini{min-width:58px!important}
+
+.map-priority{align-items:flex-start!important}
+.map-legend-inline{
+  display:flex;
+  gap:5px 9px;
+  flex-wrap:wrap;
+  font-size:10px;
+  font-weight:800;
+  color:#374151;
+}
+.map-legend-inline .gray{color:#94a3b8}
+.map-legend-inline .blue{color:#3b82f6}
+.map-legend-inline .green{color:#22c55e}
+.map-legend-inline .orange{color:#f59e0b}
+.map-legend-inline .red{color:#ef4444}
+
+.list-check-filters{
+  display:flex;
+  gap:8px 12px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.list-check-filters label{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.list-check-filters input{width:auto;margin:0}
+
+.pin-warning{
+  position:absolute;
+  left:-11px;
+  top:-11px;
+  font-size:14px;
+  filter:drop-shadow(0 1px 1px #fff);
+}
+.warning-box{
+  margin:12px 0;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#fff8e8;
+  border:1px solid #f6d98a;
+}
+.warning-check{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-weight:900;
+}
+.warning-check input{width:auto;margin:0}
+.warning-badge{
+  display:inline-block;
+  margin-left:6px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#fff3cd;
+  color:#8a5a00;
+  font-size:11px;
+  vertical-align:middle;
+}
+.warning-soft{background:#fff3cd!important;color:#8a5a00!important}
+
+@media(max-width:520px){
+  .map-command-row{
+    grid-template-columns:minmax(0,1fr) auto auto;
+  }
+  .map-command-row .map-mini:last-child{
+    display:none;
+  }
+  .map-legend-inline{width:100%}
+}
