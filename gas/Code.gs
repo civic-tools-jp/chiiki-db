@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.8 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.9 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -214,6 +214,8 @@ function saveRecord_(u,r){
   for(const [key,val] of checks){
     if(key==='warning'||key==='signboard'){
       if(bool_(saved[key])!==bool_(val))throw Error('保存確認に失敗しました: '+key);
+    }else if(key==='date'){
+      if(dateKey_(saved[key])!==dateKey_(val))throw Error('保存確認に失敗しました: '+key);
     }else if(String(saved[key]??'')!==String(val??'')){
       throw Error('保存確認に失敗しました: '+key);
     }
@@ -338,6 +340,19 @@ function canAccessBranch_(u,branchId){return isGlobal_(u)||String(branchId)===St
 function canAccessRecord_(u,r){return canAccessAreaId_(u,r.areaId);}
 
 function bool_(v){return v===true||v===1||String(v||'').toLowerCase()==='true';}
+function dateKey_(v){
+  if(v===null||v===undefined||v==='')return '';
+  if(Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v)){
+    return Utilities.formatDate(v,Session.getScriptTimeZone()||'Asia/Tokyo','yyyy-MM-dd');
+  }
+  const s=String(v).trim();
+  const m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+  const d=new Date(s);
+  if(!isNaN(d))return Utilities.formatDate(d,Session.getScriptTimeZone()||'Asia/Tokyo','yyyy-MM-dd');
+  return s;
+}
+
 
 function ensureHeadersByName_(sh,requiredHeaders){
   if(sh.getLastRow()===0){
