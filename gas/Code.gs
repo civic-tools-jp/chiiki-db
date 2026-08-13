@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy','inactiveReason','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.3 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.4 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -174,8 +174,10 @@ function saveRecord_(u,r){
 
   const oldMemberType=normalizeMemberType_(old?.memberType||r.memberType||'general');
   const protectedMember=u.role==='member'&&old&&['party_member','supporter'].includes(oldMemberType);
+  const importedMember=protectedMember&&String(old.source||'')==='import';
   const oldLocationConfirmed=protectedMember&&Number(old.lat)&&Number(old.lng);
   if(protectedMember){
+    if(importedMember&&String(r.personName||'').trim()!==String(old.personName||'').trim())throw Error('名簿から取り込んだ氏名は変更できません。修正は管理者に依頼してください');
     if(String(r.phone||'')!==String(old.phone||''))throw Error('党員・サポーターの電話番号は閲覧のみです。修正は管理者に依頼してください');
     if(oldLocationConfirmed&&String(r.fullAddress||'').trim()!==String(old.fullAddress||'').trim())throw Error('位置確認済みの住所は変更できません。修正は管理者に依頼してください');
     if(normalizeMemberType_(r.memberType)!==oldMemberType)throw Error('党員・サポーターの区分変更は管理者のみ可能です');
@@ -211,7 +213,7 @@ function saveRecord_(u,r){
     area:r.area||old?.area||'',
     address:r.address||old?.address||'',
     fullAddress:r.fullAddress,
-    personName:r.personName||'',
+    personName:importedMember?old.personName:(r.personName||''),
     phone:protectedMember?old.phone:(r.phone||''),
     email:protectedMember?old.email:(r.email||''),
     status:r.status||'unvisited',

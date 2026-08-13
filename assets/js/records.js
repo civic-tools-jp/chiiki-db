@@ -28,21 +28,24 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
     deleteBtn.title=imported?'元データは削除せず、通常表示から外します':'';
   }
   const protectedMember=session?.role==='member'&&!isNew&&['party_member','supporter'].includes(String(r.memberType||''));
+  const importedMember=protectedMember&&String(r.source||'')==='import';
   const locationConfirmed=protectedMember&&r.locationConfirmed===true;
 
+  $('personName').readOnly=importedMember;
   $('recordPhone').readOnly=protectedMember;
   $('recordMemberType').disabled=protectedMember;
   $('fullAddress').readOnly=locationConfirmed;
 
   if(protectedMember){
     $('recordPhone').title='電話番号は閲覧のみです。修正は管理者に依頼してください';
+    $('personName').title=importedMember?'名簿から取り込んだ氏名は閲覧のみです。修正は管理者に依頼してください':'';
     if(locationConfirmed){
       $('fullAddress').title='位置確認済みの住所です。修正は管理者に依頼してください';
     }else{
       $('fullAddress').title='位置未確認のため住所を修正できます';
     }
   }else{
-    $('recordPhone').title='';$('fullAddress').title='';
+    $('recordPhone').title='';$('personName').title='';$('fullAddress').title='';
   }
 
   const addrTools=document.querySelector('.address-tools');
