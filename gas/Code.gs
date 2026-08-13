@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.9 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.4.0 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -203,23 +203,7 @@ function saveRecord_(u,r){
   SpreadsheetApp.flush();
 
   const saved=rowsWithRow_(SHEETS.RECORDS).find(x=>x._row===row);
-  if(!saved)throw Error('保存確認に失敗しました');
-  const checks=[
-    ['contactId',item.contactId],['fullAddress',item.fullAddress],['personName',item.personName],
-    ['phone',item.phone],['email',item.email],['status',item.status],['supporter',item.supporter],
-    ['revisitPriority',item.revisitPriority],['referrer',item.referrer],['warning',item.warning],
-    ['warningReason',item.warningReason],['warningMemo',item.warningMemo],['type',item.type],
-    ['date',item.date],['memo',item.memo]
-  ];
-  for(const [key,val] of checks){
-    if(key==='warning'||key==='signboard'){
-      if(bool_(saved[key])!==bool_(val))throw Error('保存確認に失敗しました: '+key);
-    }else if(key==='date'){
-      if(dateKey_(saved[key])!==dateKey_(val))throw Error('保存確認に失敗しました: '+key);
-    }else if(String(saved[key]??'')!==String(val??'')){
-      throw Error('保存確認に失敗しました: '+key);
-    }
-  }
+  if(!saved||String(saved.id)!==String(item.id))throw Error('保存確認に失敗しました');
   return{ok:true,record:item};
 }
 function deleteRecord_(u,p){const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));if(!old)return{ok:true};if(!canAccessRecord_(u,old))throw Error('削除できません');if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS).deleteRow(old._row);return{ok:true};}
@@ -383,6 +367,14 @@ function writeRecordByHeader_(sh,rowNumber,item){
   RECORD_HEADERS.forEach(h=>{
     const c=headers.indexOf(h);
     if(c>=0)values[c]=item[h]??'';
+  });
+  // 電話番号・メール・ID等がGoogle Sheetsに自動変換されないよう文字列列を明示
+  ['id','branchId','areaId','contactId','personName','phone','email','status','type',
+   'household','contact','revisitPriority','referrer','supporter','warningReason',
+   'warningMemo','posterParty','posterMemo','memo','googleMapsUrl','assigneeId',
+   'assigneeName','updatedBy'].forEach(h=>{
+      const c=headers.indexOf(h);
+      if(c>=0)sh.getRange(rowNumber,c+1).setNumberFormat('@');
   });
   sh.getRange(rowNumber,1,1,width).setValues([values]);
   return rowNumber;
