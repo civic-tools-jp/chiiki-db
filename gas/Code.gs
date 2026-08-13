@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.4.2 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.4.3 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -208,13 +208,34 @@ function saveRecord_(u,r){
 }
 function deleteRecord_(u,p){const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));if(!old)return{ok:true};if(!canAccessRecord_(u,old))throw Error('削除できません');if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS).deleteRow(old._row);return{ok:true};}
 
-function listContacts_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,contacts:[]};const all=rows_(SHEETS.CONTACTS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,contacts:all};}
+function maskContactAddress_(v){
+  const s=String(v||'').trim();
+  if(!s)return'';
+  const m=s.match(/^(.*?\d+丁目)/);
+  if(m)return m[1];
+  const n=s.search(/[0-9０-９]/);
+  return n>0?s.slice(0,n):s;
+}
+function restrictedContactForMember_(c){
+  const x=Object.assign({},c);
+  x.fullAddress=maskContactAddress_(x.fullAddress);
+  x.partyId='';x.phone='';x.email='';x.postalCode='';x.birthDate='';x.gender='';x.occupation='';x.approvedAt='';x.joinReason='';x.lat='';x.lng='';x.referrer='';x.memo='';
+  x.restricted=true;
+  return x;
+}
+function listContacts_(u,p){
+  const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,contacts:[]};
+  let all=rows_(SHEETS.CONTACTS).filter(r=>String(r.areaId)===String(area.areaId));
+  if(u.role==='member')all=all.map(c=>['party_member','supporter'].includes(normalizeMemberType_(c.memberType))?restrictedContactForMember_(c):c);
+  return{ok:true,contacts:all};
+}
 function saveContact_(u,c){
   if(!c.name&&!c.lastName&&!c.firstName)throw Error('氏名・呼び名を入力してください');
   const area=allowedArea_(u,c.areaId||u.areaId||'');if(!area)throw Error('活動エリアを選択してください');
   const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS),all=rowsWithRow_(SHEETS.CONTACTS);
   let old=all.find(x=>String(x.contactId)===String(c.contactId));
   if(old&&!canAccessAreaId_(u,old.areaId))throw Error('この名簿は編集できません');
+  if(old&&u.role==='member'&&['party_member','supporter'].includes(normalizeMemberType_(old.memberType)))throw Error('党員・サポーター名簿の編集は管理者のみ可能です');
   if(old&&c.updatedAt&&String(old.updatedAt)!==String(c.updatedAt))throw Error('他の利用者が先に更新しました');
   const now=now_();
   const lastName=String(c.lastName||'').trim(),firstName=String(c.firstName||'').trim();

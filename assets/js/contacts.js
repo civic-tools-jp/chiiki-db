@@ -1,17 +1,35 @@
 "use strict";
 const MEMBER_LABELS={party_member:'⭐ 党員',supporter:'🟠 サポーター',general:'一般',unknown:'未設定'};
 const MEMBER_RANK={party_member:0,supporter:1,general:2,unknown:3,'':3};
+let contactListExpanded=false;
 async function loadContacts(){try{const d=await api('listContacts',{areaId:currentAreaId});contacts=d.contacts||[];renderContacts();renderContactSelect();if(map)renderMarkers();}catch(e){msg('appMsg',e.message)}}
 function memberTypeLabel(v){return MEMBER_LABELS[v]||MEMBER_LABELS.unknown}
+function contactSearchChanged(){
+  const q=($('contactSearch')?.value||'').trim();
+  if(q)contactListExpanded=true;
+  renderContacts();
+}
+function toggleContactList(){contactListExpanded=!contactListExpanded;renderContacts()}
 function renderContacts(){
   const q=($('contactSearch')?.value||'').toLowerCase();
   const list=contacts.filter(c=>JSON.stringify(c).toLowerCase().includes(q)).sort((a,b)=>(MEMBER_RANK[a.memberType]??3)-(MEMBER_RANK[b.memberType]??3)||String(a.name||'').localeCompare(String(b.name||''),'ja'));
-  $('contactCards').innerHTML=list.length?list.map(c=>`<div class="card" onclick='openContact(${JSON.stringify(c).replace(/'/g,"&#39;")})'>
-    <div class="card-title">${esc(memberTypeLabel(c.memberType))} ${esc(c.name)}</div>
-    <div class="card-sub">${esc(c.fullAddress||'')}</div>
-    <div class="badges">${c.partyId?`<span class="badge">ID ${esc(c.partyId)}</span>`:''}${c.sourceBranch?`<span class="badge">${esc(c.sourceBranch)}</span>`:''}${c.branchParticipation?`<span class="badge">支部参加 ${esc(c.branchParticipation)}</span>`:''}</div>
-    ${c.phone?`<div class="card-sub">☎ ${esc(c.phone)}</div>`:''}${c.email?`<div class="card-sub">✉ ${esc(c.email)}</div>`:''}
-  </div>`).join(''):'<div class="panel notice">名簿はまだありません。</div>'
+  const cards=$('contactCards'),btn=$('toggleContactListBtn'),count=$('contactCount');
+  if(count)count.textContent=`${contacts.length}件`;
+  const show=contactListExpanded||!!q;
+  if(cards)cards.classList.toggle('hidden',!show);
+  if(btn)btn.textContent=show?'名簿一覧を閉じる':'名簿一覧を表示';
+  if(!cards)return;
+  cards.innerHTML=list.length?list.map(c=>{
+    const restricted=!!c.restricted;
+    const click=restricted?'':`onclick='openContact(${JSON.stringify(c).replace(/'/g,"&#39;")})'`;
+    return `<div class="card ${restricted?'restricted-contact':''}" ${click}>
+      <div class="card-title">${esc(memberTypeLabel(c.memberType))} ${esc(c.name)}</div>
+      <div class="card-sub">${esc(c.fullAddress||'')}</div>
+      <div class="badges">${c.partyId?`<span class="badge">ID ${esc(c.partyId)}</span>`:''}${c.sourceBranch?`<span class="badge">${esc(c.sourceBranch)}</span>`:''}${c.branchParticipation?`<span class="badge">支部参加 ${esc(c.branchParticipation)}</span>`:''}</div>
+      ${c.phone?`<div class="card-sub">☎ ${esc(c.phone)}</div>`:''}${c.email?`<div class="card-sub">✉ ${esc(c.email)}</div>`:''}
+      ${restricted?'<div class="privacy-note">🔒 正確な住所・連絡先は管理者のみ表示</div>':''}
+    </div>`;
+  }).join(''):'<div class="panel notice">名簿はまだありません。</div>'
 }
 function newContact(){openContact({areaId:currentAreaId,name:'',lastName:'',firstName:'',lastNameKana:'',firstNameKana:'',partyId:'',postalCode:'',fullAddress:'',phone:'',email:'',memberType:'unknown',birthDate:'',gender:'',occupation:'',approvedAt:'',branchParticipation:'',joinReason:'',sourceBranch:'',lat:'',lng:'',referrer:'',supporter:'',memo:''})}
 function openContact(c){
@@ -55,4 +73,4 @@ function normalizeImportRow(row,forced){
     referrer:String(headerValue(row,['紹介者','紹介元'])||'').trim(),memo:String(headerValue(row,['メモ','備考','摘要'])||'').trim()
   };
 }
-async function importContactsFile(){const file=$('contactImportFile').files[0];if(!file){alert('ExcelまたはCSVを選んでください');return}if(!currentAreaId){alert('取込先の活動エリアを選んでください');return}try{$('importResult').textContent='読み込み中...';const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});const forced=$('importMemberType').value;const normalized=raw.map(r=>normalizeImportRow(r,forced)).filter(r=>r.name||r.fullAddress);if(!normalized.length)throw Error('氏名または住所のある行が見つかりません');let added=0,skipped=0,unmatched=0,geocoded=0,geocodeFailed=0;for(let i=0;i<normalized.length;i+=200){const d=await api('importContacts',{areaId:currentAreaId,contacts:normalized.slice(i,i+200)});added+=Number(d.added||0);skipped+=Number(d.skipped||0);unmatched+=Number(d.unmatched||0);geocoded+=Number(d.geocoded||0);geocodeFailed+=Number(d.geocodeFailed||0)}$('importResult').textContent=`取込完了：${added}件追加／地図位置取得 ${geocoded}件／位置取得失敗 ${geocodeFailed}件／エリア未登録・判定不可 ${unmatched}件／重複等 ${skipped}件`;await loadContacts();}catch(e){$('importResult').textContent='エラー：'+e.message}}
+async function importContactsFile(){const file=$('contactImportFile').files[0];if(!file){alert('ExcelまたはCSVを選んでください');return}if(!currentAreaId){alert('取込先の活動エリアを選んでください');return}try{$('importResult').textContent='読み込み中...';const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});const forced=$('importMemberType').value;const normalized=raw.map(r=>normalizeImportRow(r,forced)).filter(r=>r.name||r.fullAddress);if(!normalized.length)throw Error('氏名または住所のある行が見つかりません');let added=0,skipped=0,unmatched=0,geocoded=0,geocodeFailed=0;for(let i=0;i<normalized.length;i+=200){const d=await api('importContacts',{areaId:currentAreaId,contacts:normalized.slice(i,i+200)});added+=Number(d.added||0);skipped+=Number(d.skipped||0);unmatched+=Number(d.unmatched||0);geocoded+=Number(d.geocoded||0);geocodeFailed+=Number(d.geocodeFailed||0)}$('importResult').textContent=`取込完了：${added}件追加／地図位置取得 ${geocoded}件／位置取得失敗 ${geocodeFailed}件（名簿登録は継続）／エリア未登録・判定不可 ${unmatched}件／重複等 ${skipped}件`;contactListExpanded=false;await loadContacts();}catch(e){$('importResult').textContent='エラー：'+e.message}}
