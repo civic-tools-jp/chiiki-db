@@ -15,3 +15,37 @@ window.addEventListener('load',()=>{if(session)startApp()});
     timer=setTimeout(()=>tip.classList.remove('show'),1800);
   },true);
 })();
+
+
+function toggleMobileLegend(){
+  const box=document.getElementById('mobileMapLegend');
+  if(box) box.classList.toggle('hidden');
+}
+function syncMobileMapMeta(){
+  const src=document.querySelector('.map-legend-inline');
+  const dst=document.getElementById('mobileMapLegend');
+  if(src&&dst) dst.innerHTML=src.innerHTML;
+  const countText=(document.querySelector('.map-result-count')?.textContent||'').match(/\d+/);
+  const count=countText?countText[0]:'0';
+  const val=document.getElementById('mobileMapCountValue');
+  if(val) val.textContent=count;
+}
+function syncMobileUser(){
+  const out=document.getElementById('mobileUserName');
+  if(!out)return;
+  const candidates=[
+    document.querySelector('.user-meta b'),
+    document.querySelector('.user-menu b'),
+    document.querySelector('#userName')
+  ];
+  const src=candidates.find(Boolean);
+  if(src && src.textContent.trim()) out.textContent=src.textContent.trim();
+}
+(function initV275Observers(){
+  const boot=()=>{syncMobileMapMeta();syncMobileUser();};
+  document.addEventListener('DOMContentLoaded',boot);
+  setTimeout(boot,400);
+  setTimeout(boot,1200);
+  const mo=new MutationObserver(()=>{syncMobileMapMeta();syncMobileUser();});
+  mo.observe(document.body,{subtree:true,childList:true,characterData:true});
+})();

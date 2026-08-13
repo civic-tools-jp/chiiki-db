@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.7.4</title>
+<title>あいサポ Ver.2.7.5</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.7.4">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.7.5">
 </head>
 <body>
 <div id="loginView" class="login-shell">
@@ -24,7 +24,7 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.7.4</div>
+    <div class="version-note">Ver.2.7.5</div>
   </div>
 </div>
 
@@ -62,7 +62,7 @@
     <section id="view-map" class="view-section">
       <div class="map-layout">
         <div class="map-card">
-          <div class="section-heading"><div class="heading-icon orange"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg></div><div><h2>地図</h2><p>訪問先を地図で確認・登録できます</p></div></div>
+          <div class="section-heading map-heading"><div class="heading-icon orange"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg></div><div><h2>地図</h2><p>訪問先を地図で確認・登録できます</p></div></div>
           <div class="map-search-row">
             <div class="search-box"><span>⌕</span><input id="searchText" placeholder="住所・名称で検索"></div>
             <button class="btn filter-btn has-tip" data-tip="地図に表示する訪問先を条件で絞り込みます" onclick="toggleMapFilters()">⚙ 絞り込み</button>
@@ -95,7 +95,12 @@
               <div id="mapResultCount" class="map-result-count">該当 0件</div>
             </div>
           </div>
-          <div id="map"></div>
+          <div class="mobile-map-meta">
+      <button type="button" class="map-legend-toggle" onclick="toggleMobileLegend()">地図の見方 <span aria-hidden="true">›</span></button>
+      <strong id="mobileMapCount">表示 <span id="mobileMapCountValue">0</span>件</strong>
+    </div>
+    <div id="mobileMapLegend" class="mobile-map-legend hidden"></div>
+    <div id="map"></div>
         </div>
         <aside class="map-side">
           <div class="quick-card">
@@ -280,5 +285,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.7.4"></script><script src="assets/js/state.js?v=2.7.4"></script><script src="assets/js/utils.js?v=2.7.4"></script><script src="assets/js/api.js?v=2.7.4"></script><script src="assets/js/auth.js?v=2.7.4"></script><script src="assets/js/map.js?v=2.7.4"></script><script src="assets/js/records.js?v=2.7.4"></script><script src="assets/js/contacts.js?v=2.7.4"></script><script src="assets/js/views.js?v=2.7.4"></script><script src="assets/js/admin.js?v=2.7.4"></script><script src="assets/js/main.js?v=2.7.4"></script>
+<script src="assets/js/config.js?v=2.7.5"></script><script src="assets/js/state.js?v=2.7.5"></script><script src="assets/js/utils.js?v=2.7.5"></script><script src="assets/js/api.js?v=2.7.5"></script><script src="assets/js/auth.js?v=2.7.5"></script><script src="assets/js/map.js?v=2.7.5"></script><script src="assets/js/records.js?v=2.7.5"></script><script src="assets/js/contacts.js?v=2.7.5"></script><script src="assets/js/views.js?v=2.7.5"></script><script src="assets/js/admin.js?v=2.7.5"></script><script src="assets/js/main.js?v=2.7.5"></script>
 </body></html>
