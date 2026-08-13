@@ -262,3 +262,9 @@
 .link-check input{width:20px;height:20px;flex:0 0 auto}
 .address-tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
 .address-tools .btn.small{width:auto;min-height:42px;padding:8px 14px}
+
+/* Ver.2.3.7 名簿紐づけ表示 */
+.contact-link-info{margin:10px 0 14px;padding:12px 14px;border-radius:14px;border:1px solid #dfe5df;background:#f7f9f7;line-height:1.65}
+.contact-link-info.member-party{background:#fff9df;border-color:#ead278}
+.contact-link-info.member-supporter{background:#fff1e9;border-color:#efb38f}
+.member-linked-title{font-size:1.05rem;font-weight:800;margin-bottom:3px}

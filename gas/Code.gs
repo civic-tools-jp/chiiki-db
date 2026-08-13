@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.6 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.7 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -205,17 +205,14 @@ function saveRecord_(u,r){
   const saved=rowsWithRow_(SHEETS.RECORDS).find(x=>x._row===row);
   if(!saved)throw Error('保存確認に失敗しました');
   const checks=[
-    ['status',item.status],
-    ['type',item.type],
-    ['referrer',item.referrer],
-    ['warning',item.warning],
-    ['warningReason',item.warningReason],
-    ['warningMemo',item.warningMemo],
-    ['phone',item.phone],
-    ['email',item.email]
+    ['contactId',item.contactId],['fullAddress',item.fullAddress],['personName',item.personName],
+    ['phone',item.phone],['email',item.email],['status',item.status],['supporter',item.supporter],
+    ['revisitPriority',item.revisitPriority],['referrer',item.referrer],['warning',item.warning],
+    ['warningReason',item.warningReason],['warningMemo',item.warningMemo],['type',item.type],
+    ['date',item.date],['memo',item.memo]
   ];
   for(const [key,val] of checks){
-    if(key==='warning'){
+    if(key==='warning'||key==='signboard'){
       if(bool_(saved[key])!==bool_(val))throw Error('保存確認に失敗しました: '+key);
     }else if(String(saved[key]??'')!==String(val??'')){
       throw Error('保存確認に失敗しました: '+key);
@@ -516,4 +513,37 @@ function upgradeV235(){
   const sh=ss.getSheetByName(SHEETS.RECORDS);
   ensureHeadersByName_(sh,RECORD_HEADERS);
   return 'アイサポ Ver.2.3.5 保存方式へ移行しました';
+}
+
+
+function upgradeV237(){
+  const ss=SpreadsheetApp.getActive();
+  const sh=ss.getSheetByName(SHEETS.RECORDS);
+  if(!sh)throw Error('Recordsシートが見つかりません');
+
+  let backup='Records_backup_before_v237',n=2;
+  while(ss.getSheetByName(backup))backup='Records_backup_before_v237_'+(n++);
+  sh.copyTo(ss).setName(backup);
+
+  const vals=sh.getDataRange().getValues();
+  if(!vals.length){
+    sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);
+    sh.setFrozenRows(1);
+    return 'Ver.2.3.7へ移行しました / バックアップ: '+backup;
+  }
+
+  const oldH=vals[0].map(v=>String(v).trim());
+  const data=vals.slice(1).filter(r=>r.some(v=>v!==''));
+  const mapped=data.map(row=>{
+    const o={};
+    oldH.forEach((h,i)=>{if(h)o[h]=row[i]});
+    return RECORD_HEADERS.map(h=>o[h]??'');
+  });
+
+  sh.clearContents();
+  sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);
+  if(mapped.length)sh.getRange(2,1,mapped.length,RECORD_HEADERS.length).setValues(mapped);
+  sh.setFrozenRows(1);
+  SpreadsheetApp.flush();
+  return 'Ver.2.3.7へ移行しました: '+mapped.length+'件 / バックアップ: '+backup;
 }

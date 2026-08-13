@@ -13,9 +13,22 @@ function toggleRecordContactLink(){
     renderLinkedContactInfo('');
   }
 }
-function renderLinkedContactInfo(contactId){const c=contacts.find(x=>String(x.contactId)===String(contactId||''));const box=$('linkedContactInfo');if(!box)return;if(!c){box.innerHTML='';box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=`<b>${esc(memberTypeLabel(c.memberType))} ${esc(c.name||'')}</b>${c.phone?`<div>☎ ${esc(c.phone)}</div>`:''}${c.email?`<div>✉ ${esc(c.email)}</div>`:''}${c.sourceBranch?`<div>所属：${esc(c.sourceBranch)}</div>`:''}`;}
+function renderLinkedContactInfo(contactId){
+  const c=contacts.find(x=>String(x.contactId)===String(contactId||''));
+  const box=$('linkedContactInfo');
+  if(!box)return;
+  if(!c){box.innerHTML='';box.classList.add('hidden');return;}
+  const label=memberTypeLabel(c.memberType);
+  const cls=c.memberType==='party_member'?'member-party':c.memberType==='supporter'?'member-supporter':'member-general';
+  box.className='contact-link-info '+cls;
+  box.innerHTML=`<div class="member-linked-title">${esc(label)}　${esc(c.name||'')}</div>
+    ${c.partyId?`<div>参政党ID：${esc(c.partyId)}</div>`:''}
+    ${c.sourceBranch?`<div>所属：${esc(c.sourceBranch)}</div>`:''}
+    ${c.phone?`<div>☎ ${esc(c.phone)}</div>`:''}
+    ${c.email?`<div>✉ ${esc(c.email)}</div>`:''}`;
+}
 function onRecordContactChange(){const id=$('recordContact').value;renderLinkedContactInfo(id);const c=contacts.find(x=>String(x.contactId)===String(id));if(!c)return;if(!$('personName').value.trim())$('personName').value=c.name||'';if(!$('fullAddress').value.trim())$('fullAddress').value=c.fullAddress||'';if(!$('recordPhone').value.trim())$('recordPhone').value=c.phone||'';if(!$('recordEmail').value.trim())$('recordEmail').value=c.email||'';}
-function renderContactSelect(preferred){const el=$('recordContact');if(!el)return;const val=preferred!==undefined?preferred:el.value;el.innerHTML='<option value="">名簿と紐づけない</option>'+contacts.map(c=>`<option value="${esc(c.contactId)}">${esc(c.name)}${c.fullAddress?'｜'+esc(c.fullAddress):''}</option>`).join('');el.value=val;el.onchange=onRecordContactChange;}
+function renderContactSelect(preferred){const el=$('recordContact');if(!el)return;const val=preferred!==undefined?preferred:el.value;el.innerHTML='<option value="">選択してください</option>'+contacts.map(c=>`<option value="${esc(c.contactId)}">${esc(c.name)}${c.fullAddress?'｜'+esc(c.fullAddress):''}</option>`).join('');el.value=val;el.onchange=onRecordContactChange;}
 function closeEdit(){$('editModal').style.display='none';editing=null}
 async function saveRecord(){try{const rec={id:$('recordId').value,areaId:currentAreaId,contactId:$('linkContactCheck')?.checked?$('recordContact').value:'',lat:Number($('lat').value),lng:Number($('lng').value),fullAddress:$('fullAddress').value.trim(),personName:$('personName').value.trim(),phone:$('recordPhone').value.trim(),email:$('recordEmail').value.trim(),status:editStatus,supporter:$('supporter').value,revisitPriority:$('priority').value,referrer:$('referrer').value.trim(),warning:$('warning').checked,warningReason:$('warningReason').value,warningMemo:$('warningMemo').value.trim(),type:$('type').value,date:$('date').value,memo:$('memo').value.trim(),updatedAt:editing?.updatedAt||''};await api('saveRecord',{record:rec});closeEdit();await loadRecords()}catch(e){alert(e.message)}}
 async function deleteRecord(){if(!editing?.id){closeEdit();return}if(!confirm('削除しますか？'))return;try{await api('deleteRecord',{recordId:editing.id,updatedAt:editing.updatedAt||''});closeEdit();await loadRecords()}catch(e){alert(e.message)}}
