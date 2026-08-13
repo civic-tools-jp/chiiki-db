@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.4.9 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.0 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -143,7 +143,7 @@ function visibleBranches_(u){const all=rows_(SHEETS.BRANCHES).filter(x=>truth_(x
 function visibleAreas_(u){let all=rows_(SHEETS.AREAS).filter(x=>truth_(x.active));if(isGlobal_(u))return all;if(u.role==='member')return all.filter(x=>String(x.areaId)===String(u.areaId)&&String(x.branchId)===String(u.branchId));return all.filter(x=>String(x.branchId)===String(u.branchId));}
 function allowedArea_(u,areaId){let requested=String(areaId||'');if(u.role==='member'){if(!u.areaId)throw Error('この利用者に活動エリアが設定されていません');requested=String(u.areaId);}if(!requested)return null;const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===requested&&truth_(x.active));if(!a)throw Error('活動エリアが見つかりません');if(isGlobal_(u))return a;if(String(a.branchId)!==String(u.branchId))throw Error('この活動エリアにはアクセスできません');if(u.role==='member'&&String(a.areaId)!==String(u.areaId))throw Error('この活動エリアにはアクセスできません');return a;}
 
-function listRecords_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));if(u.role==='member')all=all.map(r=>['party_member','supporter'].includes(normalizeMemberType_(r.memberType))?{...r,fullAddress:maskContactAddress_(r.fullAddress),address:maskContactAddress_(r.address),phone:'',email:'',lat:'',lng:''}:r);return{ok:true,records:all};}
+function listRecords_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));if(u.role==='member')all=all.map(r=>['party_member','supporter'].includes(normalizeMemberType_(r.memberType))?{...r,email:'',lat:'',lng:'',locationHidden:true}:r);return{ok:true,records:all};}
 function saveRecord_(u,r){
   if(!r.fullAddress&&!r.personName)throw Error('氏名・名称または住所を入力してください');
   const area=allowedArea_(u,r.areaId);
@@ -157,6 +157,15 @@ function saveRecord_(u,r){
   if(old&&!canAccessRecord_(u,old))throw Error('この記録は編集できません');
   if(old&&r.updatedAt&&String(old.updatedAt)!==String(r.updatedAt)){
     throw Error('他の利用者が先に更新しました。最新表示後に編集してください');
+  }
+
+  const oldMemberType=normalizeMemberType_(old?.memberType||r.memberType||'general');
+  const protectedMember=u.role==='member'&&old&&['party_member','supporter'].includes(oldMemberType);
+  const oldLocationConfirmed=protectedMember&&Number(old.lat)&&Number(old.lng);
+  if(protectedMember){
+    if(String(r.phone||'')!==String(old.phone||''))throw Error('党員・サポーターの電話番号は閲覧のみです。修正は管理者に依頼してください');
+    if(oldLocationConfirmed&&String(r.fullAddress||'').trim()!==String(old.fullAddress||'').trim())throw Error('位置確認済みの住所は変更できません。修正は管理者に依頼してください');
+    if(normalizeMemberType_(r.memberType)!==oldMemberType)throw Error('党員・サポーターの区分変更は管理者のみ可能です');
   }
 
   const now=now_();
@@ -180,14 +189,14 @@ function saveRecord_(u,r){
     joinReason:String(r.joinReason||old?.joinReason||'').trim(),
     sourceBranch:String(r.sourceBranch||old?.sourceBranch||'').trim(),
     contactId:r.contactId||old?.contactId||'',
-    lat:r.lat,
-    lng:r.lng,
+    lat:protectedMember?old.lat:r.lat,
+    lng:protectedMember?old.lng:r.lng,
     area:r.area||old?.area||'',
     address:r.address||old?.address||'',
     fullAddress:r.fullAddress,
     personName:r.personName||'',
-    phone:r.phone||'',
-    email:r.email||'',
+    phone:protectedMember?old.phone:(r.phone||''),
+    email:protectedMember?old.email:(r.email||''),
     status:r.status||'unvisited',
     type:r.type||'戸建て',
     household:r.household||old?.household||'',
@@ -233,9 +242,10 @@ function maskContactAddress_(v){
 }
 function restrictedContactForMember_(c){
   const x=Object.assign({},c);
-  x.fullAddress=maskContactAddress_(x.fullAddress);
-  x.partyId='';x.phone='';x.email='';x.postalCode='';x.birthDate='';x.gender='';x.occupation='';x.approvedAt='';x.joinReason='';x.lat='';x.lng='';x.referrer='';x.memo='';
-  x.restricted=true;
+  // 一般利用者にも現場連絡に必要な住所・電話は表示する。
+  // 緯度経度や詳細属性は返さず、名簿自体の編集は管理者のみ。
+  x.partyId='';x.email='';x.postalCode='';x.birthDate='';x.gender='';x.occupation='';x.approvedAt='';x.joinReason='';x.lat='';x.lng='';x.referrer='';x.memo='';
+  x.restricted=true;x.locationHidden=true;
   return x;
 }
 function listContacts_(u,p){
@@ -330,6 +340,7 @@ function canAccessAreaId_(u,areaId){try{return !!allowedArea_(u,areaId);}catch(_
 function setUserArea_(u,p){requireAdmin_(u);const targetId=String(p.userId||''),areaId=String(p.areaId||'');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS),all=rowsWithRow_(SHEETS.USERS),target=all.find(x=>String(x.userId)===targetId);if(!target)throw Error('利用者が見つかりません');if(target.role!=='member')throw Error('活動エリア固定は一般利用者に設定します');if(u.role==='leader'&&String(target.branchId)!==String(u.branchId))throw Error('他支部の利用者は変更できません');const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===areaId&&truth_(x.active));if(!a||String(a.branchId)!==String(target.branchId))throw Error('所属支部の活動エリアを選択してください');if(!isGlobal_(u)&&String(a.branchId)!==String(u.branchId))throw Error('この活動エリアは設定できません');const headers=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String),c=headers.indexOf('areaId')+1;if(!c)throw Error('areaId列がありません。upgradeV22を実行してください');sh.getRange(target._row,c).setValue(areaId);return{ok:true};}
 function normalizeMemberType_(v){const s=String(v||'').trim();if(['party_member','supporter','general','unknown'].includes(s))return s;if(/党員/.test(s))return'party_member';if(/サポ|support/i.test(s))return'supporter';if(/一般/.test(s))return'general';return'unknown';}
 function importContacts_(u,p){
+  requireAdmin_(u);
   requireAdmin_(u);
   const defaultArea=allowedArea_(u,p.areaId||'');
   if(!defaultArea)throw Error('取込時の基準エリアを選択してください');
