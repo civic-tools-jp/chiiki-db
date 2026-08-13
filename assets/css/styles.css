@@ -548,3 +548,107 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   #map{height:48svh;min-height:360px}
   .analysis-actions,.analysis-grid{grid-template-columns:1fr}
 }
+
+
+/* Ver.2.7.2 - true phone layout */
+.login-card .btn.primary{margin-top:20px}
+
+@media (max-width: 700px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  body{min-width:0!important}
+  .login-card .btn.primary{margin-top:20px}
+
+  /* force app shell to phone width */
+  #app,.app-shell,.app-main,.app-header,.context-bar,.map-layout,.map-card,
+  #view-map,#view-list,#view-contacts,#view-analysis,#view-admin{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .app-header{
+    display:grid!important;
+    grid-template-columns:1fr auto!important;
+    grid-template-areas:"brand user" "tabs tabs"!important;
+    padding:8px 10px!important;
+  }
+  .brand-lockup{grid-area:brand!important;min-width:0!important}
+  .user-menu{grid-area:user!important}
+  .tabs{grid-area:tabs!important}
+
+  .context-bar{
+    display:block!important;
+    padding:0!important;
+  }
+  .branch-context{margin:2px 0 8px!important}
+  .area-control{
+    display:grid!important;
+    grid-template-columns:72px minmax(0,1fr)!important;
+    width:100%!important;
+  }
+  .area-control select{width:100%!important;max-width:100%!important}
+
+  .map-layout{
+    display:flex!important;
+    flex-direction:column!important;
+    grid-template-columns:none!important;
+  }
+  .map-card{order:1!important}
+  .map-side{
+    order:2!important;
+    display:flex!important;
+    flex-direction:column!important;
+    width:100%!important;
+  }
+  .quick-card{width:100%!important}
+
+  .map-search-row{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    width:100%!important;
+  }
+  .map-search-row .search-box{grid-column:1/-1!important;width:100%!important}
+  .map-search-row>*{min-width:0!important}
+
+  #map{
+    width:100%!important;
+    max-width:100%!important;
+    height:48svh!important;
+    min-height:350px!important;
+  }
+
+  .compact-filters{width:100%!important;overflow:hidden!important}
+  .filter-group{display:flex!important;flex-wrap:wrap!important}
+  .map-legend-inline{display:flex!important;flex-wrap:wrap!important}
+
+  .tabs{
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    width:100%!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  .tab{
+    min-width:0!important;
+    width:auto!important;
+    white-space:normal!important;
+    text-align:center!important;
+  }
+
+  .detail-grid,.admin-grid,.analysis-actions,.analysis-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+
+@media (max-width: 480px){
+  .login-shell{padding:18px 12px!important}
+  .login-card{padding:20px 16px!important}
+  .login-brand .brand-tagline{font-size:10px!important}
+  .app-header .brand-name{font-size:20px!important}
+  .user-meta span{display:none!important}
+  .tab{padding:7px 1px!important;font-size:9px!important}
+  .app-main{padding:8px 8px 24px!important}
+  .map-card{padding:10px!important}
+  #map{height:46svh!important;min-height:330px!important}
+}
