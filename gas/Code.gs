@@ -3,10 +3,10 @@ const USER_HEADERS=['userId','loginId','name','passwordHash','salt','role','bran
 const BRANCH_HEADERS=['branchId','name','prefecture','active'];
 const AREA_HEADERS=['areaId','branchId','city','name','mapLat','mapLng','active'];
 const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','firstName','lastNameKana','firstNameKana','name','phone','email','postalCode','fullAddress','memberType','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','lat','lng','referrer','supporter','assigneeId','assigneeName','memo','createdAt','updatedAt','updatedBy'];
-const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy','inactiveReason','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','posterRequest','posterReported','posterRequestMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
+const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy','inactiveReason','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','followParty','followSupporter','followDetails','followDone','followMemo','warning','warningReason','warningMemo','posterRequest','posterReported','posterRequestMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.6.4.2 API'});}
+function doGet(){return json_({ok:true,name:'あいサポ Ver.2.7.0 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -24,11 +24,11 @@ const us=ss.getSheetByName(SHEETS.USERS);if(us.getLastRow()===1){const salt=uuid
 function upgradeV21(){const ss=SpreadsheetApp.getActive();
   migrateBranches_(ss); ensureSheet_(ss,SHEETS.AREAS,AREA_HEADERS); ensureSheet_(ss,SHEETS.CONTACTS,CONTACT_HEADERS); migrateRecords_(ss); ensureSheet_(ss,SHEETS.SESSIONS,SESSION_HEADERS);
   const areas=ss.getSheetByName(SHEETS.AREAS);if(areas.getLastRow()===1)areas.appendRow(['area_higashi','branch_fukuoka_1','福岡市','東区',33.6452,130.4319,true]);
-  return 'アイサポ Ver.2.1 への移行が完了しました';
+  return 'あいサポ Ver.2.1 への移行が完了しました';
 }
 
 // Ver.2.1 認証拡張：Users に mustChangePassword を追加します。1回だけ実行してください。
-function upgradeV211(){const ss=SpreadsheetApp.getActive();migrateUsers_(ss);return 'アイサポ Ver.2.1.1 認証拡張が完了しました';}
+function upgradeV211(){const ss=SpreadsheetApp.getActive();migrateUsers_(ss);return 'あいサポ Ver.2.1.1 認証拡張が完了しました';}
 function migrateUsers_(ss){let sh=ss.getSheetByName(SHEETS.USERS);if(!sh){sh=ss.insertSheet(SHEETS.USERS);sh.appendRow(USER_HEADERS);return;}const vals=sh.getDataRange().getValues();if(!vals.length){sh.appendRow(USER_HEADERS);return;}const oldH=vals[0].map(String),rows=vals.slice(1);const mapped=rows.filter(r=>r.some(v=>v!=='')) .map(r=>{const o={};oldH.forEach((h,i)=>o[h]=r[i]);if(o.mustChangePassword===''||o.mustChangePassword===undefined)o.mustChangePassword=false;return USER_HEADERS.map(h=>o[h]??'');});sh.clearContents();sh.getRange(1,1,1,USER_HEADERS.length).setValues([USER_HEADERS]);if(mapped.length)sh.getRange(2,1,mapped.length,USER_HEADERS.length).setValues(mapped);sh.setFrozenRows(1);}
 function migrateBranches_(ss){let sh=ss.getSheetByName(SHEETS.BRANCHES);if(!sh){sh=ss.insertSheet(SHEETS.BRANCHES);sh.appendRow(BRANCH_HEADERS);return;}const vals=sh.getDataRange().getValues();if(!vals.length){sh.appendRow(BRANCH_HEADERS);return;}const oldH=vals[0].map(String),rows=vals.slice(1);const mapped=rows.filter(r=>r.some(v=>v!=='')) .map(r=>{const o={};oldH.forEach((h,i)=>o[h]=r[i]);return [o.branchId||'',o.name||'',o.prefecture||'',truth_(o.active)];});sh.clearContents();sh.getRange(1,1,1,BRANCH_HEADERS.length).setValues([BRANCH_HEADERS]);if(mapped.length)sh.getRange(2,1,mapped.length,BRANCH_HEADERS.length).setValues(mapped);sh.setFrozenRows(1);}
 function migrateRecords_(ss){let sh=ss.getSheetByName(SHEETS.RECORDS);if(!sh){sh=ss.insertSheet(SHEETS.RECORDS);sh.appendRow(RECORD_HEADERS);return;}const vals=sh.getDataRange().getValues();if(!vals.length){sh.appendRow(RECORD_HEADERS);return;}const oldH=vals[0].map(String),rows=vals.slice(1);const mapped=rows.filter(r=>r.some(v=>v!=='')) .map(r=>{const o={};oldH.forEach((h,i)=>o[h]=r[i]);if(!o.areaId&&o.branchId==='branch_fukuoka_1')o.areaId='area_higashi';return RECORD_HEADERS.map(h=>o[h]??'');});sh.clearContents();sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);if(mapped.length)sh.getRange(2,1,mapped.length,RECORD_HEADERS.length).setValues(mapped);sh.setFrozenRows(1);}
@@ -223,6 +223,11 @@ function saveRecord_(u,r){
     revisitPriority:r.revisitPriority||'',
     referrer:r.referrer||'',
     supporter:r.supporter||'',
+    followParty:bool_(r.followParty),
+    followSupporter:bool_(r.followSupporter),
+    followDetails:bool_(r.followDetails),
+    followDone:bool_(r.followDone),
+    followMemo:r.followMemo||'',
     warning:bool_(r.warning),
     warningReason:r.warningReason||'',
     warningMemo:r.warningMemo||'',
@@ -380,8 +385,7 @@ function canAccessAreaId_(u,areaId){try{return !!allowedArea_(u,areaId);}catch(_
 function setUserArea_(u,p){requireAdmin_(u);const targetId=String(p.userId||''),areaId=String(p.areaId||'');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS),all=rowsWithRow_(SHEETS.USERS),target=all.find(x=>String(x.userId)===targetId);if(!target)throw Error('利用者が見つかりません');if(target.role!=='member')throw Error('活動エリア固定は一般利用者に設定します');if(u.role==='leader'&&String(target.branchId)!==String(u.branchId))throw Error('他支部の利用者は変更できません');const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===areaId&&truth_(x.active));if(!a||String(a.branchId)!==String(target.branchId))throw Error('所属支部の活動エリアを選択してください');if(!isGlobal_(u)&&String(a.branchId)!==String(u.branchId))throw Error('この活動エリアは設定できません');const headers=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String),c=headers.indexOf('areaId')+1;if(!c)throw Error('areaId列がありません。upgradeV22を実行してください');sh.getRange(target._row,c).setValue(areaId);return{ok:true};}
 function normalizeMemberType_(v){const s=String(v||'').trim();if(['party_member','supporter','general','unknown'].includes(s))return s;if(/党員/.test(s))return'party_member';if(/サポ|support/i.test(s))return'supporter';if(/一般/.test(s))return'general';return'unknown';}
 function importContacts_(u,p){
-  requireAdmin_(u);
-  requireAdmin_(u);
+  requireSystemAdmin_(u);
   const defaultArea=allowedArea_(u,p.areaId||'');
   if(!defaultArea)throw Error('取込時の基準エリアを選択してください');
   const input=Array.isArray(p.contacts)?p.contacts:[];
@@ -503,6 +507,7 @@ function importContacts_(u,p){
 }
 function createArea_(u,x){requireAdmin_(u);let branchId=x.branchId||u.branchId;if(u.role==='leader')branchId=u.branchId;if(!branchId)throw Error('支部を選択してください');if(!x.name)throw Error('エリア名を入力してください');const areaId=x.areaId||('area_'+uuid_().slice(0,12));SpreadsheetApp.getActive().getSheetByName(SHEETS.AREAS).appendRow([areaId,branchId,x.city||'',x.name,Number(x.mapLat)||'',Number(x.mapLng)||'',true]);return{ok:true,areaId};}
 function requireAdmin_(u){if(!['leader','prefecture_admin','system_admin'].includes(u.role))throw Error('管理権限がありません');}
+function requireSystemAdmin_(u){if(u.role!=='system_admin')throw Error('システム管理者権限が必要です');}
 function isGlobal_(u){return['prefecture_admin','system_admin'].includes(u.role);}
 function canAccessBranch_(u,branchId){return isGlobal_(u)||String(branchId)===String(u.branchId);}
 function canAccessRecord_(u,r){return canAccessAreaId_(u,r.areaId);}
@@ -554,7 +559,7 @@ function writeRecordByHeader_(sh,rowNumber,item){
   });
   // 電話番号・メール・ID等がGoogle Sheetsに自動変換されないよう文字列列を明示
   ['id','branchId','areaId','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','sourceBranch','contactId','personName','phone','email','status','type',
-   'household','contact','revisitPriority','referrer','supporter','warningReason',
+   'household','contact','revisitPriority','referrer','supporter','followMemo','warningReason',
    'warningMemo','posterParty','posterMemo','memo','googleMapsUrl','assigneeId',
    'assigneeName','updatedBy'].forEach(h=>{
       const c=headers.indexOf(h);
@@ -586,7 +591,7 @@ function upgradeV22(){
   const ss=SpreadsheetApp.getActive();
   migrateUsersV22_(ss);
   migrateContactsV22_(ss);
-  return 'アイサポ Ver.2.2 への移行が完了しました';
+  return 'あいサポ Ver.2.2 への移行が完了しました';
 }
 function migrateUsersV22_(ss){
   let sh=ss.getSheetByName(SHEETS.USERS);
@@ -621,7 +626,7 @@ function upgradeV23(){
   const ss=SpreadsheetApp.getActive();
   migrateContactsV23_(ss);
   migrateRecordsV23_(ss);
-  return 'アイサポ Ver.2.3 への移行が完了しました';
+  return 'あいサポ Ver.2.3 への移行が完了しました';
 }
 function migrateContactsV23_(ss){
   let sh=ss.getSheetByName(SHEETS.CONTACTS);
@@ -703,7 +708,7 @@ function upgradeV235(){
   const ss=SpreadsheetApp.getActive();
   const sh=ss.getSheetByName(SHEETS.RECORDS);
   ensureHeadersByName_(sh,RECORD_HEADERS);
-  return 'アイサポ Ver.2.3.5 保存方式へ移行しました';
+  return 'あいサポ Ver.2.3.5 保存方式へ移行しました';
 }
 
 
@@ -1040,4 +1045,12 @@ function upgradeV264(){
   const rsh=ss.getSheetByName(SHEETS.RECORDS);
   ensureHeadersByName_(rsh,RECORD_HEADERS);
   return 'Ver.2.6.4移行完了：他党ポスター機能を削除しました。既存Postersシートは安全のため自動削除していません。';
+}
+
+function upgradeV270(){
+  const ss=SpreadsheetApp.getActive();
+  const rsh=ss.getSheetByName(SHEETS.RECORDS);
+  if(!rsh)throw Error('Recordsシートがありません');
+  ensureHeadersByName_(rsh,RECORD_HEADERS);
+  return 'あいサポ Ver.2.7.0 移行完了：フォロー項目を追加しました';
 }

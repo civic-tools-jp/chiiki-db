@@ -71,7 +71,9 @@ function recordMemberType(r){return r.memberType||'general'}
 function icon(r){
   const key=statusKey(r.status),c=STATUS[key].color,b=priorityBadge(recordMemberType(r));
   const w=boolValue(r.warning)?'⚠️':'',x=key==='refused'?'×':'';
-  return L.divIcon({className:'',html:`<div class="pin-wrap"><div class="pin" style="background:${c}"></div>${b?`<div class="pin-priority">${b}</div>`:''}${w?`<div class="pin-warning">${w}</div>`:''}${x?`<div class="pin-refused">${x}</div>`:''}</div>`,iconSize:[36,36],iconAnchor:[11,22]})
+  const f=typeof hasFollow==='function'&&hasFollow(r)?'🤝':'';
+  const p=boolValue(r.posterRequest)?'🍊':'';
+  return L.divIcon({className:'',html:`<div class="pin-wrap"><div class="pin" style="background:${c}"></div>${b?`<div class="pin-priority">${b}</div>`:''}${w?`<div class="pin-warning">${w}</div>`:''}${x?`<div class="pin-refused">${x}</div>`:''}${f?`<div class="pin-follow">${f}</div>`:''}${p?`<div class="pin-poster">${p}</div>`:''}</div>`,iconSize:[40,40],iconAnchor:[11,22]})
 }
 function contactIcon(c){const b=priorityBadge(c.memberType);return L.divIcon({className:'',html:`<div class="contact-pin ${c.memberType==='party_member'?'member':'support'}">${b||'○'}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}
 function renderMarkers(){
@@ -94,6 +96,8 @@ function renderMarkers(){
   if($('filterRefused')?.checked)statusFilters.push('refused');
 
   const warningOnly=!!$('filterWarning')?.checked;
+  const followOnly=!!$('filterFollow')?.checked;
+  const posterOnly=!!$('filterPosterRequest')?.checked;
 
   let matched=0,shown=0;
   records.forEach(r=>{
@@ -103,6 +107,8 @@ function renderMarkers(){
     if(memberFilters.length&&!memberFilters.includes(mt))return;
     if(statusFilters.length&&!statusFilters.includes(key))return;
     if(warningOnly&&!boolValue(r.warning))return;
+    if(followOnly&&!(typeof hasFollow==='function'&&hasFollow(r)))return;
+    if(posterOnly&&!boolValue(r.posterRequest))return;
     matched++;
     const lat=Number(r.lat),lng=Number(r.lng);
     // 空欄は Number('') === 0 になるため、非表示にする。
@@ -115,7 +121,9 @@ function renderMarkers(){
       priorityBadge(mt),
       r.personName||r.fullAddress||'訪問先',
       key==='refused'?'×断られた':'',
-      boolValue(r.warning)?'⚠️訪問注意':''
+      boolValue(r.warning)?'⚠️訪問注意':'',
+      (typeof hasFollow==='function'&&hasFollow(r))?followLabel(r):'',
+      boolValue(r.posterRequest)?'🍊ポスター依頼':''
     ].filter(Boolean).join(' ');
     marker.bindTooltip(extras);
     markers['r_'+r.id]=marker;pts.push([lat,lng]);shown++;
@@ -127,8 +135,33 @@ function renderMarkers(){
     countEl.textContent=recordText;
   }
 
+  updateMapDashboard();
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
   else if(pts.length===1)map.setView(pts[0],17);
 }
-async function searchMap(){const q=$('searchText').value.trim();if(!q)return;try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(q)}`);const j=await r.json();if(j[0])map.setView([+j[0].lat,+j[0].lon],17);else alert('見つかりませんでした')}catch(_){alert('検索に失敗しました')}}
+function toggleMapFilters(){$('mapFilterPanel')?.classList.toggle('hidden')}
+function updateMapDashboard(){
+  const areaRecords=records.filter(r=>!currentAreaId||String(r.areaId||'')===String(currentAreaId));
+  const unvisited=areaRecords.filter(r=>statusKey(r.status)==='unvisited').length;
+  const revisit=areaRecords.filter(r=>isRevisit(r)).length;
+  const follow=areaRecords.filter(r=>typeof hasFollow==='function'&&hasFollow(r));
+  const followPending=follow.filter(r=>!boolValue(r.followDone)).length;
+  const posters=areaRecords.filter(r=>boolValue(r.posterRequest));
+  const posterPending=posters.filter(r=>!boolValue(r.posterReported)).length;
+  const warnings=areaRecords.filter(r=>boolValue(r.warning)).length;
+  if($('mapFollowSummary'))$('mapFollowSummary').innerHTML=`<div class="status-line"><span>フォロー対象</span><b>${follow.length}件</b></div><div class="status-line"><span>未対応</span><b>${followPending}件</b></div>`;
+  if($('mapStatusSummary'))$('mapStatusSummary').innerHTML=`<div class="status-line"><span>未訪問</span><b>${unvisited}件</b></div><div class="status-line"><span>要再訪</span><b>${revisit}件</b></div>`;
+  if($('mapAttentionSummary'))$('mapAttentionSummary').innerHTML=`<div class="status-line"><span>訪問注意</span><b>${warnings}件</b></div><div class="status-line"><span>ポスター未報告</span><b>${posterPending}件</b></div>`;
+}
+function openFollowList(){
+  if($('listFollow'))$('listFollow').checked=true;
+  if($('listFollowPending'))$('listFollowPending').checked=true;
+  showView('list');renderLists();
+}
+async function searchMap(){
+  const q=$('searchText').value.trim();if(!q)return;
+  const local=records.find(r=>[r.personName,r.fullAddress,r.phone].some(v=>String(v||'').includes(q))&&Number(r.lat)&&Number(r.lng));
+  if(local){map.setView([Number(local.lat),Number(local.lng)],17);markers['r_'+local.id]?.openTooltip();return}
+  try{const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(q)}`);const j=await res.json();if(j[0])map.setView([+j[0].lat,+j[0].lon],17);else alert('見つかりませんでした')}catch(_){alert('検索に失敗しました')}
+}
 function addCurrentLocation(){navigator.geolocation.getCurrentPosition(async p=>{const lat=p.coords.latitude,lng=p.coords.longitude;map.setView([lat,lng],18);const address=await reverseAddress(lat,lng);openEdit({lat,lng,fullAddress:address,status:'visited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)},()=>alert('現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:12000})}

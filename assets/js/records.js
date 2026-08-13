@@ -3,7 +3,7 @@ function boolValue(v){return v===true||v===1||String(v||"").toLowerCase()==="tru
 async function loadRecords(){try{setBusy(true);const d=await api('listRecords',{areaId:currentAreaId});records=d.records||[];renderAll();}catch(e){if(/セッション/.test(e.message)){logout();return}msg('appMsg',e.message)}finally{setBusy(false)}}
 function setBusy(v){$('app').classList.toggle('spinner',v)}
 function isRevisit(r){return statusKey(r.status)==='revisit'||['○中','◎高'].includes(r.revisitPriority)}
-function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()">${v.label}</button>`).join('')}
+function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button type="button" class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()">${v.label}</button>`).join('');if($('detailHeaderStatus'))$('detailHeaderStatus').textContent=(STATUS[editStatus]||STATUS.unvisited).label}
 function inputDateValue(v){
   if(!v)return today();
   if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);
@@ -19,7 +19,7 @@ function isPartyOrSupporter(c){
   const raw=String(c.memberTypeRaw||c.membershipType||c.memberCategory||c.partyMemberType||'').trim();
   return /党員|会員|サポーター/.test(raw);
 }
-function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('posterRequest').checked=boolValue(r.posterRequest);$('posterReported').checked=boolValue(r.posterReported);$('posterRequestMemo').value=r.posterRequestMemo||'';togglePosterRequestFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();const imported=String(r.source||'')==='import';
+function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('followParty').checked=boolValue(r.followParty);$('followSupporter').checked=boolValue(r.followSupporter);$('followDetails').checked=boolValue(r.followDetails);$('followDone').checked=boolValue(r.followDone);$('followMemo').value=r.followMemo||'';toggleFollowFields();$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('posterRequest').checked=boolValue(r.posterRequest);$('posterReported').checked=boolValue(r.posterReported);$('posterRequestMemo').value=r.posterRequestMemo||'';togglePosterRequestFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();updateDetailHeader(r);const imported=String(r.source||'')==='import';
   const canRemove=!!r.id&&(!imported||['leader','prefecture_admin','system_admin'].includes(session?.role));
   $('deleteRecordRow')?.classList.toggle('hidden',!canRemove);
   const deleteBtn=document.querySelector('#deleteRecordRow button');
@@ -111,8 +111,32 @@ function renderContactSelect(preferred){
   $('recordContactEmpty')?.classList.toggle('hidden',allowed.length!==0);
   el.onchange=onRecordContactChange;
 }
+
+function hasFollow(r){return boolValue(r.followParty)||boolValue(r.followSupporter)||boolValue(r.followDetails)}
+function followLabel(r){
+  const a=[];
+  if(boolValue(r.followParty))a.push('⭐ 党員希望');
+  if(boolValue(r.followSupporter))a.push('🟠 サポーター希望');
+  if(boolValue(r.followDetails))a.push('💬 詳細希望');
+  return a.join(' / ');
+}
+function toggleFollowFields(){
+  const on=$('followParty')?.checked||$('followSupporter')?.checked||$('followDetails')?.checked;
+  $('followFields')?.classList.toggle('hidden',!on);
+  if(!on&&$('followDone'))$('followDone').checked=false;
+}
+function updateDetailHeader(r){
+  const name=r.personName||r.fullAddress||'訪問先';
+  if($('detailHeaderName'))$('detailHeaderName').textContent=name;
+  if($('detailHeaderAddress'))$('detailHeaderAddress').textContent=r.fullAddress||'住所未設定';
+  if($('detailHeaderStatus')){
+    const st=STATUS[statusKey(r.status)]||STATUS.unvisited;
+    $('detailHeaderStatus').textContent=st.label;
+  }
+}
+
 function closeEdit(){$('editModal').style.display='none';editing=null}
-async function saveRecord(){const btn=document.getElementById('saveRecordBtn');try{if(btn){btn.disabled=true;btn.textContent='保存中…'}const rec={id:$('recordId').value,areaId:currentAreaId,source:$('recordSource').value||'manual',memberType:$('recordMemberType').value||'general',contactId:editing?.contactId||'',lat:Number($('lat').value),lng:Number($('lng').value),fullAddress:$('fullAddress').value.trim(),personName:$('personName').value.trim(),phone:$('recordPhone').value.trim(),email:$('recordEmail').value.trim(),status:editStatus,supporter:$('supporter').value,revisitPriority:$('priority').value,referrer:$('referrer').value.trim(),warning:$('warning').checked,warningReason:$('warningReason').value,warningMemo:$('warningMemo').value.trim(),posterRequest:$('posterRequest').checked,posterReported:$('posterReported').checked,posterRequestMemo:$('posterRequestMemo').value.trim(),type:$('type').value,date:$('date').value,memo:$('memo').value.trim(),updatedAt:editing?.updatedAt||''};await api('saveRecord',{record:rec});closeEdit();await loadRecords()}catch(e){console.error(e);alert(e.message||String(e))}finally{if(btn){btn.disabled=false;btn.textContent='保存'}}}
+async function saveRecord(){const btn=document.getElementById('saveRecordBtn');try{if(btn){btn.disabled=true;btn.textContent='保存中…'}const rec={id:$('recordId').value,areaId:currentAreaId,source:$('recordSource').value||'manual',memberType:$('recordMemberType').value||'general',contactId:editing?.contactId||'',lat:Number($('lat').value),lng:Number($('lng').value),fullAddress:$('fullAddress').value.trim(),personName:$('personName').value.trim(),phone:$('recordPhone').value.trim(),email:$('recordEmail').value.trim(),status:editStatus,supporter:$('supporter').value,revisitPriority:$('priority').value,referrer:$('referrer').value.trim(),followParty:$('followParty').checked,followSupporter:$('followSupporter').checked,followDetails:$('followDetails').checked,followDone:$('followDone').checked,followMemo:$('followMemo').value.trim(),warning:$('warning').checked,warningReason:$('warningReason').value,warningMemo:$('warningMemo').value.trim(),posterRequest:$('posterRequest').checked,posterReported:$('posterReported').checked,posterRequestMemo:$('posterRequestMemo').value.trim(),type:$('type').value,date:$('date').value,memo:$('memo').value.trim(),updatedAt:editing?.updatedAt||''};await api('saveRecord',{record:rec});closeEdit();await loadRecords()}catch(e){console.error(e);alert(e.message||String(e))}finally{if(btn){btn.disabled=false;btn.textContent='保存'}}}
 async function deleteRecord(){
   if(!editing?.id){closeEdit();return}
   const imported=String(editing.source||'')==='import';
