@@ -55,7 +55,7 @@ Excelに住所だけ入っている場合、名簿一覧にはすぐ反映され
 - 既存環境では Apps Script の `upgradeV23()` を1回実行してください。
 
 
-## Ver.2.3.4
+## Ver.2.3.5
 - 地図の住所検索・検索・現在地・更新を1行に集約
 - 地図凡例を党員/サポーターと訪問状態で同じ場所に統合
 - 一覧フィルターを複数選択式へ変更
@@ -63,7 +63,7 @@ Excelに住所だけ入っている場合、名簿一覧にはすぐ反映され
 - 訪問注意を地図ピン、一覧、フィルターで表示
 
 
-## Ver.2.3.4
+## Ver.2.3.5
 - 訪問注意の保存不具合を修正。Records列が旧構成でも自動整列します。
 - 「断られた」を × 付きピンで表示し、地図・一覧フィルターに追加。
 - 訪問詳細に「紹介者」を復活。紹介者も一覧検索対象です。
@@ -72,7 +72,7 @@ Excelに住所だけ入っている場合、名簿一覧にはすぐ反映され
 - Apps Script更新後に `upgradeV232()` を1回実行してください。
 
 
-## Ver.2.3.4
+## Ver.2.3.5
 - Records保存を列番号依存から「ヘッダー名で保存」に変更。
 - 既存の列ズレ行を修復する `repairRecordsV233()` を追加。
 - 修復前に `Records_backup_before_v233` を自動作成。
@@ -81,10 +81,18 @@ Excelに住所だけ入っている場合、名簿一覧にはすぐ反映され
 - 一覧でTRUE/FALSEをそのまま表示しないよう整理。
 
 
-## Ver.2.3.4
+## Ver.2.3.5
 - Records修復を一律列移動から、実データの壊れ方ごとの判定方式に変更。
 - `phone=訪問状態 / email=対象種別` の行だけ status/type を復元。
 - `referrer=TRUE/FALSE / supporter=自由記述` の行だけ warning/warningMemo を復元。
 - 既存の正常行は触りません。
 - 修復前に `Records_backup_before_v234` を自動作成。
 - Apps Script更新後に `repairRecordsV234()` を1回だけ実行してください。
+
+
+## Ver.2.3.5 clean rebuild
+- GASは正常だったVer.2.3を土台に再構築。
+- saveRecord_をヘッダー名保存方式へ変更。
+- 保存後に phone/email/status/type/referrer/warning/warningReason/warningMemo を再検証。
+- repairRecordsV235() は既知の壊れたパターンだけ修復。
+- 修復前にRecords_backup_before_v235を自動作成。
