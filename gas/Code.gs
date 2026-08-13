@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.2 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.3 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -144,28 +144,181 @@ function visibleAreas_(u){let all=rows_(SHEETS.AREAS).filter(x=>truth_(x.active)
 function allowedArea_(u,areaId){let requested=String(areaId||'');if(u.role==='member'){if(!u.areaId)throw Error('この利用者に活動エリアが設定されていません');requested=String(u.areaId);}if(!requested)return null;const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===requested&&truth_(x.active));if(!a)throw Error('活動エリアが見つかりません');if(isGlobal_(u))return a;if(String(a.branchId)!==String(u.branchId))throw Error('この活動エリアにはアクセスできません');if(u.role==='member'&&String(a.areaId)!==String(u.areaId))throw Error('この活動エリアにはアクセスできません');return a;}
 
 
+function ensureHeadersByName_(sh, requiredHeaders){
+  if(sh.getLastRow()===0){
+    sh.getRange(1,1,1,requiredHeaders.length).setValues([requiredHeaders]);
+    sh.setFrozenRows(1);
+    return requiredHeaders.slice();
+  }
+  let headers=sh.getRange(1,1,1,Math.max(1,sh.getLastColumn())).getValues()[0].map(String);
+  requiredHeaders.forEach(h=>{
+    if(!headers.includes(h)){
+      headers.push(h);
+      sh.getRange(1,headers.length).setValue(h);
+    }
+  });
+  sh.setFrozenRows(1);
+  return headers;
+}
+
 function ensureRecordSchema_(){
   const ss=SpreadsheetApp.getActive();
   let sh=ss.getSheetByName(SHEETS.RECORDS);
-  if(!sh){sh=ss.insertSheet(SHEETS.RECORDS);sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);sh.setFrozenRows(1);return sh;}
-  const vals=sh.getDataRange().getValues();
-  if(!vals.length){sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);sh.setFrozenRows(1);return sh;}
-  const oldH=vals[0].map(String);
-  if(oldH.length===RECORD_HEADERS.length && oldH.every((h,i)=>h===RECORD_HEADERS[i]))return sh;
-  const rows=vals.slice(1).filter(r=>r.some(v=>v!==''));
-  const mapped=rows.map(r=>{
-    const o={};oldH.forEach((h,i)=>o[h]=r[i]);
-    return RECORD_HEADERS.map(h=>o[h]??'');
-  });
-  sh.clearContents();
-  sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);
-  if(mapped.length)sh.getRange(2,1,mapped.length,RECORD_HEADERS.length).setValues(mapped);
-  sh.setFrozenRows(1);
+  if(!sh)sh=ss.insertSheet(SHEETS.RECORDS);
+  ensureHeadersByName_(sh,RECORD_HEADERS);
   return sh;
 }
 
+function writeObjectByHeaders_(sh,rowNumber,obj,requiredHeaders){
+  const headers=ensureHeadersByName_(sh,requiredHeaders);
+  const width=headers.length;
+  let vals=new Array(width).fill('');
+  if(rowNumber && rowNumber<=sh.getLastRow()){
+    vals=sh.getRange(rowNumber,1,1,width).getValues()[0];
+  }else{
+    rowNumber=sh.getLastRow()+1;
+  }
+  requiredHeaders.forEach(h=>{
+    const idx=headers.indexOf(h);
+    if(idx>=0)vals[idx]=(obj[h]??'');
+  });
+  sh.getRange(rowNumber,1,1,width).setValues([vals]);
+  return rowNumber;
+}
+
+function backupRecords_(suffix){
+  const ss=SpreadsheetApp.getActive();
+  const src=ss.getSheetByName(SHEETS.RECORDS);
+  if(!src)return '';
+  const base='Records_backup_'+suffix;
+  let name=base,n=2;
+  while(ss.getSheetByName(name))name=base+'_'+(n++);
+  src.copyTo(ss).setName(name);
+  return name;
+}
+
+// Ver.2.3.1以前の保存処理が、phone/email/warningReason追加前の列順で
+// 現在のRecordsへ書き込んだ行だけを判定して修復します。
+function repairRecordsV233(){
+  const ss=SpreadsheetApp.getActive();
+  const sh=ss.getSheetByName(SHEETS.RECORDS);
+  if(!sh)throw Error('Recordsシートが見つかりません');
+
+  const backupName=backupRecords_('before_v233');
+  const vals=sh.getDataRange().getValues();
+  if(vals.length<2)return '修復対象はありません。バックアップ: '+backupName;
+
+  const currentHeaders=vals[0].map(String);
+  const legacyHeaders=[
+    'id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName',
+    'status','type','household','contact','revisitPriority','referrer','supporter','warning',
+    'warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime',
+    'durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'
+  ];
+  const statusValues=['unvisited','visited','good','absent','revisit','refused','未訪問','訪問済','訪問済み','手応えあり','不在','要再訪','断られた'];
+  const typeValues=['戸建て','集合住宅','事業所','その他'];
+
+  const phoneCol=currentHeaders.indexOf('phone');
+  const emailCol=currentHeaders.indexOf('email');
+  if(phoneCol<0 || emailCol<0)throw Error('現在のRecordsヘッダーを確認できません');
+
+  let repaired=0;
+  for(let i=1;i<vals.length;i++){
+    const row=vals[i];
+    const phone=String(row[phoneCol]??'').trim();
+    const email=String(row[emailCol]??'').trim();
+
+    // phone列に訪問状態、email列に対象種別が入っている行だけが旧列順ズレの対象。
+    if(!statusValues.includes(phone) || !typeValues.includes(email))continue;
+
+    const oldObj={};
+    legacyHeaders.forEach((h,j)=>oldObj[h]=row[j]??'');
+
+    const repairedObj={};
+    RECORD_HEADERS.forEach(h=>repairedObj[h]=(oldObj[h]??''));
+    repairedObj.phone='';
+    repairedObj.email='';
+    repairedObj.warningReason='';
+    repairedObj.warning=truth_(oldObj.warning);
+    repairedObj.signboard=truth_(oldObj.signboard);
+
+    writeObjectByHeaders_(sh,i+1,repairedObj,RECORD_HEADERS);
+    repaired++;
+  }
+
+  SpreadsheetApp.flush();
+  return '修復完了: '+repaired+'件 / バックアップ: '+backupName;
+}
+
 function listRecords_(u,p){ensureRecordSchema_();const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,records:all};}
-function saveRecord_(u,r){ensureRecordSchema_();if(!r.fullAddress)throw Error('住所を入力してください');const area=allowedArea_(u,r.areaId);if(!area)throw Error('活動エリアを選択してください');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS),all=rowsWithRow_(SHEETS.RECORDS);let old=all.find(x=>String(x.id)===String(r.id));if(old&&!canAccessRecord_(u,old))throw Error('この記録は編集できません');if(old&&r.updatedAt&&String(old.updatedAt)!==String(r.updatedAt))throw Error('他の利用者が先に更新しました。最新表示後に編集してください');const now=now_(),branchId=old?old.branchId:area.branchId;const item={id:old?old.id:uuid_(),branchId,areaId:old?old.areaId:area.areaId,contactId:r.contactId||old?.contactId||'',lat:r.lat,lng:r.lng,area:r.area||'',address:r.address||'',fullAddress:r.fullAddress,personName:r.personName||'',phone:r.phone||'',email:r.email||'',status:r.status||'unvisited',type:r.type||'戸建て',household:r.household||'',contact:r.contact||'',revisitPriority:r.revisitPriority||'',referrer:r.referrer||'',supporter:r.supporter||'',warning:truth_(r.warning),warningReason:r.warningReason||'',warningMemo:r.warningMemo||'',signboard:truth_(r.signboard),posterParty:r.posterParty||'',posterMemo:r.posterMemo||'',memo:r.memo||'',date:r.date||'',startTime:r.startTime||'',endTime:r.endTime||'',durationMinutes:r.durationMinutes||'',googleMapsUrl:r.googleMapsUrl||'',assigneeId:old?old.assigneeId:u.userId,assigneeName:old?old.assigneeName:u.name,createdAt:old?old.createdAt:now,updatedAt:now,updatedBy:u.name};const vals=RECORD_HEADERS.map(h=>item[h]??'');if(old)sh.getRange(old._row,1,1,vals.length).setValues([vals]);else sh.appendRow(vals);return{ok:true,record:item};}
+function saveRecord_(u,r){
+  if(!r.fullAddress)throw Error('住所を入力してください');
+  const area=allowedArea_(u,r.areaId);
+  if(!area)throw Error('活動エリアを選択してください');
+
+  const sh=ensureRecordSchema_();
+  const all=rowsWithRow_(SHEETS.RECORDS);
+  let old=all.find(x=>String(x.id)===String(r.id));
+
+  if(old&&!canAccessRecord_(u,old))throw Error('この記録は編集できません');
+  if(old&&r.updatedAt&&String(old.updatedAt)!==String(r.updatedAt)){
+    throw Error('他の利用者が先に更新しました。最新表示後に編集してください');
+  }
+
+  const now=now_(),branchId=old?old.branchId:area.branchId;
+  const item={
+    id:old?old.id:uuid_(),
+    branchId,
+    areaId:old?old.areaId:area.areaId,
+    contactId:r.contactId||old?.contactId||'',
+    lat:r.lat,lng:r.lng,
+    area:r.area||old?.area||'',
+    address:r.address||old?.address||'',
+    fullAddress:r.fullAddress,
+    personName:r.personName||'',
+    phone:r.phone||'',
+    email:r.email||'',
+    status:r.status||'unvisited',
+    type:r.type||'戸建て',
+    household:r.household||old?.household||'',
+    contact:r.contact||old?.contact||'',
+    revisitPriority:r.revisitPriority||'',
+    referrer:r.referrer||'',
+    supporter:r.supporter||'',
+    warning:truth_(r.warning),
+    warningReason:r.warningReason||'',
+    warningMemo:r.warningMemo||'',
+    signboard:truth_(r.signboard),
+    posterParty:r.posterParty||old?.posterParty||'',
+    posterMemo:r.posterMemo||old?.posterMemo||'',
+    memo:r.memo||'',
+    date:r.date||'',
+    startTime:r.startTime||old?.startTime||'',
+    endTime:r.endTime||old?.endTime||'',
+    durationMinutes:r.durationMinutes||old?.durationMinutes||'',
+    googleMapsUrl:r.googleMapsUrl||old?.googleMapsUrl||'',
+    assigneeId:old?old.assigneeId:u.userId,
+    assigneeName:old?old.assigneeName:u.name,
+    createdAt:old?old.createdAt:now,
+    updatedAt:now,
+    updatedBy:u.name
+  };
+
+  const rowNumber=writeObjectByHeaders_(sh,old?old._row:null,item,RECORD_HEADERS);
+  SpreadsheetApp.flush();
+
+  // 保存後、重要項目を読み直して整合性を確認する。
+  const saved=rowsWithRow_(SHEETS.RECORDS).find(x=>x._row===rowNumber);
+  if(!saved)throw Error('保存確認に失敗しました');
+  if(String(saved.status)!==String(item.status) ||
+     String(saved.type)!==String(item.type) ||
+     truth_(saved.warning)!==truth_(item.warning) ||
+     String(saved.referrer||'')!==String(item.referrer||'')){
+    throw Error('保存後のデータ確認に失敗しました。再度お試しください');
+  }
+
+  return{ok:true,record:item};
+}
 function deleteRecord_(u,p){const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));if(!old)return{ok:true};if(!canAccessRecord_(u,old))throw Error('削除できません');if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS).deleteRow(old._row);return{ok:true};}
 
 function listContacts_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,contacts:[]};const all=rows_(SHEETS.CONTACTS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,contacts:all};}
@@ -361,4 +514,11 @@ function rowsFromSheet_(ss,name){const sh=ss.getSheetByName(name);if(!sh||sh.get
 function upgradeV232(){
   ensureRecordSchema_();
   return 'アイサポ Ver.2.3.2 への移行が完了しました';
+}
+
+
+// Ver.2.3.3: ヘッダー名保存方式へ移行。既存データはrepairRecordsV233()で修復してください。
+function upgradeV233(){
+  ensureRecordSchema_();
+  return 'アイサポ Ver.2.3.3 の保存方式へ移行しました';
 }

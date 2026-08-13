@@ -1,16 +1,25 @@
+function formatShortDate(v){const d=new Date(v);return isNaN(d)?String(v||""):`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`}
 "use strict";
 function renderAll(){renderMarkers();renderLists();renderAnalysis()}
 function card(r){
   const mt=recordMemberType(r),key=statusKey(r.status);
   const refused=key==='refused'?'<span class="refused-badge">×断られた</span>':'';
   const warning=boolValue(r.warning)?'<span class="warning-badge">⚠️訪問注意</span>':'';
+  const d=r.date?formatShortDate(r.date):'';
   return `<div class="card" style="border-color:${STATUS[key].color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
     <div class="card-title">${priorityBadge(mt)} ${esc(r.personName||r.fullAddress||'訪問先')} ${refused} ${warning}</div>
-    <div class="card-sub">${esc(r.fullAddress)}｜${esc(r.date)}｜${esc(r.assigneeName||'')}</div>
+    <div class="card-sub">${esc(r.fullAddress)}${d?' ｜ '+esc(d):''}${r.assigneeName?' ｜ '+esc(r.assigneeName):''}</div>
     ${r.phone?`<div class="card-sub">☎ ${esc(r.phone)}</div>`:''}
     ${r.email?`<div class="card-sub">✉ ${esc(r.email)}</div>`:''}
     ${r.referrer?`<div class="card-sub">紹介：${esc(r.referrer)}</div>`:''}
-    <div class="badges"><span class="badge">${esc(STATUS[key].label)}</span>${mt?`<span class="badge">${esc(memberTypeLabel(mt))}</span>`:''}${r.supporter?`<span class="badge">${esc(r.supporter)}</span>`:''}${r.revisitPriority?`<span class="badge">再訪 ${esc(r.revisitPriority)}</span>`:''}${r.warningReason?`<span class="badge warning-soft">${esc(r.warningReason)}</span>`:''}</div>
+    <div class="badges">
+      <span class="badge">${esc(STATUS[key].label)}</span>
+      ${mt?`<span class="badge">${esc(memberTypeLabel(mt))}</span>`:''}
+      ${r.supporter?`<span class="badge">${esc(r.supporter)}</span>`:''}
+      ${r.revisitPriority?`<span class="badge">再訪 ${esc(r.revisitPriority)}</span>`:''}
+      ${r.warningReason?`<span class="badge warning-soft">${esc(r.warningReason)}</span>`:''}
+    </div>
+    ${boolValue(r.warning)&&r.warningMemo?`<div class="card-sub warning-note">⚠ ${esc(r.warningMemo)}</div>`:''}
     ${r.memo?`<div class="card-sub">${esc(r.memo)}</div>`:''}
   </div>`
 }
