@@ -268,3 +268,6 @@
 .contact-link-info.member-party{background:#fff9df;border-color:#ead278}
 .contact-link-info.member-supporter{background:#fff1e9;border-color:#efb38f}
 .member-linked-title{font-size:1.05rem;font-weight:800;margin-bottom:3px}
+
+.contact-empty{padding:12px 4px;color:#6b7280;font-size:.95rem}
+#recordContactSearch{margin-bottom:8px}
