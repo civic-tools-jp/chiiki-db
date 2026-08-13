@@ -8,43 +8,31 @@ function renderMarkers(){
   if(!map)return;
   Object.values(markers).forEach(m=>map.removeLayer(m));
   markers={};
-
   const pts=[];
   const priorityOnly=!!$('priorityOnly')?.checked;
   const revisitOnly=!!$('revisitOnly')?.checked;
   const unvisitedOnly=!!$('unvisitedOnly')?.checked;
 
-  // 複数チェック時は AND 条件。
-  // 例：党員・サポーター + 未訪問 = 未訪問の党員・サポーターだけ。
   records.forEach(r=>{
     const mt=recordMemberType(r);
     if(priorityOnly&&!['party_member','supporter'].includes(mt))return;
     if(revisitOnly&&statusKey(r.status)!=='revisit')return;
     if(unvisitedOnly&&statusKey(r.status)!=='unvisited')return;
     if(!Number.isFinite(Number(r.lat))||!Number.isFinite(Number(r.lng)))return;
-
-    const m=L.marker([+r.lat,+r.lng],{icon:icon(r)}).addTo(map).on('click',()=>openEdit(r,false));
-    m.bindTooltip(`${priorityBadge(mt)} ${r.personName||r.fullAddress||'訪問先'}`.trim());
-    markers['r_'+r.id]=m;
-    pts.push([+r.lat,+r.lng]);
+    const marker=L.marker([+r.lat,+r.lng],{icon:icon(r)}).addTo(map).on('click',()=>openEdit(r,false));
+    marker.bindTooltip(`${priorityBadge(mt)} ${r.personName||r.fullAddress||'訪問先'}`.trim());
+    markers['r_'+r.id]=marker; pts.push([+r.lat,+r.lng]);
   });
 
   const linked=new Set(records.map(r=>String(r.contactId||'')).filter(Boolean));
   contacts.forEach(c=>{
     if(!['party_member','supporter'].includes(c.memberType))return;
     if(linked.has(String(c.contactId)))return;
-
-    // 名簿だけに存在し、まだ訪問記録がない党員・サポーターは「未訪問」として扱う。
     if(revisitOnly)return;
-    if(priorityOnly===false && unvisitedOnly===false){
-      // 従来どおり、未紐付けの党員・サポーターは通常表示にも出す。
-    }
     if(!Number.isFinite(Number(c.lat))||!Number.isFinite(Number(c.lng))||!c.lat||!c.lng)return;
-
-    const m=L.marker([+c.lat,+c.lng],{icon:contactIcon(c)}).addTo(map).on('click',()=>openContact(c));
-    m.bindTooltip(`${priorityBadge(c.memberType)} ${c.name||'名簿'}`);
-    markers['c_'+c.contactId]=m;
-    pts.push([+c.lat,+c.lng]);
+    const marker=L.marker([+c.lat,+c.lng],{icon:contactIcon(c)}).addTo(map).on('click',()=>openContact(c));
+    marker.bindTooltip(`${priorityBadge(c.memberType)} ${c.name||'名簿'}`);
+    markers['c_'+c.contactId]=marker; pts.push([+c.lat,+c.lng]);
   });
 
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
