@@ -86,9 +86,13 @@ function renderMarkers(){
     if(memberFilters.length&&!memberFilters.includes(mt))return;
     if(statusFilters.length&&!statusFilters.includes(key))return;
     if(warningOnly&&!boolValue(r.warning))return;
-    if(!Number.isFinite(Number(r.lat))||!Number.isFinite(Number(r.lng)))return;
+    const lat=Number(r.lat),lng=Number(r.lng);
+    // 空欄は Number('') === 0 になるため、非表示にする。
+    // 一般ユーザー向けに位置情報を伏せた党員・サポーターもここで除外する。
+    if(r.lat===''||r.lat==null||r.lng===''||r.lng==null)return;
+    if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng)return;
 
-    const marker=L.marker([+r.lat,+r.lng],{icon:icon(r)}).addTo(map).on('click',()=>openEdit(r,false));
+    const marker=L.marker([lat,lng],{icon:icon(r)}).addTo(map).on('click',()=>openEdit(r,false));
     const extras=[
       priorityBadge(mt),
       r.personName||r.fullAddress||'訪問先',
@@ -96,7 +100,7 @@ function renderMarkers(){
       boolValue(r.warning)?'⚠️訪問注意':''
     ].filter(Boolean).join(' ');
     marker.bindTooltip(extras);
-    markers['r_'+r.id]=marker;pts.push([+r.lat,+r.lng]);shown++;
+    markers['r_'+r.id]=marker;pts.push([lat,lng]);shown++;
   });
 
   const countEl=$('mapResultCount');

@@ -40,7 +40,7 @@ function renderLists(){
     if(q && ![r.personName,r.fullAddress,r.phone,r.email,r.partyId,r.sourceBranch,r.referrer,r.memo].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     if(source && String(r.source||'manual')!==source)return false;
     if(memberType && String(r.memberType||'general')!==memberType)return false;
-    const located=Number(r.lat)&&Number(r.lng);
+    const located=r.lat!==''&&r.lat!=null&&r.lng!==''&&r.lng!=null&&Number.isFinite(Number(r.lat))&&Number.isFinite(Number(r.lng))&&!!Number(r.lat)&&!!Number(r.lng);
     if(location==='located'&&!located)return false;
     if(location==='unlocated'&&located)return false;
     if(statusFilters.length&&!statusFilters.includes(statusKey(r.status)))return false;
