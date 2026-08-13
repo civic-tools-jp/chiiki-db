@@ -51,7 +51,81 @@ function deleteContact_(u,p){const all=rowsWithRow_(SHEETS.CONTACTS),old=all.fin
 function adminData_(u){requireAdmin_(u);const branches=visibleBranches_(u),areas=visibleAreas_(u);let users=rows_(SHEETS.USERS);if(u.role==='leader')users=users.filter(x=>x.branchId===u.branchId);const bm=Object.fromEntries(rows_(SHEETS.BRANCHES).map(b=>[b.branchId,b.name]));return{ok:true,branches,areas,users:users.map(x=>({userId:x.userId,loginId:x.loginId,name:x.name,role:x.role,branchId:x.branchId,branchName:bm[x.branchId]||'全支部',active:truth_(x.active),mustChangePassword:truth_(x.mustChangePassword)}))};}
 function createUser_(u,x){requireAdmin_(u);if(!x.loginId||!x.name||!x.password)throw Error('必須項目を入力してください');validateNewPassword_(x.password);if(rows_(SHEETS.USERS).some(v=>String(v.loginId)===String(x.loginId)))throw Error('同じユーザーIDが登録されています');let role=x.role||'member',branchId=x.branchId||'';if(u.role==='leader'){role=role==='member'?'member':'leader';branchId=u.branchId;}if(!isGlobal_(u)&&branchId!==u.branchId)throw Error('他支部には登録できません');const salt=uuid_();SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS).appendRow([uuid_(),x.loginId,x.name,hash_(x.password,salt),salt,role,branchId,true,true,now_(),now_()]);return{ok:true};}
 
-function changePassword_(u,p){const current=String(p.currentPassword||''),next=String(p.newPassword||'');if(!current)throw Error('現在のパスワードを入力してください');validateNewPassword_(next);const all=rowsWithRow_(SHEETS.USERS),me=all.find(x=>String(x.userId)===String(u.userId));if(!me)throw Error('利用者が見つかりません');if(hash_(current,me.salt)!==me.passwordHash)throw Error('現在のパスワードが違います');if(hash_(next,me.salt)===me.passwordHash)throw Error('現在と同じパスワードは使用できません');const salt=uuid_(),hash=hash_(next,salt),now=now_();const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS);const updated={...me,passwordHash:hash,salt:salt,mustChangePassword:false,updatedAt:now};sh.getRange(me._row,1,1,USER_HEADERS.length).setValues([USER_HEADERS.map(h=>updated[h]??'')]);deleteSessionsForUser_(u.userId,p.token);return{ok:true,mustChangePassword:false};}
+function changePassword_(u, p) {
+  const current = String(p.currentPassword || '');
+  const next = String(p.newPassword || '');
+
+  if (!current) {
+    throw Error('現在のパスワードを入力してください');
+  }
+
+  validateNewPassword_(next);
+
+  const all = rowsWithRow_(SHEETS.USERS);
+  const me = all.find(
+    x => String(x.userId) === String(u.userId)
+  );
+
+  if (!me) {
+    throw Error('利用者が見つかりません');
+  }
+
+  // 現在のパスワード確認
+  if (hash_(current, String(me.salt)) !== String(me.passwordHash)) {
+    throw Error('現在のパスワードが違います');
+  }
+
+  // 同じパスワードは禁止
+  if (hash_(next, String(me.salt)) === String(me.passwordHash)) {
+    throw Error('現在と同じパスワードは使用できません');
+  }
+
+  const sh = SpreadsheetApp
+    .getActive()
+    .getSheetByName(SHEETS.USERS);
+
+  const headers = sh
+    .getRange(1, 1, 1, sh.getLastColumn())
+    .getValues()[0];
+
+  const col = name => headers.indexOf(name) + 1;
+
+  const salt = uuid_();
+  const passwordHash = hash_(next, salt);
+
+  // 必要な列だけ変更する
+  sh.getRange(me._row, col('passwordHash')).setValue(passwordHash);
+  sh.getRange(me._row, col('salt')).setValue(salt);
+  sh.getRange(me._row, col('mustChangePassword')).setValue(false);
+  sh.getRange(me._row, col('updatedAt')).setValue(now_());
+
+  SpreadsheetApp.flush();
+
+  // 保存後に本当に一致しているか確認
+  const savedHash = String(
+    sh.getRange(me._row, col('passwordHash')).getValue()
+  ).trim();
+
+  const savedSalt = String(
+    sh.getRange(me._row, col('salt')).getValue()
+  ).trim();
+
+  const checkHash = hash_(next, savedSalt);
+
+  if (savedHash !== checkHash) {
+    throw Error('パスワードの保存確認に失敗しました');
+  }
+
+  // 現在以外のセッションを削除
+  deleteSessionsForUser_(u.userId, p.token);
+
+  return {
+    ok: true,
+    mustChangePassword: false
+  };
+}
+
+
 function resetPassword_(u,p){requireAdmin_(u);const targetId=String(p.userId||''),temp=String(p.temporaryPassword||'');if(!targetId)throw Error('利用者を選択してください');validateNewPassword_(temp);const all=rowsWithRow_(SHEETS.USERS),target=all.find(x=>String(x.userId)===targetId);if(!target)throw Error('利用者が見つかりません');if(u.role==='leader'&&String(target.branchId)!==String(u.branchId))throw Error('他支部の利用者は変更できません');if(target.role==='system_admin'&&u.role!=='system_admin')throw Error('この利用者は変更できません');const salt=uuid_(),now=now_(),updated={...target,passwordHash:hash_(temp,salt),salt:salt,mustChangePassword:true,updatedAt:now};SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS).getRange(target._row,1,1,USER_HEADERS.length).setValues([USER_HEADERS.map(h=>updated[h]??'')]);deleteSessionsForUser_(target.userId,'');return{ok:true};}
 function validateNewPassword_(pw){pw=String(pw||'');if(pw.length<10)throw Error('パスワードは10文字以上にしてください');if(!/[A-Za-z]/.test(pw)||!/\d/.test(pw))throw Error('パスワードには英字と数字を両方含めてください');}
 function deleteSessionsForUser_(userId,keepToken){const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS);if(!sh||sh.getLastRow()<2)return;const vals=sh.getDataRange().getValues();for(let i=vals.length-1;i>=1;i--){if(String(vals[i][1])===String(userId)&&String(vals[i][0])!==String(keepToken||''))sh.deleteRow(i+1);}}
