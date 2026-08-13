@@ -1,6 +1,19 @@
 "use strict";
 function renderAll(){renderMarkers();renderLists();renderAnalysis()}
-function card(r){const mt=recordMemberType(r);return `<div class="card" style="border-color:${STATUS[statusKey(r.status)].color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'><div class="card-title">${priorityBadge(mt)} ${esc(r.personName||r.fullAddress||'訪問先')} ${r.warning?'<span class="warning-badge">⚠️訪問注意</span>':''}</div><div class="card-sub">${esc(r.fullAddress)}｜${esc(r.date)}｜${esc(r.assigneeName||'')}</div>${r.phone?`<div class="card-sub">☎ ${esc(r.phone)}</div>`:''}${r.email?`<div class="card-sub">✉ ${esc(r.email)}</div>`:''}<div class="badges"><span class="badge">${esc(STATUS[statusKey(r.status)].label)}</span>${mt?`<span class="badge">${esc(memberTypeLabel(mt))}</span>`:''}${r.supporter?`<span class="badge">${esc(r.supporter)}</span>`:''}${r.revisitPriority?`<span class="badge">再訪 ${esc(r.revisitPriority)}</span>`:''}${r.warningReason?`<span class="badge warning-soft">${esc(r.warningReason)}</span>`:''}</div>${r.memo?`<div class="card-sub">${esc(r.memo)}</div>`:''}</div>`}
+function card(r){
+  const mt=recordMemberType(r),key=statusKey(r.status);
+  const refused=key==='refused'?'<span class="refused-badge">×断られた</span>':'';
+  const warning=boolValue(r.warning)?'<span class="warning-badge">⚠️訪問注意</span>':'';
+  return `<div class="card" style="border-color:${STATUS[key].color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
+    <div class="card-title">${priorityBadge(mt)} ${esc(r.personName||r.fullAddress||'訪問先')} ${refused} ${warning}</div>
+    <div class="card-sub">${esc(r.fullAddress)}｜${esc(r.date)}｜${esc(r.assigneeName||'')}</div>
+    ${r.phone?`<div class="card-sub">☎ ${esc(r.phone)}</div>`:''}
+    ${r.email?`<div class="card-sub">✉ ${esc(r.email)}</div>`:''}
+    ${r.referrer?`<div class="card-sub">紹介：${esc(r.referrer)}</div>`:''}
+    <div class="badges"><span class="badge">${esc(STATUS[key].label)}</span>${mt?`<span class="badge">${esc(memberTypeLabel(mt))}</span>`:''}${r.supporter?`<span class="badge">${esc(r.supporter)}</span>`:''}${r.revisitPriority?`<span class="badge">再訪 ${esc(r.revisitPriority)}</span>`:''}${r.warningReason?`<span class="badge warning-soft">${esc(r.warningReason)}</span>`:''}</div>
+    ${r.memo?`<div class="card-sub">${esc(r.memo)}</div>`:''}
+  </div>`
+}
 let listQuickFilter='all';
 function setListFilter(){renderLists()}
 function renderLists(){
@@ -9,13 +22,15 @@ function renderLists(){
   const wantSupporter=!!$('listSupporter')?.checked;
   const wantRevisit=!!$('listRevisit')?.checked;
   const wantUnvisited=!!$('listUnvisited')?.checked;
+  const wantRefused=!!$('listRefused')?.checked;
   const wantWarning=!!$('listWarning')?.checked;
 
   let filtered=records.filter(r=>{
-    if(q && ![r.personName,r.fullAddress,r.address,r.area,r.memo,r.assigneeName,r.phone,r.email]
+    if(q && ![r.personName,r.fullAddress,r.address,r.area,r.memo,r.assigneeName,r.phone,r.email,r.referrer]
       .some(v=>String(v||'').toLowerCase().includes(q)))return false;
 
-    const mt=recordMemberType(r);
+    const mt=recordMemberType(r), key=statusKey(r.status);
+
     const memberFilters=[];
     if(wantParty)memberFilters.push('party_member');
     if(wantSupporter)memberFilters.push('supporter');
@@ -24,13 +39,10 @@ function renderLists(){
     const statusFilters=[];
     if(wantRevisit)statusFilters.push('revisit');
     if(wantUnvisited)statusFilters.push('unvisited');
-    if(statusFilters.length){
-      const key=statusKey(r.status);
-      const ok=statusFilters.some(f=>f==='revisit'?isRevisit(r):key==='unvisited');
-      if(!ok)return false;
-    }
+    if(wantRefused)statusFilters.push('refused');
+    if(statusFilters.length&&!statusFilters.includes(key))return false;
 
-    if(wantWarning&&!r.warning)return false;
+    if(wantWarning&&!boolValue(r.warning))return false;
     return true;
   });
 

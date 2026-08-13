@@ -206,3 +206,53 @@
   }
   .map-legend-inline{width:100%}
 }
+
+/* Ver.2.3.2 */
+.filter-group{
+  display:flex;
+  align-items:center;
+  gap:7px 11px;
+  flex-wrap:wrap;
+  width:100%;
+}
+.filter-group b{
+  min-width:58px;
+  font-size:11px;
+  color:#667085;
+}
+.filter-group label{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+  font-size:11px;
+  font-weight:800;
+}
+.filter-group input{width:auto;margin:0}
+.pin-refused{
+  position:absolute;
+  right:-9px;
+  bottom:-7px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#374151;
+  color:#fff;
+  font-size:16px;
+  font-weight:1000;
+  line-height:1;
+  border:2px solid #fff;
+}
+.refused-badge{
+  display:inline-block;
+  margin-left:5px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#e5e7eb;
+  color:#374151;
+  font-size:11px;
+}
+.refused-legend{color:#374151;font-weight:900}

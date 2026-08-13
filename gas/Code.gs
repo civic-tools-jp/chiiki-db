@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.3.2 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -143,8 +143,29 @@ function visibleBranches_(u){const all=rows_(SHEETS.BRANCHES).filter(x=>truth_(x
 function visibleAreas_(u){let all=rows_(SHEETS.AREAS).filter(x=>truth_(x.active));if(isGlobal_(u))return all;if(u.role==='member')return all.filter(x=>String(x.areaId)===String(u.areaId)&&String(x.branchId)===String(u.branchId));return all.filter(x=>String(x.branchId)===String(u.branchId));}
 function allowedArea_(u,areaId){let requested=String(areaId||'');if(u.role==='member'){if(!u.areaId)throw Error('この利用者に活動エリアが設定されていません');requested=String(u.areaId);}if(!requested)return null;const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===requested&&truth_(x.active));if(!a)throw Error('活動エリアが見つかりません');if(isGlobal_(u))return a;if(String(a.branchId)!==String(u.branchId))throw Error('この活動エリアにはアクセスできません');if(u.role==='member'&&String(a.areaId)!==String(u.areaId))throw Error('この活動エリアにはアクセスできません');return a;}
 
-function listRecords_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,records:all};}
-function saveRecord_(u,r){if(!r.fullAddress)throw Error('住所を入力してください');const area=allowedArea_(u,r.areaId);if(!area)throw Error('活動エリアを選択してください');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS),all=rowsWithRow_(SHEETS.RECORDS);let old=all.find(x=>String(x.id)===String(r.id));if(old&&!canAccessRecord_(u,old))throw Error('この記録は編集できません');if(old&&r.updatedAt&&String(old.updatedAt)!==String(r.updatedAt))throw Error('他の利用者が先に更新しました。最新表示後に編集してください');const now=now_(),branchId=old?old.branchId:area.branchId;const item={id:old?old.id:uuid_(),branchId,areaId:old?old.areaId:area.areaId,contactId:r.contactId||old?.contactId||'',lat:r.lat,lng:r.lng,area:r.area||'',address:r.address||'',fullAddress:r.fullAddress,personName:r.personName||'',phone:r.phone||'',email:r.email||'',status:r.status||'unvisited',type:r.type||'戸建て',household:r.household||'',contact:r.contact||'',revisitPriority:r.revisitPriority||'',referrer:r.referrer||'',supporter:r.supporter||'',warning:truth_(r.warning),warningReason:r.warningReason||'',warningMemo:r.warningMemo||'',signboard:truth_(r.signboard),posterParty:r.posterParty||'',posterMemo:r.posterMemo||'',memo:r.memo||'',date:r.date||'',startTime:r.startTime||'',endTime:r.endTime||'',durationMinutes:r.durationMinutes||'',googleMapsUrl:r.googleMapsUrl||'',assigneeId:old?old.assigneeId:u.userId,assigneeName:old?old.assigneeName:u.name,createdAt:old?old.createdAt:now,updatedAt:now,updatedBy:u.name};const vals=RECORD_HEADERS.map(h=>item[h]??'');if(old)sh.getRange(old._row,1,1,vals.length).setValues([vals]);else sh.appendRow(vals);return{ok:true,record:item};}
+
+function ensureRecordSchema_(){
+  const ss=SpreadsheetApp.getActive();
+  let sh=ss.getSheetByName(SHEETS.RECORDS);
+  if(!sh){sh=ss.insertSheet(SHEETS.RECORDS);sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);sh.setFrozenRows(1);return sh;}
+  const vals=sh.getDataRange().getValues();
+  if(!vals.length){sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);sh.setFrozenRows(1);return sh;}
+  const oldH=vals[0].map(String);
+  if(oldH.length===RECORD_HEADERS.length && oldH.every((h,i)=>h===RECORD_HEADERS[i]))return sh;
+  const rows=vals.slice(1).filter(r=>r.some(v=>v!==''));
+  const mapped=rows.map(r=>{
+    const o={};oldH.forEach((h,i)=>o[h]=r[i]);
+    return RECORD_HEADERS.map(h=>o[h]??'');
+  });
+  sh.clearContents();
+  sh.getRange(1,1,1,RECORD_HEADERS.length).setValues([RECORD_HEADERS]);
+  if(mapped.length)sh.getRange(2,1,mapped.length,RECORD_HEADERS.length).setValues(mapped);
+  sh.setFrozenRows(1);
+  return sh;
+}
+
+function listRecords_(u,p){ensureRecordSchema_();const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,records:all};}
+function saveRecord_(u,r){ensureRecordSchema_();if(!r.fullAddress)throw Error('住所を入力してください');const area=allowedArea_(u,r.areaId);if(!area)throw Error('活動エリアを選択してください');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS),all=rowsWithRow_(SHEETS.RECORDS);let old=all.find(x=>String(x.id)===String(r.id));if(old&&!canAccessRecord_(u,old))throw Error('この記録は編集できません');if(old&&r.updatedAt&&String(old.updatedAt)!==String(r.updatedAt))throw Error('他の利用者が先に更新しました。最新表示後に編集してください');const now=now_(),branchId=old?old.branchId:area.branchId;const item={id:old?old.id:uuid_(),branchId,areaId:old?old.areaId:area.areaId,contactId:r.contactId||old?.contactId||'',lat:r.lat,lng:r.lng,area:r.area||'',address:r.address||'',fullAddress:r.fullAddress,personName:r.personName||'',phone:r.phone||'',email:r.email||'',status:r.status||'unvisited',type:r.type||'戸建て',household:r.household||'',contact:r.contact||'',revisitPriority:r.revisitPriority||'',referrer:r.referrer||'',supporter:r.supporter||'',warning:truth_(r.warning),warningReason:r.warningReason||'',warningMemo:r.warningMemo||'',signboard:truth_(r.signboard),posterParty:r.posterParty||'',posterMemo:r.posterMemo||'',memo:r.memo||'',date:r.date||'',startTime:r.startTime||'',endTime:r.endTime||'',durationMinutes:r.durationMinutes||'',googleMapsUrl:r.googleMapsUrl||'',assigneeId:old?old.assigneeId:u.userId,assigneeName:old?old.assigneeName:u.name,createdAt:old?old.createdAt:now,updatedAt:now,updatedBy:u.name};const vals=RECORD_HEADERS.map(h=>item[h]??'');if(old)sh.getRange(old._row,1,1,vals.length).setValues([vals]);else sh.appendRow(vals);return{ok:true,record:item};}
 function deleteRecord_(u,p){const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));if(!old)return{ok:true};if(!canAccessRecord_(u,old))throw Error('削除できません');if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS).deleteRow(old._row);return{ok:true};}
 
 function listContacts_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,contacts:[]};const all=rows_(SHEETS.CONTACTS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,contacts:all};}
@@ -334,3 +355,10 @@ function migrateRecordsV23_(ss){
 }
 
 function rowsFromSheet_(ss,name){const sh=ss.getSheetByName(name);if(!sh||sh.getLastRow()<2)return[];const v=sh.getDataRange().getValues(),h=v.shift().map(String);return v.map(row=>{const o={};h.forEach((k,j)=>o[k]=row[j]);return o;});}
+
+
+// Ver.2.3.2: 訪問注意・紹介者・全ピンフィルター対応。既存Records列を安全に整列。
+function upgradeV232(){
+  ensureRecordSchema_();
+  return 'アイサポ Ver.2.3.2 への移行が完了しました';
+}
