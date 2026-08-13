@@ -4,7 +4,22 @@ async function loadRecords(){try{setBusy(true);const d=await api('listRecords',{
 function setBusy(v){$('app').classList.toggle('spinner',v)}
 function isRevisit(r){return statusKey(r.status)==='revisit'||['○中','◎高'].includes(r.revisitPriority)}
 function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()">${v.label}</button>`).join('')}
-function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('type').value=r.type||'戸建て';$('date').value=r.date||today();$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();renderContactSelect(r.contactId||'');$('linkContactCheck').checked=!!r.contactId;toggleRecordContactLink();renderLinkedContactInfo(r.contactId||'');$('deleteRecordBtn')?.classList.toggle('hidden',!r.id);$('editModal').style.display='flex'}
+function inputDateValue(v){
+  if(!v)return today();
+  if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+  if(m)return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  const d=new Date(s);
+  return isNaN(d)?today():d.toISOString().slice(0,10);
+}
+function isPartyOrSupporter(c){
+  const mt=String(c.memberType||'').trim();
+  if(mt==='party_member'||mt==='supporter')return true;
+  const raw=String(c.memberTypeRaw||c.membershipType||c.memberCategory||c.partyMemberType||'').trim();
+  return /党員|会員|サポーター/.test(raw);
+}
+function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();renderContactSelect(r.contactId||'');$('linkContactCheck').checked=!!r.contactId;toggleRecordContactLink();renderLinkedContactInfo(r.contactId||'');$('deleteRecordRow')?.classList.toggle('hidden',!r.id);$('editModal').style.display='flex'}
 function toggleRecordContactLink(){
   const checked=!!$('linkContactCheck')?.checked;
   $('recordContactWrap')?.classList.toggle('hidden',!checked);
@@ -35,8 +50,7 @@ function renderContactSelect(preferred){
   const previous=preferred!==undefined?preferred:el.value;
   const q=String($('recordContactSearch')?.value||'').trim().toLowerCase();
   const allowed=contacts.filter(c=>{
-    const mt=String(c.memberType||'');
-    if(mt!=='party_member'&&mt!=='supporter')return false;
+    if(!isPartyOrSupporter(c))return false;
     if(c.areaId&&currentAreaId&&String(c.areaId)!==String(currentAreaId))return false;
     if(!q)return true;
     return [c.name,c.fullAddress,c.partyId,c.phone].some(v=>String(v||'').toLowerCase().includes(q));

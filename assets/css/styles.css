@@ -271,3 +271,6 @@
 
 .contact-empty{padding:12px 4px;color:#6b7280;font-size:.95rem}
 #recordContactSearch{margin-bottom:8px}
+
+.delete-record-row{margin-top:18px;padding-top:16px;border-top:1px solid #eee}
+.delete-record-row .btn{width:100%}
