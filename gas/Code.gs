@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.4.5 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.4.6 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -376,7 +376,7 @@ function importContacts_(u,p){
     return null;
   }
 
-  function findExisting_(raw,name,address,phone){
+  function findExisting_(raw,name,address,phone,targetAreaId){
     const partyId=String(raw.partyId||'').trim();
     if(partyId){
       const hit=existing.find(x=>String(x.partyId||'').trim()===partyId);
@@ -386,7 +386,7 @@ function importContacts_(u,p){
     const a=String(address||'').trim().toLowerCase();
     const ph=String(phone||'').replace(/\D/g,'');
     return existing.find(x=>{
-      if(String(x.areaId)!==String(defaultArea.areaId))return false;
+      if(targetAreaId&&String(x.areaId)!==String(targetAreaId))return false;
       if(n&&a&&String(x.personName||'').trim().toLowerCase()===n&&String(x.fullAddress||'').trim().toLowerCase()===a)return true;
       if(n&&ph&&String(x.personName||'').trim().toLowerCase()===n&&String(x.phone||'').replace(/\D/g,'')===ph)return true;
       return false;
@@ -402,10 +402,13 @@ function importContacts_(u,p){
     if(!name&&!address){skipped++;continue;}
 
     const detected=detectArea_(address,raw.sourceBranch);
+    // 住所があるのに登録済み活動エリアへ判定できない場合は、
+    // 現在選択中エリアへ誤登録せず取り込み対象外にする。
+    // 住所自体が空の場合のみ、選択中エリアの名簿として残す。
+    if(address&&!detected){unmatched++;skipped++;continue;}
     const targetArea=detected||defaultArea;
-    if(!detected)unmatched++;
 
-    const old=findExisting_(raw,name,address,phone);
+    const old=findExisting_(raw,name,address,phone,targetArea.areaId);
     let lat=Number(raw.lat)||Number(old?.lat)||'',lng=Number(raw.lng)||Number(old?.lng)||'';
     if(address&&(!lat||!lng)){
       try{
@@ -793,4 +796,54 @@ function upgradeV245(){
     if(!seen.has(k)){writeRecordByHeader_(rsh,null,item);seen.add(k);migrated++;}
   });
   return 'Ver.2.4.5移行完了：既存Records補正 '+normalized+'件／Contacts→Records移行 '+migrated+'件';
+}
+
+
+function setupFukuokaTestDataV246(){
+  const ss=SpreadsheetApp.getActive();
+  ensureSheet_(ss,SHEETS.BRANCHES,BRANCH_HEADERS);
+  ensureSheet_(ss,SHEETS.AREAS,AREA_HEADERS);
+
+  const bsh=ss.getSheetByName(SHEETS.BRANCHES);
+  const ash=ss.getSheetByName(SHEETS.AREAS);
+
+  function findBranch_(n){
+    return rowsWithRow_(SHEETS.BRANCHES).find(b=>{
+      const x=String(b.name||'').replace(/\s/g,'');
+      if(n===1)return /福岡第1支部|第1支部|第一支部/.test(x);
+      if(n===2)return /福岡第2支部|第2支部|第二支部/.test(x);
+      return /福岡第3支部|第3支部|第三支部/.test(x);
+    });
+  }
+  function ensureBranch_(n,suggestedId,name){
+    const old=findBranch_(n);
+    const item={branchId:old?old.branchId:suggestedId,name,prefecture:'福岡県',active:true};
+    const vals=BRANCH_HEADERS.map(h=>item[h]??'');
+    if(old)bsh.getRange(old._row,1,1,BRANCH_HEADERS.length).setValues([vals]);
+    else bsh.appendRow(vals);
+    return item.branchId;
+  }
+  const b1=ensureBranch_(1,'fukuoka_1','福岡第1支部');
+  const b2=ensureBranch_(2,'fukuoka_2','福岡第2支部');
+  const b3=ensureBranch_(3,'fukuoka_3','福岡第3支部');
+
+  const areaDefs=[
+    {areaId:'fukuoka_higashi',branchId:b1,city:'福岡市',name:'東区',mapLat:33.6177,mapLng:130.4177,active:true},
+    {areaId:'fukuoka_hakata',branchId:b1,city:'福岡市',name:'博多区',mapLat:33.5913,mapLng:130.4149,active:true},
+    {areaId:'fukuoka_chuo',branchId:b2,city:'福岡市',name:'中央区',mapLat:33.5892,mapLng:130.3928,active:true},
+    {areaId:'fukuoka_minami',branchId:b2,city:'福岡市',name:'南区',mapLat:33.5619,mapLng:130.4266,active:true},
+    {areaId:'fukuoka_jonan_2',branchId:b2,city:'福岡市',name:'城南区',mapLat:33.5750,mapLng:130.3704,active:true},
+    {areaId:'fukuoka_sawara',branchId:b3,city:'福岡市',name:'早良区',mapLat:33.5818,mapLng:130.3485,active:true},
+    {areaId:'fukuoka_nishi',branchId:b3,city:'福岡市',name:'西区',mapLat:33.5829,mapLng:130.3231,active:true},
+    {areaId:'itoshima',branchId:b3,city:'糸島市',name:'糸島市',mapLat:33.5570,mapLng:130.1956,active:true}
+  ];
+  areaDefs.forEach(item=>{
+    const old=rowsWithRow_(SHEETS.AREAS).find(a=>String(a.city||'')===item.city&&String(a.name||'')===item.name);
+    if(old)item.areaId=old.areaId; // 既存の東区などはIDを維持して重複させない
+    const vals=AREA_HEADERS.map(h=>item[h]??'');
+    if(old)ash.getRange(old._row,1,1,AREA_HEADERS.length).setValues([vals]);
+    else ash.appendRow(vals);
+  });
+
+  return '福岡第1〜第3支部・活動エリアを登録/更新しました。既存の東区などは重複作成せずIDを維持します。城南区西部の第3支部境界は町丁目単位のため、このテストでは城南区を第2支部として扱います。';
 }

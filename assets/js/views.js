@@ -36,6 +36,7 @@ function renderLists(){
   if(unvisited)statusFilters.push('unvisited');
   if(refused)statusFilters.push('refused');
   const filtered=records.filter(r=>{
+    if(currentAreaId&&String(r.areaId||'')!==String(currentAreaId))return false;
     if(q && ![r.personName,r.fullAddress,r.phone,r.email,r.partyId,r.sourceBranch,r.referrer,r.memo].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     if(source && String(r.source||'manual')!==source)return false;
     if(memberType && String(r.memberType||'general')!==memberType)return false;

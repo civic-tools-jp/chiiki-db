@@ -78,7 +78,10 @@ function renderMarkers(){
 
   const warningOnly=!!$('filterWarning')?.checked;
 
+  let shown=0;
   records.forEach(r=>{
+    // 画面側でも現在の活動エリアを二重チェック。
+    if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
     const mt=recordMemberType(r),key=statusKey(r.status);
     if(memberFilters.length&&!memberFilters.includes(mt))return;
     if(statusFilters.length&&!statusFilters.includes(key))return;
@@ -93,8 +96,11 @@ function renderMarkers(){
       boolValue(r.warning)?'⚠️訪問注意':''
     ].filter(Boolean).join(' ');
     marker.bindTooltip(extras);
-    markers['r_'+r.id]=marker;pts.push([+r.lat,+r.lng]);
+    markers['r_'+r.id]=marker;pts.push([+r.lat,+r.lng]);shown++;
   });
+
+  const countEl=$('mapResultCount');
+  if(countEl)countEl.textContent=`該当 ${shown}件`;
 
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
   else if(pts.length===1)map.setView(pts[0],17);
