@@ -313,3 +313,6 @@
 .map-legend-row .map-legend-inline{flex:1;min-width:0}
 .map-result-count{white-space:nowrap;background:#eef6ef;border:1px solid #d5e7d8;color:#1f5b31;border-radius:999px;padding:7px 13px;font-weight:800;font-size:14px}
 @media(max-width:640px){.map-result-count{margin-left:auto}}
+
+/* v2.4.9: map result count is supplementary information */
+.map-result-count{padding:4px 9px;font-size:12px;font-weight:700}

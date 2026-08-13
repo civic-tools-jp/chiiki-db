@@ -53,7 +53,7 @@ function renderLists(){
     return `<div class="card" style="border-color:${STATUS[statusKey(r.status)].color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
       <div class="card-title">${priorityBadge(mt)} ${esc(r.personName||r.fullAddress||'名称未設定')} <span class="badge">${esc(STATUS[statusKey(r.status)].label)}</span></div>
       <div class="muted">${esc(r.fullAddress||'住所未設定')}</div>
-      <div class="badges"><span class="badge">${esc(memberTypeLabel(mt))}</span><span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span><span class="badge">${located?'📍位置取得済':'⚠️位置未取得'}</span>${r.partyId?`<span class="badge">ID ${esc(r.partyId)}</span>`:''}</div>
+      <div class="badges"><span class="badge">${esc(memberTypeLabel(mt))}</span><span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span><span class="badge">${(!located&&session?.role==='member'&&['party_member','supporter'].includes(mt))?'🔒位置非表示':(located?'📍位置取得済':'⚠️位置未取得')}</span>${r.partyId?`<span class="badge">ID ${esc(r.partyId)}</span>`:''}</div>
       ${r.phone?`<div class="muted">☎ ${esc(r.phone)}</div>`:''}
     </div>`;
   });

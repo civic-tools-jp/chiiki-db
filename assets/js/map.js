@@ -78,7 +78,7 @@ function renderMarkers(){
 
   const warningOnly=!!$('filterWarning')?.checked;
 
-  let shown=0;
+  let matched=0,shown=0;
   records.forEach(r=>{
     // 画面側でも現在の活動エリアを二重チェック。
     if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
@@ -86,6 +86,7 @@ function renderMarkers(){
     if(memberFilters.length&&!memberFilters.includes(mt))return;
     if(statusFilters.length&&!statusFilters.includes(key))return;
     if(warningOnly&&!boolValue(r.warning))return;
+    matched++;
     const lat=Number(r.lat),lng=Number(r.lng);
     // 空欄は Number('') === 0 になるため、非表示にする。
     // 一般ユーザー向けに位置情報を伏せた党員・サポーターもここで除外する。
@@ -104,7 +105,11 @@ function renderMarkers(){
   });
 
   const countEl=$('mapResultCount');
-  if(countEl)countEl.textContent=`該当 ${shown}件`;
+  if(countEl){
+    countEl.textContent=matched===shown
+      ? `該当 ${matched}件`
+      : `該当 ${matched}件（地図表示 ${shown}件）`;
+  }
 
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
   else if(pts.length===1)map.setView(pts[0],17);
