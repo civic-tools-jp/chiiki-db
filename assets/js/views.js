@@ -58,64 +58,109 @@ function renderLists(){
   });
   $('listCards').innerHTML=html.join('')||'<div class="panel notice">該当データはありません。</div>';
 }
+function townKey(address){
+  const s=String(address||'').replace(/\s+/g,'');
+  if(!s)return'住所未設定';
+  const ward=s.match(/東区(.+?丁目)/);
+  if(ward)return ward[1];
+  const ward2=s.match(/東区([^0-9\-－ー番地号]+?)(?=\d|$)/);
+  if(ward2&&ward2[1])return ward2[1];
+  return s.replace(/^.*?東区/,'').slice(0,12)||'その他';
+}
+function analysisGo(kind){
+  if($('listSource'))$('listSource').value='';
+  if($('listMemberType'))$('listMemberType').value='';
+  if($('listLocation'))$('listLocation').value='';
+  ['listRevisit','listUnvisited','listRefused','listWarning'].forEach(id=>{if($(id))$(id).checked=false});
+  if(kind==='unlocated')$('listLocation').value='unlocated';
+  if(kind==='revisit')$('listRevisit').checked=true;
+  if(kind==='unvisited')$('listUnvisited').checked=true;
+  if(kind==='warning')$('listWarning').checked=true;
+  if(kind==='party')$('listMemberType').value='party_member';
+  if(kind==='supporter')$('listMemberType').value='supporter';
+  if(kind==='import')$('listSource').value='import';
+  showView('list');renderLists();
+}
 function renderAnalysis(){
-  const byStatus={};
-  Object.keys(STATUS).forEach(k=>byStatus[k]=0);
-  records.forEach(r=>{
-    const k=statusKey(r.status);
-    byStatus[k]=(byStatus[k]||0)+1;
-  });
-
   const total=records.length;
+  const countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
+  const unvisited=countStatus('unvisited');
+  const visited=countStatus('visited')+countStatus('good')+countStatus('absent')+countStatus('revisit')+countStatus('refused');
+  const revisit=records.filter(r=>isRevisit(r)).length;
+  const refused=countStatus('refused');
+  const warning=records.filter(r=>boolValue(r.warning)).length;
+  const unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
   const party=records.filter(r=>r.memberType==='party_member').length;
   const supporter=records.filter(r=>r.memberType==='supporter').length;
   const general=records.filter(r=>(r.memberType||'general')==='general').length;
-  const unknown=records.filter(r=>r.memberType==='unknown').length;
-  const unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
-
   const imported=records.filter(r=>r.source==='import').length;
   const manual=records.filter(r=>(r.source||'manual')==='manual').length;
   const mapped=records.filter(r=>r.source==='map').length;
+  const visitRate=total?Math.round(visited/total*100):0;
 
-  const metric=(label,value,sub='')=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div>${sub?`<div class="analysis-sub">${esc(sub)}</div>`:''}</div>`;
-
-  const statusRows=Object.entries(STATUS).map(([k,v])=>{
-    const n=byStatus[k]||0;
-    const pct=total?Math.round(n/total*100):0;
-    return `<div class="analysis-row">
-      <div class="analysis-row-head"><span>${esc(v.label)}</span><b>${n}件</b></div>
-      <div class="analysis-bar"><div class="analysis-bar-fill" style="width:${pct}%"></div></div>
-      <div class="analysis-sub">${pct}%</div>
+  const towns={};
+  records.forEach(r=>{
+    const k=townKey(r.fullAddress);
+    if(!towns[k])towns[k]={total:0,visited:0,unvisited:0,revisit:0,unlocated:0};
+    const t=towns[k];t.total++;
+    const st=statusKey(r.status);
+    if(st==='unvisited')t.unvisited++;else t.visited++;
+    if(isRevisit(r))t.revisit++;
+    if(!(Number(r.lat)&&Number(r.lng)))t.unlocated++;
+  });
+  const townRows=Object.entries(towns).sort((a,b)=>b[1].unvisited-a[1].unvisited||b[1].total-a[1].total).slice(0,12).map(([name,t])=>{
+    const rate=t.total?Math.round(t.visited/t.total*100):0;
+    return `<div class="analysis-town-row">
+      <div class="analysis-town-main"><b>${esc(name)}</b><span>${t.total}件</span></div>
+      <div class="analysis-town-stats"><span>未訪問 ${t.unvisited}</span><span>再訪 ${t.revisit}</span><span>位置未取得 ${t.unlocated}</span><span>進捗 ${rate}%</span></div>
+      <div class="analysis-bar"><div class="analysis-bar-fill" style="width:${rate}%"></div></div>
     </div>`;
   }).join('');
 
-  const el=$('analysisContent');
-  if(!el)return;
+  const action=(kind,label,value,detail)=>`<button class="analysis-action" onclick="analysisGo('${kind}')"><span class="analysis-action-value">${value}</span><span class="analysis-action-label">${esc(label)}</span><span class="analysis-action-sub">${esc(detail)}</span></button>`;
+  const metric=(label,value)=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div></div>`;
+
+  const el=$('analysisContent');if(!el)return;
   el.innerHTML=`
     <div class="panel">
-      <div class="card-title">登録状況</div>
+      <div class="card-title">今日の優先対応</div>
+      <div class="analysis-actions">
+        ${action('revisit','要再訪',revisit,'先に回る候補')}
+        ${action('unvisited','未訪問',unvisited,'まだ接触していない')}
+        ${action('unlocated','位置未取得',unlocated,'住所確認・位置再取得')}
+        ${action('warning','訪問注意',warning,'訪問前に確認')}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-title">活動の進捗</div>
+      <div class="analysis-progress-head"><b>${visited} / ${total}件</b><span>訪問進捗 ${visitRate}%</span></div>
+      <div class="analysis-bar analysis-bar-large"><div class="analysis-bar-fill" style="width:${visitRate}%"></div></div>
       <div class="analysis-grid">
-        ${metric('全登録',total)}
-        ${metric('党員',party)}
-        ${metric('サポーター',supporter)}
+        ${metric('全登録',total)}${metric('訪問済等',visited)}${metric('断られた',refused)}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-title">対象者</div>
+      <div class="analysis-grid clickable">
+        <button onclick="analysisGo('party')" class="analysis-metric">${metric('党員',party).replace(/^<div class="analysis-metric">|<\/div>$/g,'')}</button>
+        <button onclick="analysisGo('supporter')" class="analysis-metric">${metric('サポーター',supporter).replace(/^<div class="analysis-metric">|<\/div>$/g,'')}</button>
         ${metric('一般',general)}
-        ${unknown?metric('未設定',unknown):''}
-        ${metric('位置未取得',unlocated)}
       </div>
     </div>
 
     <div class="panel">
       <div class="card-title">登録方法</div>
       <div class="analysis-grid">
-        ${metric('名簿取込',imported)}
-        ${metric('手入力',manual)}
-        ${metric('地図登録',mapped)}
+        ${metric('名簿取込',imported)}${metric('手入力',manual)}${metric('地図登録',mapped)}
       </div>
     </div>
 
     <div class="panel">
-      <div class="card-title">訪問状況</div>
-      <div class="analysis-status-list">${statusRows}</div>
+      <div class="card-title">町丁目別の進捗</div>
+      <div class="notice">未訪問が多い地域から表示しています。</div>
+      <div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div>
     </div>`;
 }
-function showView(v){['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}
+function showView(v){['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='analysis')renderAnalysis();if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}
