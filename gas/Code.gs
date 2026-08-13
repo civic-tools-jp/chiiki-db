@@ -1,24 +1,24 @@
 const SHEETS={USERS:'Users',BRANCHES:'Branches',AREAS:'Areas',CONTACTS:'Contacts',RECORDS:'Records',SESSIONS:'Sessions'};
-const USER_HEADERS=['userId','loginId','name','passwordHash','salt','role','branchId','active','mustChangePassword','createdAt','updatedAt'];
+const USER_HEADERS=['userId','loginId','name','passwordHash','salt','role','branchId','areaId','active','mustChangePassword','createdAt','updatedAt'];
 const BRANCH_HEADERS=['branchId','name','prefecture','active'];
 const AREA_HEADERS=['areaId','branchId','city','name','mapLat','mapLng','active'];
-const CONTACT_HEADERS=['contactId','branchId','areaId','name','fullAddress','phone','referrer','supporter','assigneeId','assigneeName','memo','createdAt','updatedAt','updatedBy'];
+const CONTACT_HEADERS=['contactId','branchId','areaId','name','fullAddress','phone','email','memberType','lat','lng','referrer','supporter','assigneeId','assigneeName','memo','createdAt','updatedAt','updatedBy'];
 const RECORD_HEADERS=['id','branchId','areaId','contactId','lat','lng','area','address','fullAddress','personName','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.1.2 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.2 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
 case'listContacts':return json_(listContacts_(user,p));case'saveContact':return json_(saveContact_(user,p.contact||{}));case'deleteContact':return json_(deleteContact_(user,p));
-case'adminData':return json_(adminData_(user));case'createUser':return json_(createUser_(user,p.user||{}));case'createArea':return json_(createArea_(user,p.area||{}));case'changePassword':return json_(changePassword_(user,p));case'resetPassword':return json_(resetPassword_(user,p));
+case'adminData':return json_(adminData_(user));case'createUser':return json_(createUser_(user,p.user||{}));case'setUserArea':return json_(setUserArea_(user,p));case'createArea':return json_(createArea_(user,p.area||{}));case'importContacts':return json_(importContacts_(user,p));case'changePassword':return json_(changePassword_(user,p));case'resetPassword':return json_(resetPassword_(user,p));
 default:throw Error('不明な処理です');}}catch(err){return json_({ok:false,error:String(err.message||err)});}}
 
 // 初回用。既にVer.2をセットアップ済みなら upgradeV21() を実行してください。
 function setup_(p){const ss=SpreadsheetApp.getActive();ensureSheet_(ss,SHEETS.USERS,USER_HEADERS);ensureSheet_(ss,SHEETS.BRANCHES,BRANCH_HEADERS);ensureSheet_(ss,SHEETS.AREAS,AREA_HEADERS);ensureSheet_(ss,SHEETS.CONTACTS,CONTACT_HEADERS);ensureSheet_(ss,SHEETS.RECORDS,RECORD_HEADERS);ensureSheet_(ss,SHEETS.SESSIONS,SESSION_HEADERS);
 const bs=ss.getSheetByName(SHEETS.BRANCHES);if(bs.getLastRow()===1)bs.appendRow(['branch_fukuoka_1','福岡第1支部','福岡県',true]);
 const as=ss.getSheetByName(SHEETS.AREAS);if(as.getLastRow()===1)as.appendRow(['area_higashi','branch_fukuoka_1','福岡市','東区',33.6452,130.4319,true]);
-const us=ss.getSheetByName(SHEETS.USERS);if(us.getLastRow()===1){const salt=uuid_(),pw=p.adminPassword||'ChangeMe123!';us.appendRow([uuid_(),p.adminLoginId||'admin',p.adminName||'管理者',hash_(pw,salt),salt,'system_admin','',true,false,now_(),now_()]);}return{ok:true,message:'初期設定が完了しました'};}
+const us=ss.getSheetByName(SHEETS.USERS);if(us.getLastRow()===1){const salt=uuid_(),pw=p.adminPassword||'ChangeMe123!';us.appendRow([uuid_(),p.adminLoginId||'admin',p.adminName||'管理者',hash_(pw,salt),salt,'system_admin','','',true,false,now_(),now_()]);}return{ok:true,message:'初期設定が完了しました'};}
 
 // Ver.2 → Ver.2.1 移行。現在のシートを残しつつ構造を更新します。1回だけ実行してください。
 function upgradeV21(){const ss=SpreadsheetApp.getActive();
@@ -136,23 +136,23 @@ function migrateRecordsToV212_(ss){
   sh.setFrozenRows(1);
 }
 
-function login_(p){cleanupSessions_();const id=String(p.loginId||'').trim(),pw=String(p.password||'');if(!id||!pw)throw Error('ユーザーIDとパスワードを入力してください');const users=rows_(SHEETS.USERS);const u=users.find(x=>String(x.loginId)===id&&truth_(x.active));if(!u||hash_(pw,u.salt)!==u.passwordHash)throw Error('ユーザーIDまたはパスワードが違います');const branch=rows_(SHEETS.BRANCHES).find(b=>b.branchId===u.branchId)||{};const token=uuid_()+uuid_();const expires=new Date(Date.now()+1000*60*60*12).toISOString();SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS).appendRow([token,u.userId,expires,now_()]);return{ok:true,session:{token,userId:u.userId,loginId:u.loginId,name:u.name,role:u.role,branchId:u.branchId,branchName:branch.name||'全支部',mustChangePassword:truth_(u.mustChangePassword),expiresAt:expires}};}
+function login_(p){cleanupSessions_();const id=String(p.loginId||'').trim(),pw=String(p.password||'');if(!id||!pw)throw Error('ユーザーIDとパスワードを入力してください');const users=rows_(SHEETS.USERS);const u=users.find(x=>String(x.loginId)===id&&truth_(x.active));if(!u||!passwordMatches_(pw,u))throw Error('ユーザーIDまたはパスワードが違います');const branch=rows_(SHEETS.BRANCHES).find(b=>String(b.branchId)===String(u.branchId))||{};const token=uuid_()+uuid_();const expires=new Date(Date.now()+1000*60*60*12).toISOString();SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS).appendRow([token,u.userId,expires,now_()]);return{ok:true,session:{token,userId:u.userId,loginId:u.loginId,name:u.name,role:u.role,branchId:u.branchId,areaId:u.areaId||'',branchName:branch.name||'全支部',mustChangePassword:truth_(u.mustChangePassword),expiresAt:expires}};}
 function auth_(token){if(!token)throw Error('セッションがありません');cleanupSessions_();const s=rows_(SHEETS.SESSIONS).find(x=>x.token===token);if(!s||new Date(s.expiresAt)<=new Date())throw Error('セッションの有効期限が切れました');const u=rows_(SHEETS.USERS).find(x=>x.userId===s.userId&&truth_(x.active));if(!u)throw Error('利用者が無効です');return u;}
-function bootstrap_(u){const branches=visibleBranches_(u),areas=visibleAreas_(u);return{ok:true,branches,areas};}
+function bootstrap_(u){const branches=visibleBranches_(u),areas=visibleAreas_(u);return{ok:true,branches,areas,defaultAreaId:u.role==='member'?String(u.areaId||''):'',areaLocked:u.role==='member'};}
 function visibleBranches_(u){const all=rows_(SHEETS.BRANCHES).filter(x=>truth_(x.active));return isGlobal_(u)?all:all.filter(x=>x.branchId===u.branchId);}
-function visibleAreas_(u){const ids=new Set(visibleBranches_(u).map(x=>String(x.branchId)));return rows_(SHEETS.AREAS).filter(x=>truth_(x.active)&&ids.has(String(x.branchId)));}
-function allowedArea_(u,areaId){if(!areaId)return null;const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===String(areaId)&&truth_(x.active));if(!a||(!isGlobal_(u)&&String(a.branchId)!==String(u.branchId)))throw Error('この活動エリアにはアクセスできません');return a;}
+function visibleAreas_(u){let all=rows_(SHEETS.AREAS).filter(x=>truth_(x.active));if(isGlobal_(u))return all;if(u.role==='member')return all.filter(x=>String(x.areaId)===String(u.areaId)&&String(x.branchId)===String(u.branchId));return all.filter(x=>String(x.branchId)===String(u.branchId));}
+function allowedArea_(u,areaId){let requested=String(areaId||'');if(u.role==='member'){if(!u.areaId)throw Error('この利用者に活動エリアが設定されていません');requested=String(u.areaId);}if(!requested)return null;const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===requested&&truth_(x.active));if(!a)throw Error('活動エリアが見つかりません');if(isGlobal_(u))return a;if(String(a.branchId)!==String(u.branchId))throw Error('この活動エリアにはアクセスできません');if(u.role==='member'&&String(a.areaId)!==String(u.areaId))throw Error('この活動エリアにはアクセスできません');return a;}
 
-function listRecords_(u,p){const areaId=String(p.areaId||'');if(areaId)allowedArea_(u,areaId);let all=rows_(SHEETS.RECORDS);if(!isGlobal_(u))all=all.filter(r=>String(r.branchId)===String(u.branchId));if(areaId)all=all.filter(r=>String(r.areaId)===areaId);return{ok:true,records:all};}
+function listRecords_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,records:all};}
 function saveRecord_(u,r){if(!r.fullAddress)throw Error('住所を入力してください');const area=allowedArea_(u,r.areaId);if(!area)throw Error('活動エリアを選択してください');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS),all=rowsWithRow_(SHEETS.RECORDS);let old=all.find(x=>String(x.id)===String(r.id));if(old&&!canAccessRecord_(u,old))throw Error('この記録は編集できません');if(old&&r.updatedAt&&String(old.updatedAt)!==String(r.updatedAt))throw Error('他の利用者が先に更新しました。最新表示後に編集してください');const now=now_(),branchId=old?old.branchId:area.branchId;const item={id:old?old.id:uuid_(),branchId,areaId:old?old.areaId:area.areaId,contactId:r.contactId||old?.contactId||'',lat:r.lat,lng:r.lng,area:r.area||'',address:r.address||'',fullAddress:r.fullAddress,personName:r.personName||'',status:r.status||'unvisited',type:r.type||'戸建て',household:r.household||'',contact:r.contact||'',revisitPriority:r.revisitPriority||'',referrer:r.referrer||'',supporter:r.supporter||'',warning:truth_(r.warning),warningMemo:r.warningMemo||'',signboard:truth_(r.signboard),posterParty:r.posterParty||'',posterMemo:r.posterMemo||'',memo:r.memo||'',date:r.date||'',startTime:r.startTime||'',endTime:r.endTime||'',durationMinutes:r.durationMinutes||'',googleMapsUrl:r.googleMapsUrl||'',assigneeId:old?old.assigneeId:u.userId,assigneeName:old?old.assigneeName:u.name,createdAt:old?old.createdAt:now,updatedAt:now,updatedBy:u.name};const vals=RECORD_HEADERS.map(h=>item[h]??'');if(old)sh.getRange(old._row,1,1,vals.length).setValues([vals]);else sh.appendRow(vals);return{ok:true,record:item};}
 function deleteRecord_(u,p){const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));if(!old)return{ok:true};if(!canAccessRecord_(u,old))throw Error('削除できません');if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS).deleteRow(old._row);return{ok:true};}
 
-function listContacts_(u,p){const areaId=String(p.areaId||'');if(areaId)allowedArea_(u,areaId);let all=rows_(SHEETS.CONTACTS);if(!isGlobal_(u))all=all.filter(r=>String(r.branchId)===String(u.branchId));if(areaId)all=all.filter(r=>String(r.areaId)===areaId);return{ok:true,contacts:all};}
-function saveContact_(u,c){if(!c.name)throw Error('氏名・呼び名を入力してください');const area=allowedArea_(u,c.areaId);if(!area)throw Error('活動エリアを選択してください');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS),all=rowsWithRow_(SHEETS.CONTACTS);let old=all.find(x=>String(x.contactId)===String(c.contactId));if(old&&!canAccessBranch_(u,old.branchId))throw Error('この名簿は編集できません');if(old&&c.updatedAt&&String(old.updatedAt)!==String(c.updatedAt))throw Error('他の利用者が先に更新しました');const now=now_();const item={contactId:old?old.contactId:uuid_(),branchId:old?old.branchId:area.branchId,areaId:old?old.areaId:area.areaId,name:c.name,fullAddress:c.fullAddress||'',phone:c.phone||'',referrer:c.referrer||'',supporter:c.supporter||'',assigneeId:old?old.assigneeId:u.userId,assigneeName:old?old.assigneeName:u.name,memo:c.memo||'',createdAt:old?old.createdAt:now,updatedAt:now,updatedBy:u.name};const vals=CONTACT_HEADERS.map(h=>item[h]??'');if(old)sh.getRange(old._row,1,1,vals.length).setValues([vals]);else sh.appendRow(vals);return{ok:true,contact:item};}
-function deleteContact_(u,p){const all=rowsWithRow_(SHEETS.CONTACTS),old=all.find(x=>String(x.contactId)===String(p.contactId));if(!old)return{ok:true};if(!canAccessBranch_(u,old.branchId))throw Error('削除できません');if(rows_(SHEETS.RECORDS).some(r=>String(r.contactId)===String(old.contactId)))throw Error('訪問記録に紐づいているため削除できません');SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS).deleteRow(old._row);return{ok:true};}
+function listContacts_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,contacts:[]};const all=rows_(SHEETS.CONTACTS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,contacts:all};}
+function saveContact_(u,c){if(!c.name)throw Error('氏名・呼び名を入力してください');const area=allowedArea_(u,c.areaId||u.areaId||'');if(!area)throw Error('活動エリアを選択してください');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS),all=rowsWithRow_(SHEETS.CONTACTS);let old=all.find(x=>String(x.contactId)===String(c.contactId));if(old&&!canAccessAreaId_(u,old.areaId))throw Error('この名簿は編集できません');if(old&&c.updatedAt&&String(old.updatedAt)!==String(c.updatedAt))throw Error('他の利用者が先に更新しました');const now=now_();const item={contactId:old?old.contactId:uuid_(),branchId:old?old.branchId:area.branchId,areaId:old?old.areaId:area.areaId,name:c.name,fullAddress:c.fullAddress||'',phone:c.phone||'',email:c.email||'',memberType:normalizeMemberType_(c.memberType),lat:c.lat||'',lng:c.lng||'',referrer:c.referrer||'',supporter:c.supporter||'',assigneeId:old?old.assigneeId:u.userId,assigneeName:old?old.assigneeName:u.name,memo:c.memo||'',createdAt:old?old.createdAt:now,updatedAt:now,updatedBy:u.name};const vals=CONTACT_HEADERS.map(h=>item[h]??'');if(old)sh.getRange(old._row,1,1,vals.length).setValues([vals]);else sh.appendRow(vals);return{ok:true,contact:item};}
+function deleteContact_(u,p){const all=rowsWithRow_(SHEETS.CONTACTS),old=all.find(x=>String(x.contactId)===String(p.contactId));if(!old)return{ok:true};if(!canAccessAreaId_(u,old.areaId))throw Error('削除できません');if(rows_(SHEETS.RECORDS).some(r=>String(r.contactId)===String(old.contactId)))throw Error('訪問記録に紐づいているため削除できません');SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS).deleteRow(old._row);return{ok:true};}
 
-function adminData_(u){requireAdmin_(u);const branches=visibleBranches_(u),areas=visibleAreas_(u);let users=rows_(SHEETS.USERS);if(u.role==='leader')users=users.filter(x=>x.branchId===u.branchId);const bm=Object.fromEntries(rows_(SHEETS.BRANCHES).map(b=>[b.branchId,b.name]));return{ok:true,branches,areas,users:users.map(x=>({userId:x.userId,loginId:x.loginId,name:x.name,role:x.role,branchId:x.branchId,branchName:bm[x.branchId]||'全支部',active:truth_(x.active),mustChangePassword:truth_(x.mustChangePassword)}))};}
-function createUser_(u,x){requireAdmin_(u);if(!x.loginId||!x.name||!x.password)throw Error('必須項目を入力してください');validateNewPassword_(x.password);if(rows_(SHEETS.USERS).some(v=>String(v.loginId)===String(x.loginId)))throw Error('同じユーザーIDが登録されています');let role=x.role||'member',branchId=x.branchId||'';if(u.role==='leader'){role=role==='member'?'member':'leader';branchId=u.branchId;}if(!isGlobal_(u)&&branchId!==u.branchId)throw Error('他支部には登録できません');const salt=uuid_();SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS).appendRow([uuid_(),x.loginId,x.name,hash_(x.password,salt),salt,role,branchId,true,true,now_(),now_()]);return{ok:true};}
+function adminData_(u){requireAdmin_(u);const branches=visibleBranches_(u),areas=visibleAreas_(u);let users=rows_(SHEETS.USERS);if(u.role==='leader')users=users.filter(x=>String(x.branchId)===String(u.branchId));const bm=Object.fromEntries(rows_(SHEETS.BRANCHES).map(b=>[b.branchId,b.name])),am=Object.fromEntries(rows_(SHEETS.AREAS).map(a=>[a.areaId,(a.city?a.city+' ':'')+a.name]));return{ok:true,branches,areas,users:users.map(x=>({userId:x.userId,loginId:x.loginId,name:x.name,role:x.role,branchId:x.branchId,areaId:x.areaId||'',branchName:bm[x.branchId]||'全支部',areaName:am[x.areaId]||(['prefecture_admin','system_admin','leader'].includes(x.role)?'選択可':'未設定'),active:truth_(x.active),mustChangePassword:truth_(x.mustChangePassword)}))};}
+function createUser_(u,x){requireAdmin_(u);if(!x.loginId||!x.name||!x.password)throw Error('必須項目を入力してください');validateNewPassword_(x.password);if(rows_(SHEETS.USERS).some(v=>String(v.loginId)===String(x.loginId)))throw Error('同じユーザーIDが登録されています');let role=x.role||'member',branchId=x.branchId||'',areaId=x.areaId||'';if(u.role==='leader'){role=role==='member'?'member':'leader';branchId=u.branchId;}if(!isGlobal_(u)&&String(branchId)!==String(u.branchId))throw Error('他支部には登録できません');if(role==='member'){const a=rows_(SHEETS.AREAS).find(a=>String(a.areaId)===String(areaId)&&truth_(a.active));if(!a||String(a.branchId)!==String(branchId))throw Error('一般利用者には活動エリアを設定してください');}else areaId='';const salt=uuid_();SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS).appendRow([uuid_(),x.loginId,x.name,hash_(x.password,salt),salt,role,branchId,areaId,true,true,now_(),now_()]);return{ok:true};}
 
 function changePassword_(u,p){
   const current=String(p.currentPassword||'');
@@ -183,7 +183,7 @@ function resetPassword_(u,p){
 function validateNewPassword_(pw){
   pw=String(pw||'');
   if(pw.length<10)throw Error('パスワードは10文字以上にしてください');
-  if(!/[A-Za-z]/.test(pw)||!\d/.test(pw))throw Error('パスワードには英字と数字を両方含めてください');
+  if(!/[A-Za-z]/.test(pw)||!/\d/.test(pw))throw Error('パスワードには英字と数字を両方含めてください');
 }
 function passwordMatches_(password,user){
   return String(hash_(String(password||''),String(user.salt||''))).trim()===String(user.passwordHash||'').trim();
@@ -206,14 +206,54 @@ function setUserPassword_(user,newPassword,mustChange){
   return true;
 }
 function deleteSessionsForUser_(userId,keepToken){const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS);if(!sh||sh.getLastRow()<2)return;const vals=sh.getDataRange().getValues();for(let i=vals.length-1;i>=1;i--){if(String(vals[i][1])===String(userId)&&String(vals[i][0])!==String(keepToken||''))sh.deleteRow(i+1);}}
+function canAccessAreaId_(u,areaId){try{return !!allowedArea_(u,areaId);}catch(_){return false;}}
+function setUserArea_(u,p){requireAdmin_(u);const targetId=String(p.userId||''),areaId=String(p.areaId||'');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS),all=rowsWithRow_(SHEETS.USERS),target=all.find(x=>String(x.userId)===targetId);if(!target)throw Error('利用者が見つかりません');if(target.role!=='member')throw Error('活動エリア固定は一般利用者に設定します');if(u.role==='leader'&&String(target.branchId)!==String(u.branchId))throw Error('他支部の利用者は変更できません');const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===areaId&&truth_(x.active));if(!a||String(a.branchId)!==String(target.branchId))throw Error('所属支部の活動エリアを選択してください');if(!isGlobal_(u)&&String(a.branchId)!==String(u.branchId))throw Error('この活動エリアは設定できません');const headers=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String),c=headers.indexOf('areaId')+1;if(!c)throw Error('areaId列がありません。upgradeV22を実行してください');sh.getRange(target._row,c).setValue(areaId);return{ok:true};}
+function normalizeMemberType_(v){const s=String(v||'').trim();if(['party_member','supporter','general','unknown'].includes(s))return s;if(/党員/.test(s))return'party_member';if(/サポ|support/i.test(s))return'supporter';if(/一般/.test(s))return'general';return'unknown';}
+function importContacts_(u,p){requireAdmin_(u);const area=allowedArea_(u,p.areaId||'');if(!area)throw Error('取込先エリアを選択してください');const input=Array.isArray(p.contacts)?p.contacts:[];if(!input.length)throw Error('取り込む名簿がありません');if(input.length>500)throw Error('1回の取込は500件までです');const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS),existing=rows_(SHEETS.CONTACTS),key=x=>[x.name,x.fullAddress,x.phone,x.email].map(v=>String(v||'').trim().toLowerCase()).join('|'),seen=new Set(existing.filter(x=>String(x.areaId)===String(area.areaId)).map(key));const rows=[];let skipped=0;for(const raw of input){const name=String(raw.name||'').trim(),address=String(raw.fullAddress||'').trim();if(!name&&!address){skipped++;continue;}const item={contactId:uuid_(),branchId:area.branchId,areaId:area.areaId,name:name||'名称未設定',fullAddress:address,phone:String(raw.phone||'').trim(),email:String(raw.email||'').trim(),memberType:normalizeMemberType_(raw.memberType),lat:raw.lat||'',lng:raw.lng||'',referrer:String(raw.referrer||'').trim(),supporter:String(raw.supporter||'').trim(),assigneeId:u.userId,assigneeName:u.name,memo:String(raw.memo||'').trim(),createdAt:now_(),updatedAt:now_(),updatedBy:u.name};const k=key(item);if(seen.has(k)){skipped++;continue;}seen.add(k);rows.push(CONTACT_HEADERS.map(h=>item[h]??''));}if(rows.length)sh.getRange(sh.getLastRow()+1,1,rows.length,CONTACT_HEADERS.length).setValues(rows);return{ok:true,added:rows.length,skipped};}
 function createArea_(u,x){requireAdmin_(u);let branchId=x.branchId||u.branchId;if(u.role==='leader')branchId=u.branchId;if(!branchId)throw Error('支部を選択してください');if(!x.name)throw Error('エリア名を入力してください');const areaId=x.areaId||('area_'+uuid_().slice(0,12));SpreadsheetApp.getActive().getSheetByName(SHEETS.AREAS).appendRow([areaId,branchId,x.city||'',x.name,Number(x.mapLat)||'',Number(x.mapLng)||'',true]);return{ok:true,areaId};}
 function requireAdmin_(u){if(!['leader','prefecture_admin','system_admin'].includes(u.role))throw Error('管理権限がありません');}
 function isGlobal_(u){return['prefecture_admin','system_admin'].includes(u.role);}
 function canAccessBranch_(u,branchId){return isGlobal_(u)||String(branchId)===String(u.branchId);}
-function canAccessRecord_(u,r){return canAccessBranch_(u,r.branchId);}
+function canAccessRecord_(u,r){return canAccessAreaId_(u,r.areaId);}
 function ensureSheet_(ss,name,headers){let sh=ss.getSheetByName(name);if(!sh)sh=ss.insertSheet(name);if(sh.getLastRow()===0)sh.appendRow(headers);sh.setFrozenRows(1);}
 function rows_(name){return rowsWithRow_(name).map(x=>{delete x._row;return x;});}
 function rowsWithRow_(name){const sh=SpreadsheetApp.getActive().getSheetByName(name);if(!sh||sh.getLastRow()<2)return[];const v=sh.getDataRange().getValues(),h=v.shift().map(String);return v.map((row,i)=>{const o={_row:i+2};h.forEach((k,j)=>o[k]=row[j]);return o;});}
 function cleanupSessions_(){const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS);if(!sh||sh.getLastRow()<2)return;const vals=sh.getDataRange().getValues();for(let i=vals.length-1;i>=1;i--)if(new Date(vals[i][2])<=new Date())sh.deleteRow(i+1);}
 function hash_(password,salt){const bytes=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,String(salt)+'|'+String(password),Utilities.Charset.UTF_8);return bytes.map(b=>(b+256)%256).map(b=>('0'+b.toString(16)).slice(-2)).join('');}
 function uuid_(){return Utilities.getUuid().replace(/-/g,'');}function now_(){return new Date().toISOString();}function truth_(v){return v===true||String(v).toLowerCase()==='true'||v===1;}function json_(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}
+
+// Ver.2.2: ユーザー固定エリア・名簿拡張。1回だけ実行してください。
+function upgradeV22(){
+  const ss=SpreadsheetApp.getActive();
+  migrateUsersV22_(ss);
+  migrateContactsV22_(ss);
+  return 'アイサポ Ver.2.2 への移行が完了しました';
+}
+function migrateUsersV22_(ss){
+  let sh=ss.getSheetByName(SHEETS.USERS);
+  if(!sh){sh=ss.insertSheet(SHEETS.USERS);sh.appendRow(USER_HEADERS);return;}
+  const vals=sh.getDataRange().getValues();
+  if(!vals.length){sh.appendRow(USER_HEADERS);return;}
+  const oldH=vals[0].map(String), rows=vals.slice(1), allAreas=rowsFromSheet_(ss,SHEETS.AREAS);
+  const mapped=rows.filter(r=>r.some(v=>v!=='')) .map(r=>{
+    const o={};oldH.forEach((h,i)=>o[h]=r[i]);
+    if((o.role==='member')&&!o.areaId&&o.branchId){
+      const aa=allAreas.filter(a=>String(a.branchId)===String(o.branchId)&&truth_(a.active));
+      if(aa.length===1)o.areaId=aa[0].areaId;
+    }
+    return USER_HEADERS.map(h=>o[h]??'');
+  });
+  sh.clearContents();sh.getRange(1,1,1,USER_HEADERS.length).setValues([USER_HEADERS]);
+  if(mapped.length)sh.getRange(2,1,mapped.length,USER_HEADERS.length).setValues(mapped);sh.setFrozenRows(1);
+}
+function migrateContactsV22_(ss){
+  let sh=ss.getSheetByName(SHEETS.CONTACTS);
+  if(!sh){sh=ss.insertSheet(SHEETS.CONTACTS);sh.appendRow(CONTACT_HEADERS);return;}
+  const vals=sh.getDataRange().getValues();
+  if(!vals.length){sh.appendRow(CONTACT_HEADERS);return;}
+  const oldH=vals[0].map(String),rows=vals.slice(1);
+  const mapped=rows.filter(r=>r.some(v=>v!=='')) .map(r=>{const o={};oldH.forEach((h,i)=>o[h]=r[i]);return CONTACT_HEADERS.map(h=>o[h]??'');});
+  sh.clearContents();sh.getRange(1,1,1,CONTACT_HEADERS.length).setValues([CONTACT_HEADERS]);
+  if(mapped.length)sh.getRange(2,1,mapped.length,CONTACT_HEADERS.length).setValues(mapped);sh.setFrozenRows(1);
+}
+function rowsFromSheet_(ss,name){const sh=ss.getSheetByName(name);if(!sh||sh.getLastRow()<2)return[];const v=sh.getDataRange().getValues(),h=v.shift().map(String);return v.map(row=>{const o={};h.forEach((k,j)=>o[k]=row[j]);return o;});}
