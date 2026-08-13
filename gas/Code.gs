@@ -3,10 +3,10 @@ const USER_HEADERS=['userId','loginId','name','passwordHash','salt','role','bran
 const BRANCH_HEADERS=['branchId','name','prefecture','active'];
 const AREA_HEADERS=['areaId','branchId','city','name','mapLat','mapLng','active'];
 const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','firstName','lastNameKana','firstNameKana','name','phone','email','postalCode','fullAddress','memberType','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','lat','lng','referrer','supporter','assigneeId','assigneeName','memo','createdAt','updatedAt','updatedBy'];
-const RECORD_HEADERS=['id','branchId','areaId','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
+const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy','inactiveReason','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.2 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.3 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -146,7 +146,7 @@ function allowedArea_(u,areaId){let requested=String(areaId||'');if(u.role==='me
 function listRecords_(u,p){
   const area=allowedArea_(u,p.areaId||u.areaId||'');
   if(!area)return{ok:true,records:[]};
-  let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));
+  let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId)&&String(r.active||'').toLowerCase()!=='false');
   if(u.role==='member')all=all.map(r=>{
     if(!['party_member','supporter'].includes(normalizeMemberType_(r.memberType)))return r;
     const locationConfirmed=!!(Number(r.lat)&&Number(r.lng));
@@ -186,6 +186,10 @@ function saveRecord_(u,r){
     id:old?old.id:uuid_(),
     branchId:old?old.branchId:area.branchId,
     areaId:old?old.areaId:area.areaId,
+    active:old?(String(old.active||'').toLowerCase()==='false'?false:true):true,
+    inactiveAt:old?.inactiveAt||'',
+    inactiveBy:old?.inactiveBy||'',
+    inactiveReason:old?.inactiveReason||'',
     source:String(r.source||old?.source||'manual'),
     memberType:normalizeMemberType_(r.memberType||old?.memberType||'general'),
     partyId:String(r.partyId||old?.partyId||'').trim(),
@@ -243,7 +247,23 @@ function saveRecord_(u,r){
   if(!saved||String(saved.id)!==String(item.id))throw Error('保存確認に失敗しました');
   return{ok:true,record:item};
 }
-function deleteRecord_(u,p){const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));if(!old)return{ok:true};if(!canAccessRecord_(u,old))throw Error('削除できません');if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS).deleteRow(old._row);return{ok:true};}
+function deleteRecord_(u,p){
+  const all=rowsWithRow_(SHEETS.RECORDS),old=all.find(x=>String(x.id)===String(p.recordId));
+  if(!old)return{ok:true};
+  if(!canAccessRecord_(u,old))throw Error('削除できません');
+  if(p.updatedAt&&String(old.updatedAt)!==String(p.updatedAt))throw Error('他の利用者が先に更新しました');
+  const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS);
+  if(String(old.source||'')==='import'){
+    requireAdmin_(u);
+    old.active=false;old.inactiveAt=now_();old.inactiveBy=u.name||u.userId;
+    old.inactiveReason=String(p.reason||'管理者による無効化');
+    old.updatedAt=now_();old.updatedBy=u.name||u.userId;
+    writeRecordByHeader_(sh,old._row,old);
+    return{ok:true,deactivated:true};
+  }
+  sh.deleteRow(old._row);
+  return{ok:true,deleted:true};
+}
 
 function maskContactAddress_(v){
   const s=String(v||'').trim();
@@ -985,4 +1005,13 @@ function upgradeV247(){
     '件／Areas支部ID更新 '+changedAreasBranch+
     '件／Users支部ID更新 '+changedUsersBranch+
     '件／Records支部ID更新 '+changedRecordsBranch+'件';
+}
+
+function upgradeV253(){
+  const ss=SpreadsheetApp.getActive(),sh=ss.getSheetByName(SHEETS.RECORDS);
+  if(!sh)throw Error('Recordsシートがありません');
+  ensureHeadersByName_(sh,RECORD_HEADERS);
+  const rs=rowsWithRow_(SHEETS.RECORDS);let changed=0;
+  rs.forEach(r=>{if(r.active===''||r.active==null){r.active=true;writeRecordByHeader_(sh,r._row,r);changed++;}});
+  return 'Ver.2.5.3移行完了：active初期化 '+changed+'件';
 }
