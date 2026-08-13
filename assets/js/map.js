@@ -48,9 +48,9 @@ function openRecordGoogleMaps(){
   window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`,'_blank','noopener');
 }
 
-function initMap(){if(map)return;map=L.map('map').setView([33.5902,130.4017],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);map.on('click',async e=>{const address=await reverseAddress(e.latlng.lat,e.latlng.lng);openEdit({id:'',lat:e.latlng.lat,lng:e.latlng.lng,fullAddress:address,status:'unvisited',type:'戸建て',date:today()},true)});setTimeout(()=>map.invalidateSize(),100)}
+function initMap(){if(map)return;map=L.map('map').setView([33.5902,130.4017],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);map.on('click',async e=>{const address=await reverseAddress(e.latlng.lat,e.latlng.lng);openEdit({id:'',lat:e.latlng.lat,lng:e.latlng.lng,fullAddress:address,status:'unvisited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)});setTimeout(()=>map.invalidateSize(),100)}
 function priorityBadge(memberType){return memberType==='party_member'?'⭐':memberType==='supporter'?'🟠':''}
-function recordMemberType(r){const c=contacts.find(x=>String(x.contactId)===String(r.contactId));return c?.memberType||''}
+function recordMemberType(r){return r.memberType||'general'}
 function icon(r){
   const key=statusKey(r.status),c=STATUS[key].color,b=priorityBadge(recordMemberType(r));
   const w=boolValue(r.warning)?'⚠️':'',x=key==='refused'?'×':'';
@@ -96,22 +96,8 @@ function renderMarkers(){
     markers['r_'+r.id]=marker;pts.push([+r.lat,+r.lng]);
   });
 
-  // 名簿だけにあり訪問記録がない党員・サポーターは未訪問として扱う
-  const linked=new Set(records.map(r=>String(r.contactId||'')).filter(Boolean));
-  contacts.forEach(c=>{
-    if(!['party_member','supporter'].includes(c.memberType))return;
-    if(linked.has(String(c.contactId)))return;
-    if(memberFilters.length&&!memberFilters.includes(c.memberType))return;
-    if(statusFilters.length&&!statusFilters.includes('unvisited'))return;
-    if(warningOnly)return;
-    if(!Number.isFinite(Number(c.lat))||!Number.isFinite(Number(c.lng))||!c.lat||!c.lng)return;
-    const marker=L.marker([+c.lat,+c.lng],{icon:contactIcon(c)}).addTo(map).on('click',()=>openContact(c));
-    marker.bindTooltip(`${priorityBadge(c.memberType)} ${c.name||'名簿'} 未訪問`);
-    markers['c_'+c.contactId]=marker;pts.push([+c.lat,+c.lng]);
-  });
-
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
   else if(pts.length===1)map.setView(pts[0],17);
 }
 async function searchMap(){const q=$('searchText').value.trim();if(!q)return;try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(q)}`);const j=await r.json();if(j[0])map.setView([+j[0].lat,+j[0].lon],17);else alert('見つかりませんでした')}catch(_){alert('検索に失敗しました')}}
-function addCurrentLocation(){navigator.geolocation.getCurrentPosition(async p=>{const lat=p.coords.latitude,lng=p.coords.longitude;map.setView([lat,lng],18);const address=await reverseAddress(lat,lng);openEdit({lat,lng,fullAddress:address,status:'visited',type:'戸建て',date:today()},true)},()=>alert('現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:12000})}
+function addCurrentLocation(){navigator.geolocation.getCurrentPosition(async p=>{const lat=p.coords.latitude,lng=p.coords.longitude;map.setView([lat,lng],18);const address=await reverseAddress(lat,lng);openEdit({lat,lng,fullAddress:address,status:'visited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)},()=>alert('現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:12000})}

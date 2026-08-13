@@ -143,7 +143,7 @@ function visibleBranches_(u){const all=rows_(SHEETS.BRANCHES).filter(x=>truth_(x
 function visibleAreas_(u){let all=rows_(SHEETS.AREAS).filter(x=>truth_(x.active));if(isGlobal_(u))return all;if(u.role==='member')return all.filter(x=>String(x.areaId)===String(u.areaId)&&String(x.branchId)===String(u.branchId));return all.filter(x=>String(x.branchId)===String(u.branchId));}
 function allowedArea_(u,areaId){let requested=String(areaId||'');if(u.role==='member'){if(!u.areaId)throw Error('この利用者に活動エリアが設定されていません');requested=String(u.areaId);}if(!requested)return null;const a=rows_(SHEETS.AREAS).find(x=>String(x.areaId)===requested&&truth_(x.active));if(!a)throw Error('活動エリアが見つかりません');if(isGlobal_(u))return a;if(String(a.branchId)!==String(u.branchId))throw Error('この活動エリアにはアクセスできません');if(u.role==='member'&&String(a.areaId)!==String(u.areaId))throw Error('この活動エリアにはアクセスできません');return a;}
 
-function listRecords_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));return{ok:true,records:all};}
+function listRecords_(u,p){const area=allowedArea_(u,p.areaId||u.areaId||'');if(!area)return{ok:true,records:[]};let all=rows_(SHEETS.RECORDS).filter(r=>String(r.areaId)===String(area.areaId));if(u.role==='member')all=all.map(r=>['party_member','supporter'].includes(normalizeMemberType_(r.memberType))?{...r,fullAddress:maskContactAddress_(r.fullAddress),address:maskContactAddress_(r.address),phone:'',email:'',lat:'',lng:''}:r);return{ok:true,records:all};}
 function saveRecord_(u,r){
   if(!r.fullAddress)throw Error('住所を入力してください');
   const area=allowedArea_(u,r.areaId);
@@ -326,8 +326,9 @@ function importContacts_(u,p){
   const allAreas=visibleAreas_(u).filter(a=>truth_(a.active));
   const branches=rows_(SHEETS.BRANCHES);
   const branchNameById=Object.fromEntries(branches.map(b=>[String(b.branchId),String(b.name||'')]));
-  const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS);
-  const existing=rows_(SHEETS.CONTACTS);
+  const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS);
+  ensureHeadersByName_(sh,RECORD_HEADERS);
+  const existing=rows_(SHEETS.RECORDS);
 
   const key=x=>String(x.partyId||'').trim()||
     [x.name,x.fullAddress,x.phone].map(v=>String(v||'').trim().toLowerCase()).join('|');
@@ -378,8 +379,8 @@ function importContacts_(u,p){
     const address=String(raw.fullAddress||'').trim();
     if(!name&&!address){skipped++;continue;}
 
-    const targetArea=detectArea_(address,raw.sourceBranch);
-    if(!targetArea){unmatched++;continue;}
+    const targetArea=detectArea_(address,raw.sourceBranch)||defaultArea;
+    if(!detectArea_(address,raw.sourceBranch))unmatched++;
 
     let lat=Number(raw.lat)||'',lng=Number(raw.lng)||'';
     if(address && (!lat||!lng)){
@@ -399,45 +400,28 @@ function importContacts_(u,p){
     }
 
     const item={
-      contactId:uuid_(),
-      branchId:targetArea.branchId,
-      areaId:targetArea.areaId,
-      partyId:String(raw.partyId||'').trim(),
-      lastName,firstName,
-      lastNameKana:String(raw.lastNameKana||'').trim(),
-      firstNameKana:String(raw.firstNameKana||'').trim(),
-      name:name||'名称未設定',
-      phone:String(raw.phone||'').trim(),
-      email:String(raw.email||'').trim(),
-      postalCode:String(raw.postalCode||'').trim(),
-      fullAddress:address,
-      memberType:normalizeMemberType_(raw.memberType),
-      birthDate:raw.birthDate||'',
-      gender:String(raw.gender||'').trim(),
-      occupation:String(raw.occupation||'').trim(),
-      approvedAt:raw.approvedAt||'',
-      branchParticipation:String(raw.branchParticipation||'').trim(),
-      joinReason:String(raw.joinReason||'').trim(),
-      sourceBranch:String(raw.sourceBranch||'').trim(),
-      lat,lng,
-      referrer:String(raw.referrer||'').trim(),
-      supporter:String(raw.supporter||'').trim(),
-      assigneeId:u.userId,
-      assigneeName:u.name,
-      memo:String(raw.memo||'').trim(),
-      createdAt:now_(),
-      updatedAt:now_(),
-      updatedBy:u.name
+      id:uuid_(),branchId:targetArea.branchId,areaId:targetArea.areaId,source:'import',
+      memberType:normalizeMemberType_(raw.memberType),partyId:String(raw.partyId||'').trim(),
+      lastName,firstName,lastNameKana:String(raw.lastNameKana||'').trim(),firstNameKana:String(raw.firstNameKana||'').trim(),
+      postalCode:String(raw.postalCode||'').trim(),birthDate:raw.birthDate||'',gender:String(raw.gender||'').trim(),
+      occupation:String(raw.occupation||'').trim(),approvedAt:raw.approvedAt||'',branchParticipation:String(raw.branchParticipation||'').trim(),
+      joinReason:String(raw.joinReason||'').trim(),sourceBranch:String(raw.sourceBranch||'').trim(),contactId:'',
+      lat,lng,area:'',address:'',fullAddress:address,personName:name||'名称未設定',
+      phone:String(raw.phone||'').trim(),email:String(raw.email||'').trim(),status:'unvisited',type:'戸建て',
+      household:'',contact:'',revisitPriority:'',referrer:String(raw.referrer||'').trim(),supporter:String(raw.supporter||'').trim(),
+      warning:false,warningReason:'',warningMemo:'',signboard:'',posterParty:'',posterMemo:'',
+      memo:String(raw.memo||'').trim(),date:'',startTime:'',endTime:'',durationMinutes:'',googleMapsUrl:'',
+      assigneeId:u.userId,assigneeName:u.name,createdAt:now_(),updatedAt:now_(),updatedBy:u.name
     };
 
     const k=key(item);
     if(seen.has(k)){skipped++;continue;}
     seen.add(k);
-    rows.push(CONTACT_HEADERS.map(h=>item[h]??''));
+    rows.push(RECORD_HEADERS.map(h=>item[h]??''));
   }
 
   if(rows.length){
-    sh.getRange(sh.getLastRow()+1,1,rows.length,CONTACT_HEADERS.length).setValues(rows);
+    sh.getRange(sh.getLastRow()+1,1,rows.length,RECORD_HEADERS.length).setValues(rows);
   }
   return{ok:true,added:rows.length,skipped,unmatched,geocoded,geocodeFailed};
 }
@@ -677,4 +661,30 @@ function upgradeV237(){
   sh.setFrozenRows(1);
   SpreadsheetApp.flush();
   return 'Ver.2.3.7へ移行しました: '+mapped.length+'件 / バックアップ: '+backup;
+}
+
+
+function upgradeV244(){
+  const ss=SpreadsheetApp.getActive();
+  ensureSheet_(ss,SHEETS.RECORDS,RECORD_HEADERS);
+  ensureHeadersByName_(ss.getSheetByName(SHEETS.RECORDS),RECORD_HEADERS);
+  const old=rows_(SHEETS.CONTACTS);
+  const existing=rows_(SHEETS.RECORDS);
+  const key=x=>String(x.partyId||'').trim()||[x.personName||x.name,x.fullAddress,x.phone].map(v=>String(v||'').trim().toLowerCase()).join('|');
+  const seen=new Set(existing.map(key));
+  const sh=ss.getSheetByName(SHEETS.RECORDS);
+  const out=[];
+  old.forEach(c=>{
+    const item={id:uuid_(),branchId:c.branchId||'',areaId:c.areaId||'',source:'import',memberType:normalizeMemberType_(c.memberType),
+      partyId:c.partyId||'',lastName:c.lastName||'',firstName:c.firstName||'',lastNameKana:c.lastNameKana||'',firstNameKana:c.firstNameKana||'',
+      postalCode:c.postalCode||'',birthDate:c.birthDate||'',gender:c.gender||'',occupation:c.occupation||'',approvedAt:c.approvedAt||'',
+      branchParticipation:c.branchParticipation||'',joinReason:c.joinReason||'',sourceBranch:c.sourceBranch||'',contactId:'',
+      lat:c.lat||'',lng:c.lng||'',area:'',address:'',fullAddress:c.fullAddress||'',personName:c.name||'',phone:c.phone||'',email:c.email||'',
+      status:'unvisited',type:'戸建て',household:'',contact:'',revisitPriority:'',referrer:c.referrer||'',supporter:c.supporter||'',
+      warning:false,warningReason:'',warningMemo:'',signboard:'',posterParty:'',posterMemo:'',memo:c.memo||'',date:'',startTime:'',endTime:'',
+      durationMinutes:'',googleMapsUrl:'',assigneeId:c.assigneeId||'',assigneeName:c.assigneeName||'',createdAt:c.createdAt||now_(),updatedAt:now_(),updatedBy:'upgradeV244'};
+    const k=key(item); if(!seen.has(k)){seen.add(k);out.push(RECORD_HEADERS.map(h=>item[h]??''));}
+  });
+  if(out.length)sh.getRange(sh.getLastRow()+1,1,out.length,RECORD_HEADERS.length).setValues(out);
+  return 'Ver.2.4.4移行完了：'+out.length+'件をRecordsへ移行';
 }
