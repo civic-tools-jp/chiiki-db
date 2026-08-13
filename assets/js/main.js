@@ -41,11 +41,8 @@ function syncMobileUser(){
   const src=candidates.find(Boolean);
   if(src && src.textContent.trim()) out.textContent=src.textContent.trim();
 }
-(function initV275Observers(){
+(function initV276Sync(){
   const boot=()=>{syncMobileMapMeta();syncMobileUser();};
   document.addEventListener('DOMContentLoaded',boot);
-  setTimeout(boot,400);
-  setTimeout(boot,1200);
-  const mo=new MutationObserver(()=>{syncMobileMapMeta();syncMobileUser();});
-  mo.observe(document.body,{subtree:true,childList:true,characterData:true});
+  window.addEventListener('load',boot);
 })();

@@ -132,7 +132,7 @@ function renderMarkers(){
   const countEl=$('mapResultCount');
   if(countEl){
     const recordText=matched===shown?`該当 ${matched}件`:`該当 ${matched}件（地図表示 ${shown}件）`;
-    countEl.textContent=recordText;
+    countEl.textContent=recordText;if(typeof syncMobileMapMeta==='function')syncMobileMapMeta();
   }
 
   updateMapDashboard();
