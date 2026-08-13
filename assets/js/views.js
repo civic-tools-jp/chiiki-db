@@ -58,5 +58,64 @@ function renderLists(){
   });
   $('listCards').innerHTML=html.join('')||'<div class="panel notice">該当データはありません。</div>';
 }
-function renderAnalysis(){const byStatus={};Object.keys(STATUS).forEach(k=>byStatus[k]=0);records.forEach(r=>{const k=statusKey(r.status);byStatus[k]=(byStatus[k]||0)+1});const pm=records.filter(r=>r.memberType==='party_member').length,sp=records.filter(r=>r.memberType==='supporter').length;const el=$('analysisContent');if(el)el.innerHTML=`<div class="metric-grid"><div class="metric"><b>${records.length}</b><span>全登録</span></div><div class="metric"><b>${pm}</b><span>党員</span></div><div class="metric"><b>${sp}</b><span>サポーター</span></div></div>`}
+function renderAnalysis(){
+  const byStatus={};
+  Object.keys(STATUS).forEach(k=>byStatus[k]=0);
+  records.forEach(r=>{
+    const k=statusKey(r.status);
+    byStatus[k]=(byStatus[k]||0)+1;
+  });
+
+  const total=records.length;
+  const party=records.filter(r=>r.memberType==='party_member').length;
+  const supporter=records.filter(r=>r.memberType==='supporter').length;
+  const general=records.filter(r=>(r.memberType||'general')==='general').length;
+  const unknown=records.filter(r=>r.memberType==='unknown').length;
+  const unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
+
+  const imported=records.filter(r=>r.source==='import').length;
+  const manual=records.filter(r=>(r.source||'manual')==='manual').length;
+  const mapped=records.filter(r=>r.source==='map').length;
+
+  const metric=(label,value,sub='')=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div>${sub?`<div class="analysis-sub">${esc(sub)}</div>`:''}</div>`;
+
+  const statusRows=Object.entries(STATUS).map(([k,v])=>{
+    const n=byStatus[k]||0;
+    const pct=total?Math.round(n/total*100):0;
+    return `<div class="analysis-row">
+      <div class="analysis-row-head"><span>${esc(v.label)}</span><b>${n}件</b></div>
+      <div class="analysis-bar"><div class="analysis-bar-fill" style="width:${pct}%"></div></div>
+      <div class="analysis-sub">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  const el=$('analysisContent');
+  if(!el)return;
+  el.innerHTML=`
+    <div class="panel">
+      <div class="card-title">登録状況</div>
+      <div class="analysis-grid">
+        ${metric('全登録',total)}
+        ${metric('党員',party)}
+        ${metric('サポーター',supporter)}
+        ${metric('一般',general)}
+        ${unknown?metric('未設定',unknown):''}
+        ${metric('位置未取得',unlocated)}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-title">登録方法</div>
+      <div class="analysis-grid">
+        ${metric('名簿取込',imported)}
+        ${metric('手入力',manual)}
+        ${metric('地図登録',mapped)}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-title">訪問状況</div>
+      <div class="analysis-status-list">${statusRows}</div>
+    </div>`;
+}
 function showView(v){['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}

@@ -688,3 +688,25 @@ function upgradeV244(){
   if(out.length)sh.getRange(sh.getLastRow()+1,1,out.length,RECORD_HEADERS.length).setValues(out);
   return 'Ver.2.4.4移行完了：'+out.length+'件をRecordsへ移行';
 }
+
+
+function repairV244MemberTypes(){
+  const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.RECORDS);
+  if(!sh)return 'Recordsシートがありません';
+  ensureHeadersByName_(sh,RECORD_HEADERS);
+  const vals=sh.getDataRange().getValues();
+  if(vals.length<2)return '修正対象なし';
+  const h=vals[0].map(String);
+  const idx=Object.fromEntries(h.map((x,i)=>[x,i]));
+  let changed=0;
+  for(let r=1;r<vals.length;r++){
+    const row=vals[r];
+    let mt=String(row[idx.memberType]||'').trim();
+    if(mt==='party_member'||mt==='supporter'||mt==='general')continue;
+    const raw=[row[idx.memo],row[idx.personName],row[idx.sourceBranch]].map(x=>String(x||'')).join(' ');
+    if(/サポ|support/i.test(raw)){ row[idx.memberType]='supporter'; changed++; }
+    else if(/党員|会員|member/i.test(raw)){ row[idx.memberType]='party_member'; changed++; }
+  }
+  if(changed)sh.getRange(2,1,vals.length-1,vals[0].length).setValues(vals.slice(1));
+  return '区分修正：'+changed+'件';
+}

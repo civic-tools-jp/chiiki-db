@@ -54,8 +54,11 @@ async function deleteContact(){if(!editingContact?.contactId){closeContact();ret
 function headerValue(row,names){for(const n of names){if(Object.prototype.hasOwnProperty.call(row,n)&&row[n]!==''&&row[n]!=null)return row[n]}return''}
 function inferMemberType(row,forced){
   if(forced&&forced!=='auto')return forced;
-  const raw=String(headerValue(row,['党員(会員)種別','党員（会員）種別','区分','種別','会員種別','党員区分','属性','会員区分'])||'');
-  if(/サポ/.test(raw))return'supporter';if(/党員|会員/.test(raw))return'party_member';
+  const raw=String(headerValue(row,[
+    '党員種別','党員(会員)種別','党員（会員）種別','党員・サポーター区分','党員/サポーター区分',
+    '会員種別','党員区分','会員区分','区分','種別','属性'
+  ])||'');
+  if(/サポ|support/i.test(raw))return'supporter';if(/党員|会員|member/i.test(raw))return'party_member';
   const pm=String(headerValue(row,['党員'])||'').trim(),sp=String(headerValue(row,['サポーター','サポータ'])||'').trim();
   if(pm&&!/^(0|false|いいえ|無)$/i.test(pm))return'party_member';if(sp&&!/^(0|false|いいえ|無)$/i.test(sp))return'supporter';return'unknown';
 }

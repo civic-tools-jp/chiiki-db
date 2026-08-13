@@ -281,3 +281,14 @@
 .privacy-note{margin-top:8px;font-size:12px;color:#6b7280}
 
 #importResult{font-size:14px;font-weight:700;color:#374151;line-height:1.75;margin-top:10px;padding:10px 12px;background:#f5f8f4;border-radius:10px;min-height:24px}
+
+.analysis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.analysis-metric{background:#f7f9f7;border:1px solid #e3e8e3;border-radius:16px;padding:16px;text-align:center}
+.analysis-value{font-size:28px;font-weight:800;color:#173c25}
+.analysis-label{font-weight:700;margin-top:4px}
+.analysis-sub{font-size:12px;color:#6b7280;margin-top:4px}
+.analysis-status-list{display:grid;gap:14px;margin-top:14px}
+.analysis-row-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.analysis-bar{height:10px;background:#e8ece8;border-radius:999px;overflow:hidden;margin-top:7px}
+.analysis-bar-fill{height:100%;background:#2d743e;border-radius:999px}
+@media(max-width:640px){.analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.analysis-value{font-size:24px}}
