@@ -121,11 +121,24 @@ function renderMarkers(){
     markers['r_'+r.id]=marker;pts.push([lat,lng]);shown++;
   });
 
+  let posterShown=0;
+  if($('filterPosters')?.checked){
+    posters.forEach(p=>{
+      if(currentAreaId&&String(p.areaId||'')!==String(currentAreaId))return;
+      if(String(p.status||'')==='removed')return;
+      const lat=Number(p.lat),lng=Number(p.lng);
+      if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng)return;
+      const marker=L.marker([lat,lng],{icon:posterMapIcon(p)}).addTo(map).on('click',()=>openPoster(p,false));
+      const st=posterStatusInfo(p.status);
+      marker.bindTooltip(`${st.mark} ${p.placeName||p.fullAddress||'ポスター'} ${st.label}`);
+      markers['p_'+p.posterId]=marker;pts.push([lat,lng]);posterShown++;
+    });
+  }
+
   const countEl=$('mapResultCount');
   if(countEl){
-    countEl.textContent=matched===shown
-      ? `該当 ${matched}件`
-      : `該当 ${matched}件（地図表示 ${shown}件）`;
+    const recordText=matched===shown?`該当 ${matched}件`:`該当 ${matched}件（地図表示 ${shown}件）`;
+    countEl.textContent=$('filterPosters')?.checked?`${recordText}＋ポスター ${posterShown}件`:recordText;
   }
 
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});

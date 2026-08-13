@@ -20,7 +20,7 @@ function isPartyOrSupporter(c){
   return /党員|会員|サポーター/.test(raw);
 }
 function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();const imported=String(r.source||'')==='import';
-  const canRemove=!!r.id&&(!imported||session?.role==='admin');
+  const canRemove=!!r.id&&(!imported||['leader','prefecture_admin','system_admin'].includes(session?.role));
   $('deleteRecordRow')?.classList.toggle('hidden',!canRemove);
   const deleteBtn=document.querySelector('#deleteRecordRow button');
   if(deleteBtn){
@@ -48,8 +48,17 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
     $('recordPhone').title='';$('personName').title='';$('fullAddress').title='';
   }
 
-  const addrTools=document.querySelector('.address-tools');
-  if(addrTools)addrTools.classList.toggle('hidden',locationConfirmed);
+  const hasCoords=!!(Number(r.lat)&&Number(r.lng));
+  const source=String(r.source||(isNew?'manual':'manual'));
+  const geocodeBtn=$('recordGeocodeBtn'),currentBtn=$('recordCurrentBtn'),mapCheckBtn=$('recordMapCheckBtn');
+
+  // 登録方法に応じて必要な位置操作だけ表示する。
+  // 地図登録は既に地図上の位置が確定しているので、Googleマップ確認だけ。
+  // 名簿取込で位置未確認なら住所から位置取得。手入力なら住所/現在地の両方を利用可。
+  const mapRegistered=source==='map'&&hasCoords;
+  if(geocodeBtn)geocodeBtn.classList.toggle('hidden',mapRegistered||locationConfirmed);
+  if(currentBtn)currentBtn.classList.toggle('hidden',mapRegistered||source==='import'||locationConfirmed);
+  if(mapCheckBtn)mapCheckBtn.classList.remove('hidden');
 
   const locationNote=document.getElementById('recordLocationNote');
   if(locationNote){
@@ -107,7 +116,7 @@ async function saveRecord(){const btn=document.getElementById('saveRecordBtn');t
 async function deleteRecord(){
   if(!editing?.id){closeEdit();return}
   const imported=String(editing.source||'')==='import';
-  if(imported&&session?.role!=='admin'){alert('名簿から取り込んだデータは削除できません');return}
+  if(imported&&!['leader','prefecture_admin','system_admin'].includes(session?.role)){alert('名簿から取り込んだデータは削除できません');return}
   const text=imported?'この名簿データを無効化しますか？\n\n元データは削除せず、一覧・地図・分析から非表示にします。':'この訪問先を削除しますか？';
   if(!confirm(text))return;
   try{
