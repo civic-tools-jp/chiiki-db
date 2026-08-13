@@ -6,7 +6,7 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.1 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.2 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -150,7 +150,10 @@ function listRecords_(u,p){
   if(u.role==='member')all=all.map(r=>{
     if(!['party_member','supporter'].includes(normalizeMemberType_(r.memberType)))return r;
     const locationConfirmed=!!(Number(r.lat)&&Number(r.lng));
-    return {...r,email:'',lat:'',lng:'',locationHidden:true,locationConfirmed};
+    // 住所・電話を一般利用者にも表示する運用に合わせ、
+    // 位置確認済みデータは地図ピン表示用の緯度経度も返す。
+    // メール等の不要な個人情報は引き続き非表示。
+    return {...r,email:'',locationConfirmed};
   });
   return{ok:true,records:all};
 }
