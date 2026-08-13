@@ -323,6 +323,9 @@
 .poster-toolbar{padding:12px}
 
 .poster-toolbar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.poster-card-actions{display:flex;justify-content:flex-end;margin-top:10px}
 
 .readonly-display{width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid #dfe5df;border-radius:14px;background:#f6f8f6;color:#334155;font-weight:700;margin-bottom:14px}
+
+.compact-modal{max-width:520px}
+.map-register-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+@media(max-width:560px){.map-register-actions{grid-template-columns:1fr}}

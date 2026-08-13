@@ -7,7 +7,7 @@ const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy
 const POSTER_HEADERS=['posterId','branchId','areaId','posterType','partyName','status','placeName','fullAddress','lat','lng','ownerName','phone','postedAt','checkedAt','replaceNeeded','memo','createdBy','createdAt','updatedBy','updatedAt'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.6.1 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.6.2 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));case'listPosters':return json_(listPosters_(user,p));case'savePoster':return json_(savePoster_(user,p.poster||{}));case'deletePoster':return json_(deletePoster_(user,p));

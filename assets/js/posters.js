@@ -43,7 +43,6 @@ function renderPosters(){
         ${p.checkedAt?`<span class="badge">確認 ${esc(formatShortDate(p.checkedAt))}</span>`:''}
       </div>
       ${p.memo?`<div class="card-sub">${esc(p.memo)}</div>`:''}
-      <div class="poster-card-actions"><button class="btn small" onclick="event.stopPropagation();openPoster(${JSON.stringify(p).replace(/'/g,"&#39;")},false)">編集</button></div>
     </div>`;
   }).join(''):'<div class="panel notice">この活動エリアのポスター情報はまだありません。</div>';
 }

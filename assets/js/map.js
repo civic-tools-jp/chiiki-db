@@ -65,7 +65,27 @@ function openRecordGoogleMaps(){
   window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`,'_blank','noopener');
 }
 
-function initMap(){if(map)return;map=L.map('map').setView([33.5902,130.4017],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);map.on('click',async e=>{const address=await reverseAddress(e.latlng.lat,e.latlng.lng);openEdit({id:'',lat:e.latlng.lat,lng:e.latlng.lng,fullAddress:address,status:'unvisited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)});setTimeout(()=>map.invalidateSize(),100)}
+let pendingMapRegistration=null;
+async function openMapRegisterChoice(lat,lng){
+  const address=await reverseAddress(lat,lng);
+  pendingMapRegistration={lat,lng,address};
+  if($('mapRegisterAddress'))$('mapRegisterAddress').textContent=address||'住所を取得できませんでした';
+  $('mapRegisterModal').style.display='flex';
+}
+function closeMapRegisterChoice(){$('mapRegisterModal').style.display='none';pendingMapRegistration=null}
+function registerMapPointAsVisit(){
+  const p=pendingMapRegistration;if(!p)return;
+  $('mapRegisterModal').style.display='none';
+  openEdit({id:'',lat:p.lat,lng:p.lng,fullAddress:p.address,status:'unvisited',type:'戸建て',date:today(),source:'map',memberType:'general'},true);
+  pendingMapRegistration=null;
+}
+function registerMapPointAsPoster(){
+  const p=pendingMapRegistration;if(!p)return;
+  $('mapRegisterModal').style.display='none';
+  openPoster({posterId:'',areaId:currentAreaId,posterType:'own',partyName:'',status:'requested',placeName:'',fullAddress:p.address,lat:p.lat,lng:p.lng,ownerName:'',phone:'',postedAt:'',checkedAt:'',replaceNeeded:false,memo:''},true);
+  pendingMapRegistration=null;
+}
+function initMap(){if(map)return;map=L.map('map').setView([33.5902,130.4017],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);map.on('click',e=>openMapRegisterChoice(e.latlng.lat,e.latlng.lng));setTimeout(()=>map.invalidateSize(),100)}
 function priorityBadge(memberType){return memberType==='party_member'?'⭐':memberType==='supporter'?'🟠':''}
 function recordMemberType(r){return r.memberType||'general'}
 function icon(r){
