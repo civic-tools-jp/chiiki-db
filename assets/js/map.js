@@ -38,6 +38,23 @@ async function fillAddressFromCurrentLocation(){
     if(map)map.setView([lat,lng],18);
   },()=>alert('現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:12000});
 }
+
+async function geocodeRecordAddress(){
+  const address=String($('fullAddress')?.value||'').trim();
+  if(!address){alert('住所を入力してください');return}
+  try{
+    const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(address)}`);
+    const data=await res.json();
+    if(!data[0]){alert('住所から位置を取得できませんでした');return}
+    const lat=Number(data[0].lat),lng=Number(data[0].lon);
+    $('lat').value=lat;$('lng').value=lng;
+    if(map)map.setView([lat,lng],17);
+    alert('位置を取得しました。保存してください。');
+  }catch(_){
+    alert('位置取得に失敗しました');
+  }
+}
+
 function openRecordGoogleMaps(){
   const lat=Number($('lat')?.value),lng=Number($('lng')?.value);
   const address=String($('fullAddress')?.value||'').trim();

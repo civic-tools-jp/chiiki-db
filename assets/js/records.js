@@ -21,17 +21,34 @@ function isPartyOrSupporter(c){
 }
 function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=r.personName||'';$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=r.supporter||'';$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();$('deleteRecordRow')?.classList.toggle('hidden',!r.id);
   const protectedMember=session?.role==='member'&&!isNew&&['party_member','supporter'].includes(String(r.memberType||''));
-  const locationConfirmed=protectedMember&&!r.locationHidden&&!!(Number(r.lat)&&Number(r.lng));
-  // locationHidden means the server intentionally withheld coordinates; the record may still be confirmed.
-  // The server remains authoritative and rejects address changes when stored coordinates exist.
+  const locationConfirmed=protectedMember&&r.locationConfirmed===true;
+
   $('recordPhone').readOnly=protectedMember;
   $('recordMemberType').disabled=protectedMember;
+  $('fullAddress').readOnly=locationConfirmed;
+
   if(protectedMember){
     $('recordPhone').title='電話番号は閲覧のみです。修正は管理者に依頼してください';
-    $('fullAddress').title='位置確認済みの場合、住所の修正は管理者のみ可能です';
+    if(locationConfirmed){
+      $('fullAddress').title='位置確認済みの住所です。修正は管理者に依頼してください';
+    }else{
+      $('fullAddress').title='位置未確認のため住所を修正できます';
+    }
   }else{
     $('recordPhone').title='';$('fullAddress').title='';
   }
+
+  const addrTools=document.querySelector('.address-tools');
+  if(addrTools)addrTools.classList.toggle('hidden',locationConfirmed);
+
+  const locationNote=document.getElementById('recordLocationNote');
+  if(locationNote){
+    locationNote.textContent=protectedMember
+      ? (locationConfirmed?'🔒 位置確認済み：住所は閲覧のみです':'⚠️ 位置未確認：住所を修正して位置を再取得できます')
+      : '';
+    locationNote.classList.toggle('hidden',!protectedMember);
+  }
+
   $('editModal').style.display='flex'}
 function toggleRecordContactLink(){
   const checked=!!$('linkContactCheck')?.checked;
