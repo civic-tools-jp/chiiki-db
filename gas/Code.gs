@@ -4,10 +4,10 @@ const BRANCH_HEADERS=['branchId','name','prefecture','active'];
 const AREA_HEADERS=['areaId','branchId','city','name','mapLat','mapLng','active'];
 const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','firstName','lastNameKana','firstNameKana','name','phone','email','postalCode','fullAddress','memberType','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','lat','lng','referrer','supporter','assigneeId','assigneeName','memo','createdAt','updatedAt','updatedBy'];
 const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy','inactiveReason','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','warning','warningReason','warningMemo','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
-const POSTER_HEADERS=['posterId','branchId','areaId','status','placeName','fullAddress','lat','lng','ownerName','phone','postedAt','checkedAt','replaceNeeded','memo','createdBy','createdAt','updatedBy','updatedAt'];
+const POSTER_HEADERS=['posterId','branchId','areaId','posterType','partyName','status','placeName','fullAddress','lat','lng','ownerName','phone','postedAt','checkedAt','replaceNeeded','memo','createdBy','createdAt','updatedBy','updatedAt'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 
-function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.5 API'});}
+function doGet(){return json_({ok:true,name:'アイサポ Ver.2.5.8 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));case'listPosters':return json_(listPosters_(user,p));case'savePoster':return json_(savePoster_(user,p.poster||{}));case'deletePoster':return json_(deletePoster_(user,p));
@@ -292,14 +292,14 @@ function savePoster_(u,p){
     posterId:old?old.posterId:uuid_(),
     branchId:old?old.branchId:area.branchId,
     areaId:old?old.areaId:area.areaId,
-    status:String(p.status||'requested'),
+    posterType:String(p.posterType||'own'),partyName:String(p.partyName||'').trim(),status:String(p.status||'requested'),
     placeName:String(p.placeName||'').trim(),
     fullAddress:String(p.fullAddress||'').trim(),
     lat:p.lat||'',lng:p.lng||'',
     ownerName:String(p.ownerName||'').trim(),
     phone:String(p.phone||'').trim(),
     postedAt:p.postedAt||'',checkedAt:p.checkedAt||'',
-    replaceNeeded:bool_(p.replaceNeeded),
+    replaceNeeded:String(p.status||'requested')==='replace',
     memo:String(p.memo||'').trim(),
     createdBy:old?old.createdBy:(u.name||u.userId),
     createdAt:old?old.createdAt:now,
@@ -1076,4 +1076,13 @@ function upgradeV255(){
   ensureSheet_(ss,SHEETS.POSTERS,POSTER_HEADERS);
   ensureHeadersByName_(ss.getSheetByName(SHEETS.POSTERS),POSTER_HEADERS);
   return 'Ver.2.5.5移行完了：Postersシートを準備しました';
+}
+
+function upgradeV257(){
+  const ss=SpreadsheetApp.getActive(),sh=ss.getSheetByName(SHEETS.POSTERS);
+  if(!sh)throw Error('Postersシートがありません');
+  ensureHeadersByName_(sh,POSTER_HEADERS);
+  const rows=rowsWithRow_(SHEETS.POSTERS);let changed=0;
+  rows.forEach(r=>{if(!r.posterType){r.posterType='own';writeRecordByHeader_(sh,r._row,r);changed++;}});
+  return 'Ver.2.5.7移行完了：既存ポスターを自党ポスターとして '+changed+'件初期化';
 }

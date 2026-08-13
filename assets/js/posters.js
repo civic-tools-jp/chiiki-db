@@ -1,9 +1,9 @@
 "use strict";
 
-const POSTER_STATUS={
-  requested:{label:'依頼中',mark:'🟡'},
-  posted:{label:'掲示済',mark:'🪧'},
-  replace:{label:'貼替え必要',mark:'🔄'},
+const POSTER_STATUS={observed:{label:'掲示確認',mark:'🏳️'},
+  requested:{label:'依頼中',mark:'🍊'},
+  posted:{label:'掲示済',mark:'🍊'},
+  replace:{label:'貼替え必要',mark:'🔄🍊'},
   removed:{label:'撤去',mark:'⚪'},
   refused:{label:'断られた',mark:'×'}
 };
@@ -25,14 +25,14 @@ function renderPosters(){
   const el=$('posterCards');if(!el)return;
   const list=posters.filter(p=>!currentAreaId||String(p.areaId||'')===String(currentAreaId));
   el.innerHTML=list.length?list.map(p=>{
-    const st=posterStatusInfo(p.status);
+    const other=String(p.posterType||'own')==='other';const st=other?POSTER_STATUS.observed:posterStatusInfo(p.status);
     return `<div class="card poster-card" onclick='openPoster(${JSON.stringify(p).replace(/'/g,"&#39;")},false)'>
-      <div class="card-title">${st.mark} ${esc(p.placeName||p.fullAddress||'ポスター')} <span class="badge">${esc(st.label)}</span></div>
+      <div class="card-title">${other?'🏳️':st.mark} ${esc(p.placeName||p.fullAddress||'ポスター')} <span class="badge">${esc(other?(p.partyName||'他党ポスター'):st.label)}</span></div>
       <div class="card-sub">${esc(p.fullAddress||'住所未設定')}</div>
       ${p.ownerName?`<div class="card-sub">協力者：${esc(p.ownerName)}</div>`:''}
       ${p.phone?`<div class="card-sub">☎ ${esc(p.phone)}</div>`:''}
       <div class="badges">
-        ${boolValue(p.replaceNeeded)?'<span class="badge warning-soft">🔄 貼替え必要</span>':''}
+        ${!other&&p.status==='replace'?'<span class="badge warning-soft">🔄 貼替え必要</span>':''}
         ${p.postedAt?`<span class="badge">掲示 ${esc(formatShortDate(p.postedAt))}</span>`:''}
         ${p.checkedAt?`<span class="badge">確認 ${esc(formatShortDate(p.checkedAt))}</span>`:''}
       </div>
@@ -42,12 +42,13 @@ function renderPosters(){
 }
 
 function newPoster(){
-  openPoster({posterId:'',areaId:currentAreaId,status:'requested',placeName:'',fullAddress:'',lat:'',lng:'',ownerName:'',phone:'',postedAt:'',checkedAt:'',replaceNeeded:false,memo:''},true);
+  openPoster({posterId:'',areaId:currentAreaId,posterType:'own',partyName:'',status:'requested',placeName:'',fullAddress:'',lat:'',lng:'',ownerName:'',phone:'',postedAt:'',checkedAt:'',replaceNeeded:false,memo:''},true);
 }
 
 function openPoster(p,isNew=false){
   editingPoster={...p,isNew};
   $('posterId').value=p.posterId||'';
+  $('posterType').value=p.posterType||'own';$('posterPartyName').value=p.partyName||'';togglePosterTypeFields();
   $('posterStatus').value=p.status||'requested';
   $('posterPlaceName').value=p.placeName||'';
   $('posterAddress').value=p.fullAddress||'';
@@ -57,12 +58,17 @@ function openPoster(p,isNew=false){
   $('posterPhone').value=p.phone||'';
   $('posterPostedAt').value=dateInputValue(p.postedAt);
   $('posterCheckedAt').value=dateInputValue(p.checkedAt);
-  $('posterReplaceNeeded').checked=boolValue(p.replaceNeeded)||p.status==='replace';
+  
   $('posterMemo').value=p.memo||'';
   $('deletePosterRow').classList.toggle('hidden',!p.posterId);
   $('posterModal').style.display='flex';
 }
 
+function togglePosterTypeFields(){
+  const other=$('posterType')?.value==='other';
+  $('posterPartyNameWrap')?.classList.toggle('hidden',!other);
+  $('posterOwnStatusWrap')?.classList.toggle('hidden',other);
+}
 function closePoster(){$('posterModal').style.display='none';editingPoster=null}
 
 async function geocodePosterAddress(){
@@ -104,10 +110,12 @@ async function savePoster(){
   const btn=$('savePosterBtn');
   try{
     if(btn){btn.disabled=true;btn.textContent='保存中…'}
-    const status=$('posterReplaceNeeded').checked?'replace':$('posterStatus').value;
+    const posterType=$('posterType').value;const status=posterType==='other'?'observed':$('posterStatus').value;
     const poster={
       posterId:$('posterId').value,
       areaId:currentAreaId,
+      posterType,
+      partyName:$('posterPartyName').value.trim(),
       status,
       placeName:$('posterPlaceName').value.trim(),
       fullAddress:$('posterAddress').value.trim(),
@@ -117,7 +125,7 @@ async function savePoster(){
       phone:$('posterPhone').value.trim(),
       postedAt:$('posterPostedAt').value,
       checkedAt:$('posterCheckedAt').value,
-      replaceNeeded:$('posterReplaceNeeded').checked,
+      replaceNeeded:posterType==='own'&&status==='replace',
       memo:$('posterMemo').value.trim(),
       updatedAt:editingPoster?.updatedAt||''
     };
@@ -137,10 +145,10 @@ async function deletePoster(){
 }
 
 function posterMapIcon(p){
-  const replace=boolValue(p.replaceNeeded)||p.status==='replace';
+  const other=String(p.posterType||'own')==='other';const replace=!other&&p.status==='replace';
   return L.divIcon({
     className:'',
-    html:`<div class="poster-map-pin">${replace?'🔄':'🪧'}</div>`,
+    html:`<div class="poster-map-pin">${other?'🏳️':(replace?'🔄🍊':'🍊')}</div>`,
     iconSize:[34,34],iconAnchor:[17,28]
   });
 }

@@ -122,15 +122,19 @@ function renderMarkers(){
   });
 
   let posterShown=0;
-  if($('filterPosters')?.checked){
+  const showOwnPosters=!!$('filterOwnPosters')?.checked;
+  const showOtherPosters=!!$('filterOtherPosters')?.checked;
+  if(showOwnPosters||showOtherPosters){
     posters.forEach(p=>{
+      const isOther=String(p.posterType||'own')==='other';
+      if((isOther&&!showOtherPosters)||(!isOther&&!showOwnPosters))return;
       if(currentAreaId&&String(p.areaId||'')!==String(currentAreaId))return;
       if(String(p.status||'')==='removed')return;
       const lat=Number(p.lat),lng=Number(p.lng);
       if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng)return;
       const marker=L.marker([lat,lng],{icon:posterMapIcon(p)}).addTo(map).on('click',()=>openPoster(p,false));
-      const st=posterStatusInfo(p.status);
-      marker.bindTooltip(`${st.mark} ${p.placeName||p.fullAddress||'ポスター'} ${st.label}`);
+      const st=isOther?POSTER_STATUS.observed:posterStatusInfo(p.status);
+      marker.bindTooltip(`${isOther?'🏳️':st.mark} ${p.placeName||p.fullAddress||'ポスター'} ${isOther?(p.partyName||'他党ポスター'):st.label}`);
       markers['p_'+p.posterId]=marker;pts.push([lat,lng]);posterShown++;
     });
   }
@@ -138,7 +142,7 @@ function renderMarkers(){
   const countEl=$('mapResultCount');
   if(countEl){
     const recordText=matched===shown?`該当 ${matched}件`:`該当 ${matched}件（地図表示 ${shown}件）`;
-    countEl.textContent=$('filterPosters')?.checked?`${recordText}＋ポスター ${posterShown}件`:recordText;
+    countEl.textContent=(showOwnPosters||showOtherPosters)?`${recordText}＋ポスター ${posterShown}件`:recordText;
   }
 
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
