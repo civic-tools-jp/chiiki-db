@@ -881,3 +881,32 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   }
   #view-admin .user-table button{width:auto!important;white-space:nowrap!important}
 }
+
+
+/* Ver.2.7.7 — legend/count are outside filter panel */
+.desktop-map-meta{
+  display:block;
+  margin:0 2px 8px;
+}
+.desktop-map-meta .map-legend-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0;
+  padding:6px 2px 2px;
+  border:0;
+  background:transparent;
+}
+.desktop-map-meta .map-legend-inline{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 12px;
+}
+.desktop-map-meta .map-result-count{
+  flex:none;
+}
+@media(max-width:700px){
+  .desktop-map-meta{display:none!important}
+  .mobile-map-meta{display:flex!important}
+}
