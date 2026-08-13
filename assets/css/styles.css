@@ -256,3 +256,9 @@
   font-size:11px;
 }
 .refused-legend{color:#374151;font-weight:900}
+
+/* Ver.2.3.6 訪問登録 */
+.link-check{display:flex;align-items:center;gap:10px;font-weight:700;margin:10px 0 8px}
+.link-check input{width:20px;height:20px;flex:0 0 auto}
+.address-tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
+.address-tools .btn.small{width:auto;min-height:42px;padding:8px 14px}
