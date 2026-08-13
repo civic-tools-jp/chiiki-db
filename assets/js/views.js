@@ -1,6 +1,6 @@
 function formatShortDate(v){const d=new Date(v);return isNaN(d)?String(v||""):`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`}
 "use strict";
-function renderAll(){renderMarkers();renderLists();renderAnalysis();if(typeof renderPosters==='function')renderPosters()}
+function renderAll(){renderMarkers();renderLists();renderAnalysis()}
 function card(r){
   const mt=recordMemberType(r),key=statusKey(r.status);
   const refused=key==='refused'?'<span class="refused-badge">×断られた</span>':'';
@@ -166,4 +166,4 @@ function renderAnalysis(){
       <div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div>
     </div>`;
 }
-function showView(v){['map','list','posters','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='posters'&&typeof loadPosters==='function')loadPosters();if(v==='analysis')renderAnalysis();if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}
+function showView(v){['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='analysis')renderAnalysis();if(v==='map')setTimeout(()=>{if(typeof map!=='undefined'&&map&&typeof map.invalidateSize==='function')map.invalidateSize()},100)}
