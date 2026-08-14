@@ -86,6 +86,7 @@ function renderMarkers(){
   records.forEach(r=>{
     if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
     matched++;
+
     const mt=recordMemberType(r),key=statusKey(r.status);
     const lat=Number(r.lat),lng=Number(r.lng);
     if(r.lat===''||r.lat==null||r.lng===''||r.lng==null)return;
@@ -97,7 +98,6 @@ function renderMarkers(){
       r.personName||r.fullAddress||'訪問先',
       key==='refused'?'×断られた':'',
       boolValue(r.warning)?'⚠️訪問注意':'',
-      (typeof hasFollow==='function'&&hasFollow(r))?followLabel(r):'',
       boolValue(r.posterRequest)?'🍊ポスター依頼':''
     ].filter(Boolean).join(' ');
     marker.bindTooltip(extras);
@@ -108,54 +108,14 @@ function renderMarkers(){
 
   const countEl=$('mapResultCount');
   if(countEl){
-    const recordText=matched===shown?`表示 ${matched}件`:`登録 ${matched}件（地図表示 ${shown}件）`;
-    countEl.textContent=recordText;
+    countEl.textContent = matched===shown ? `表示 ${shown}件` : `登録 ${matched}件（地図表示 ${shown}件）`;
     if(typeof syncMobileMapMeta==='function')syncMobileMapMeta();
   }
 
-  updateMapDashboard();
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
   else if(pts.length===1)map.setView(pts[0],17);
 }
 
-function showRecordOnMap(recordId){
-  const r=records.find(x=>String(x.id)===String(recordId));
-  if(!r)return;
-  const lat=Number(r.lat),lng=Number(r.lng);
-  if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng){
-    alert('この訪問先は位置情報がまだ登録されていません');
-    return;
-  }
-  showView('map');
-  setTimeout(()=>{
-    if(!map)return;
-    map.invalidateSize();
-    map.setView([lat,lng],18);
-    const marker=markers['r_'+r.id];
-    if(marker){
-      marker.openTooltip();
-      setTimeout(()=>marker.closeTooltip(),2500);
-    }
-  },180);
-}
-function updateMapDashboard(){
-  const areaRecords=records.filter(r=>!currentAreaId||String(r.areaId||'')===String(currentAreaId));
-  const unvisited=areaRecords.filter(r=>statusKey(r.status)==='unvisited').length;
-  const revisit=areaRecords.filter(r=>isRevisit(r)).length;
-  const follow=areaRecords.filter(r=>typeof hasFollow==='function'&&hasFollow(r));
-  const followPending=follow.filter(r=>!boolValue(r.followDone)).length;
-  const posters=areaRecords.filter(r=>boolValue(r.posterRequest));
-  const posterPending=posters.filter(r=>!boolValue(r.posterReported)).length;
-  const warnings=areaRecords.filter(r=>boolValue(r.warning)).length;
-  if($('mapFollowSummary'))$('mapFollowSummary').innerHTML=`<div class="status-line"><span>フォロー対象</span><b>${follow.length}件</b></div><div class="status-line"><span>未対応</span><b>${followPending}件</b></div>`;
-  if($('mapStatusSummary'))$('mapStatusSummary').innerHTML=`<div class="status-line"><span>未訪問</span><b>${unvisited}件</b></div><div class="status-line"><span>要再訪</span><b>${revisit}件</b></div>`;
-  if($('mapAttentionSummary'))$('mapAttentionSummary').innerHTML=`<div class="status-line"><span>訪問注意</span><b>${warnings}件</b></div><div class="status-line"><span>ポスター未報告</span><b>${posterPending}件</b></div>`;
-}
-function openFollowList(){
-  if($('listFollow'))$('listFollow').checked=true;
-  if($('listFollowPending'))$('listFollowPending').checked=true;
-  showView('list');renderLists();
-}
 async function searchMap(){
   const q=$('searchText').value.trim();if(!q)return;
   const local=records.find(r=>[r.personName,r.fullAddress,r.phone].some(v=>String(v||'').includes(q))&&Number(r.lat)&&Number(r.lng));

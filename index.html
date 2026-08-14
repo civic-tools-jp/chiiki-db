@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.7.9</title>
+<title>あいサポ Ver.2.8.1</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.7.9">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.1">
 </head>
 <body>
 <div id="loginView" class="login-shell">
@@ -26,14 +26,14 @@
   <path d="M32 53v12M48 58v12" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/>
   <!-- small heart -->
   <path d="M65 13c-3-4-9-1-9 3.5 0 4.2 9 9.2 9 9.2s9-5 9-9.2C74 12 68 9 65 13Z" fill="#ff8614" stroke="#fff" stroke-width="1.8"/>
-</svg><div><div class="brand-name"><span>あい</span><b>サポ</b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+</svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
     <label class="label">ユーザーID</label><input id="loginId" autocomplete="username">
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.7.9</div>
+    <div class="version-note">Ver.2.8.1</div>
   </div>
 </div>
 
@@ -55,7 +55,7 @@
   <path d="M32 53v12M48 58v12" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/>
   <!-- small heart -->
   <path d="M65 13c-3-4-9-1-9 3.5 0 4.2 9 9.2 9 9.2s9-5 9-9.2C74 12 68 9 65 13Z" fill="#ff8614" stroke="#fff" stroke-width="1.8"/>
-</svg><div><div class="brand-name"><span>あい</span><b>サポ</b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+</svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
     <nav class="tabs">
       <button class="tab active has-tip" data-tip="訪問先を地図で確認・登録できます" data-view="map" onclick="showView('map')"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg><span>地図</span></button>
       <button class="tab has-tip" data-tip="訪問先を検索・絞り込みできます" data-view="list" onclick="showView('list')"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>一覧</span></button>
@@ -78,7 +78,7 @@
     </div>
 
     <section id="view-map" class="view-section">
-      <div class="map-layout">
+      <div class="map-layout map-only-layout">
         <div class="map-card">
           <div class="section-heading map-heading"><div class="heading-icon orange"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg></div><div><h2>地図</h2><p>訪問先を地図で確認・登録できます</p></div></div>
           <div class="map-search-row">
@@ -86,26 +86,7 @@
             <button class="btn map-mini has-tip" data-tip="現在地を中心に地図を表示します" onclick="addCurrentLocation()">◎ 現在地</button>
             <button class="btn map-mini has-tip" data-tip="最新の訪問先データを読み込みます" onclick="changeArea(false)">↻ 更新</button>
           </div>
-          <div id="mapFilterPanel" class="map-priority compact-filters">
-            <div class="filter-group"><b>人物</b>
-              <label><input id="filterParty" type="checkbox" onchange="renderMarkers()"> ⭐ 党員</label>
-              <label><input id="filterSupporter" type="checkbox" onchange="renderMarkers()"> 🟠 サポーター</label>
-            </div>
-            <div class="filter-group"><b>訪問状況</b>
-              <label><input id="filterUnvisited" type="checkbox" onchange="renderMarkers()"> 未訪問</label>
-              <label><input id="filterVisited" type="checkbox" onchange="renderMarkers()"> 訪問済</label>
-              <label><input id="filterGood" type="checkbox" onchange="renderMarkers()"> 手応え</label>
-              <label><input id="filterAbsent" type="checkbox" onchange="renderMarkers()"> 不在</label>
-              <label><input id="filterRevisit" type="checkbox" onchange="renderMarkers()"> 要再訪</label>
-              <label><input id="filterRefused" type="checkbox" onchange="renderMarkers()"> × 断られた</label>
-            </div>
-            <div class="filter-group"><b>フォロー</b>
-              <label><input id="filterFollow" type="checkbox" onchange="renderMarkers()"> 🤝 フォロー対象</label>
-              <label><input id="filterPosterRequest" type="checkbox" onchange="renderMarkers()"> 🍊 ポスター依頼</label>
-              <label><input id="filterWarning" type="checkbox" onchange="renderMarkers()"> ⚠ 訪問注意</label>
-            </div>
-          </div>
-          <div class="desktop-map-meta">
+<div class="desktop-map-meta">
             <div class="map-legend-row">
               <div class="map-legend-inline">
                 <span class="gray">●未訪問</span><span class="blue">●訪問済</span><span class="green">●手応え</span>
@@ -121,23 +102,7 @@
     <div id="mobileMapLegend" class="mobile-map-legend hidden"></div>
     <div id="map"></div>
         </div>
-        <aside class="map-side">
-          <div class="quick-card">
-            <div class="quick-title"><span>🤝</span>フォロー</div>
-            <div id="mapFollowSummary" class="quick-content">フォロー対象を確認できます</div>
-            <button class="btn orange-outline full has-tip" data-tip="未対応のフォロー対象を一覧で確認します" onclick="openFollowList()">フォロー対象を見る</button>
-          </div>
-          <div class="quick-card">
-            <div class="quick-title green"><span>📋</span>活動状況</div>
-            <div id="mapStatusSummary" class="status-summary"></div>
-            <button class="btn green full has-tip" data-tip="訪問先の一覧を開きます" onclick="showView('list')">一覧を見る</button>
-          </div>
-          <div class="quick-card warning-card">
-            <div class="quick-title danger"><span>⚠</span>注意・未対応</div>
-            <div id="mapAttentionSummary" class="status-summary"></div>
-          </div>
-        </aside>
-      </div>
+</div>
     </section>
 
     <section id="view-list" class="view-section hidden">
@@ -304,5 +269,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.7.9"></script><script src="assets/js/state.js?v=2.7.9"></script><script src="assets/js/utils.js?v=2.7.9"></script><script src="assets/js/api.js?v=2.7.9"></script><script src="assets/js/auth.js?v=2.7.9"></script><script src="assets/js/map.js?v=2.7.9"></script><script src="assets/js/records.js?v=2.7.9"></script><script src="assets/js/contacts.js?v=2.7.9"></script><script src="assets/js/views.js?v=2.7.9"></script><script src="assets/js/admin.js?v=2.7.9"></script><script src="assets/js/main.js?v=2.7.9"></script>
+<script src="assets/js/config.js?v=2.8.1"></script><script src="assets/js/state.js?v=2.8.1"></script><script src="assets/js/utils.js?v=2.8.1"></script><script src="assets/js/api.js?v=2.8.1"></script><script src="assets/js/auth.js?v=2.8.1"></script><script src="assets/js/map.js?v=2.8.1"></script><script src="assets/js/records.js?v=2.8.1"></script><script src="assets/js/contacts.js?v=2.8.1"></script><script src="assets/js/views.js?v=2.8.1"></script><script src="assets/js/admin.js?v=2.8.1"></script><script src="assets/js/main.js?v=2.8.1"></script>
 </body></html>

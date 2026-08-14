@@ -956,3 +956,72 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
 .aisapo-official-mark{overflow:visible}
 .brand-name span{color:#ff8614}
 .brand-name b{color:#4b9347}
+
+/* Ver.2.8.0 — heart handakuten in ポ */
+.po-heart{
+  position:relative;
+  display:inline-block;
+}
+.po-heart .heart-mark{
+  position:absolute;
+  right:-.12em;
+  top:-.43em;
+  color:#ff8614;
+  font-size:.34em;
+  line-height:1;
+  transform:rotate(-8deg);
+  font-family:Arial,sans-serif;
+}
+
+
+/* Ver.2.8.1 — map is view-only; activity summaries live in 活動状況 */
+.map-only-layout{
+  display:block!important;
+}
+.map-only-layout .map-card{
+  width:100%;
+}
+#view-map .map-priority,
+#view-map .compact-filters,
+#view-map .map-side,
+#view-map .desktop-map-side{
+  display:none!important;
+}
+.activity-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:16px;
+}
+.activity-summary-card{
+  appearance:none;
+  width:100%;
+  border:1px solid #eee2d5;
+  background:#fff;
+  border-radius:18px;
+  padding:17px;
+  text-align:left;
+  box-shadow:var(--shadow-sm);
+  color:var(--ink);
+}
+.activity-summary-card:hover{transform:translateY(-1px)}
+.activity-summary-title{
+  font-size:16px;
+  font-weight:900;
+  margin-bottom:12px;
+}
+.follow-card .activity-summary-title{color:var(--orange-deep)}
+.status-card .activity-summary-title{color:var(--green-deep)}
+.attention-card{background:#fffafa}
+.attention-card .activity-summary-title{color:#e34440}
+.activity-summary-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin:7px 0;
+  font-size:14px;
+}
+@media(max-width:700px){
+  .activity-summary-grid{grid-template-columns:1fr;gap:9px}
+  .activity-summary-card{padding:14px}
+}

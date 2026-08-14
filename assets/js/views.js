@@ -96,6 +96,24 @@ function renderAnalysis(){
   const metric=(label,value)=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div></div>`;
   const el=$('analysisContent');if(!el)return;
   el.innerHTML=`
+  <div class="activity-summary-grid">
+    <button class="activity-summary-card follow-card" onclick="analysisGo('follow')">
+      <div class="activity-summary-title">🤝 フォロー</div>
+      <div class="activity-summary-row"><span>フォロー対象</span><b>${follow.length}件</b></div>
+      <div class="activity-summary-row"><span>未対応</span><b>${followPending}件</b></div>
+    </button>
+    <button class="activity-summary-card status-card" onclick="analysisGo('unvisited')">
+      <div class="activity-summary-title">📋 活動状況</div>
+      <div class="activity-summary-row"><span>未訪問</span><b>${unvisited}件</b></div>
+      <div class="activity-summary-row"><span>要再訪</span><b>${revisit}件</b></div>
+    </button>
+    <button class="activity-summary-card attention-card" onclick="analysisGo('warning')">
+      <div class="activity-summary-title">⚠ 注意・未対応</div>
+      <div class="activity-summary-row"><span>訪問注意</span><b>${warning}件</b></div>
+      <div class="activity-summary-row"><span>ポスター未報告</span><b>${posterPending}件</b></div>
+    </button>
+  </div>
+
   <div class="panel"><div class="section-heading"><div class="heading-icon orange">🤝</div><div><h2>今日の優先対応</h2><p>対応漏れを先に確認</p></div></div>
     <div class="analysis-actions">${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}${action('posterPending','ポスター未報告',posterPending,'党への報告待ち')}${action('revisit','要再訪',revisit,'次に回る候補')}${action('warning','訪問注意',warning,'訪問前に確認')}</div>
   </div>

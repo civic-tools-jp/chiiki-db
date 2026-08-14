@@ -9,8 +9,10 @@ async function startApp(){
   $('branchLabel').textContent=session.branchName||'全支部';
   const manager=['leader','prefecture_admin','system_admin'].includes(session.role);
   if(manager){$('adminTab')?.classList.remove('hidden');$('contactsTab')?.classList.remove('hidden')}
-  if(session.role==='system_admin'){
+  if(manager){
     $('contactImportPanel')?.classList.remove('hidden');
+  }
+  if(session.role==='system_admin'){
     $('areaAddPanel')?.classList.remove('hidden');
   }
   await loadBootstrap();initMap();await changeArea(false);
