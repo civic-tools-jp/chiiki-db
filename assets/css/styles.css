@@ -2074,3 +2074,64 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
     padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;
   }
 }
+
+/* Ver.2.8.44 — password character toggles and form spacing */
+.password-field-character{position:relative;width:100%}
+.password-field-character input{width:100%;padding-right:64px!important}
+.password-character-toggle{
+ position:absolute;right:9px;top:50%;transform:translateY(-50%);
+ width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+ padding:4px;border:1px solid #ead9c8;border-radius:13px;background:#fffaf4;
+ box-shadow:0 2px 7px rgba(88,65,40,.08);cursor:pointer
+}
+.password-character-toggle img{display:block;width:36px;height:36px;object-fit:cover;border-radius:50%}
+#passwordModal .password-change-submit{margin-top:18px!important}
+@media(max-width:700px){
+ .password-character-toggle{width:44px;height:44px}
+ .password-character-toggle img{width:34px;height:34px}
+ #passwordModal .password-change-submit{margin-top:20px!important}
+}
+
+/* Ver.2.8.45 — detail action hierarchy */
+#editModal .mobile-detail-action-bar{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)!important;
+  grid-template-areas:
+    "delete delete"
+    "cancel save";
+  row-gap:8px!important;
+  column-gap:10px!important;
+}
+#editModal #mobileDetailDeleteBtn{
+  grid-area:delete;
+  justify-self:start;
+  width:auto!important;
+  min-height:36px!important;
+  padding:6px 12px!important;
+  font-size:13px!important;
+  white-space:nowrap;
+  border-radius:11px!important;
+}
+#editModal #mobileDetailCancelBtn{
+  grid-area:cancel;
+  white-space:nowrap!important;
+  word-break:keep-all!important;
+  overflow-wrap:normal!important;
+}
+#editModal #mobileSaveRecordBtn{
+  grid-area:save;
+}
+#editModal .detail-footer{
+  padding-bottom:145px!important;
+}
+@media(max-width:700px){
+  #editModal .mobile-detail-action-bar{
+    left:12px!important;
+    right:12px!important;
+    width:auto!important;
+    bottom:calc(14px + env(safe-area-inset-bottom))!important;
+    transform:none!important;
+  }
+  #editModal .detail-footer{
+    padding-bottom:calc(150px + env(safe-area-inset-bottom))!important;
+  }
+}

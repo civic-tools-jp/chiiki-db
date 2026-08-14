@@ -44,13 +44,30 @@ function recordFollowBadges(r){
   if(boolValue(r.posterRequest))out.push(`<span class="badge warning-soft">🍊 ポスター依頼${boolValue(r.posterReported)?'・報告済':'・未報告'}</span>`);
   return out.join('');
 }
+
+function listPrivacyAddress(address){
+  const s=String(address||'').replace(/\s+/g,'').trim();
+  if(!s)return '住所未設定';
+
+  // 一覧では町丁目まで。番地・号・建物名は表示しない。
+  const chome=s.match(/^(.+?丁目)/);
+  if(chome)return chome[1];
+
+  // 「丁目」がない住所は、区以降の町名までをできる範囲で残し、
+  // 最初の番地らしい数字以降を非表示にする。
+  const m=s.match(/^(.+?(?:市|区|町|村).+?)(?=[0-9０-９]+(?:番地?|号|-|－|ー))/);
+  if(m&&m[1])return m[1].replace(/[0-9０-９\-－ー]+$/,'');
+
+  return s.replace(/[0-9０-９]+(?:[-－ー][0-9０-９]+)+.*$/,'').replace(/[0-9０-９]+番地?.*$/,'') || '住所設定済み';
+}
+
 function recordCard(r){
   const mt=recordMemberType(r),key=statusKey(r.status),st=STATUS[key]||STATUS.unvisited;
   const located=!!(Number(r.lat)&&Number(r.lng));
   const sourceLabel={import:'名簿取込',manual:'手入力',map:'地図登録'};
   return `<article class="card" style="border-left-color:${st.color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
     <div class="card-title-row"><div class="card-title">${esc(recordDisplayName(r)||'名前未登録')} <span class="badge status-badge"><span class="status-icon">${esc(st.icon||'')}</span>${esc(st.label)}</span></div>${located?`<button type="button" class="list-map-btn has-tip" data-tip="地図で見る" onclick="event.stopPropagation();showRecordOnMap('${esc(r.id)}')">📍 <span>地図で見る</span></button>`:''}</div>
-    <div class="muted">${esc(r.fullAddress||'住所未設定')}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
+    <div class="muted">${esc(listPrivacyAddress(r.fullAddress))}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
     <div class="badges">
       <span class="badge member-badge ${mt==='party_member'?'member-party':mt==='supporter'?'member-supporter':''}">${esc(memberTypeLabel(mt))}</span>
       <span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span>

@@ -33,3 +33,16 @@ let passwordChangeForced=false;
 function openPasswordModal(forced=false){passwordChangeForced=!!forced;$('passwordModal').style.display='flex';$('passwordModalTitle').textContent=forced?'初回パスワード変更':'パスワード変更';$('passwordModalNote').textContent=forced?'仮パスワードのままでは利用できません。新しいパスワードへ変更してください。':'現在のパスワードを確認して変更します。';$('passwordClose').classList.toggle('hidden',forced);$('currentPassword').value=$('newPassword1').value=$('newPassword2').value='';msg('passwordMsg','');}
 function closePasswordModal(){if(passwordChangeForced)return;$('passwordModal').style.display='none';}
 async function changeOwnPassword(){try{const current=$('currentPassword').value,next=$('newPassword1').value,confirm=$('newPassword2').value;if(next!==confirm)throw Error('新しいパスワードが一致しません');await api('changePassword',{currentPassword:current,newPassword:next});session.mustChangePassword=false;localStorage.setItem('aisapo_session',JSON.stringify(session));passwordChangeForced=false;$('passwordModal').style.display='none';alert('パスワードを変更しました');}catch(e){msg('passwordMsg',e.message)}}
+
+// Ver.2.8.44 — reusable password character visibility toggle
+document.addEventListener('click',function(e){
+ const btn=e.target.closest?.('[data-password-toggle]');
+ if(!btn)return;
+ const input=document.getElementById(btn.dataset.passwordToggle);
+ if(!input)return;
+ const show=input.type==='password';
+ input.type=show?'text':'password';
+ const img=btn.querySelector('img');
+ if(img)img.src=show?'assets/img/password-person-open.png':'assets/img/password-person-hide.png';
+ btn.setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示');
+});
