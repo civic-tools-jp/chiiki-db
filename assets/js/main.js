@@ -10,7 +10,7 @@ function toggleMapFilters(force){
   panel.classList.toggle('filters-collapsed',!open);
   if(btn){
     btn.setAttribute('aria-expanded',open?'true':'false');
-    btn.textContent=open?'× 閉じる':'⚙ 絞り込み';
+    btn.innerHTML=filterToggleMarkup(open);
   }
 }
 

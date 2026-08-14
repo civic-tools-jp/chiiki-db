@@ -1732,7 +1732,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .mobile-user-actions{gap:6px}
 }
 
-/* Ver.2.8.25 — collapsible map/list filters */
+/* Ver.2.8.26 — collapsible map/list filters */
 .filters-collapsed{display:none!important}
 .map-filter-tools{
   display:flex;
@@ -1759,4 +1759,48 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .map-filter-toggle{width:100%;min-height:42px}
   .filter-panel-actions{justify-content:stretch}
   .filter-clear-btn{width:100%}
+}
+
+
+/* Ver.2.8.26 — mobile usability / filter polish */
+.filter-funnel-icon{
+  width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linejoin:round;stroke-linecap:round;
+}
+.map-filter-toggle,.list-filter-toggle{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+}
+.list-filter-toggle{font-size:14px;font-weight:900;min-height:42px}
+.filter-clear-btn{font-size:14px;font-weight:900}
+
+@media(max-width:700px){
+  .mobile-user-actions{
+    grid-template-columns:auto auto!important;
+    grid-template-areas:"identity identity" "pw logout"!important;
+    gap:5px 7px!important;
+    justify-items:end!important;
+  }
+  .mobile-user-identity{
+    grid-area:identity;
+    display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0;
+  }
+  .mobile-user-meta{display:flex;flex-direction:column;align-items:flex-end;min-width:0;line-height:1.15}
+  .mobile-user-avatar{
+    display:grid!important;width:30px;height:30px;font-size:16px;position:static!important;
+    margin:0!important;transform:none!important;
+  }
+  .mobile-user-name{grid-area:auto!important;max-width:132px;font-size:11px!important}
+  .mobile-user-role{font-size:9px;font-weight:800;color:#8a7e72;margin-top:2px;white-space:nowrap}
+  .mobile-pw-btn,.mobile-logout-btn{font-size:10px!important;min-height:31px!important;padding:5px 8px!important}
+
+  .map-priority-filter{
+    flex:1 1 100%!important;width:100%!important;border-radius:14px!important;
+    min-height:44px;box-sizing:border-box;
+  }
+  .map-priority-filter select{min-width:0!important;width:100%!important;padding:0 4px!important}
+
+  .list-filter-toggle,.filter-clear-btn,.map-filter-toggle{
+    font-size:14px!important;min-height:44px!important;
+  }
+  .list-filter-toggle .filter-funnel-icon,.map-filter-toggle .filter-funnel-icon{width:19px;height:19px}
 }

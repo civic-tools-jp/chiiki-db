@@ -7,7 +7,7 @@ const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 const BRANCH_MESSAGE_HEADERS=['messageId','fromBranchId','toBranchId','title','body','createdBy','createdByName','createdAt','active'];
 
-function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.25 API'});}
+function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.26 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -38,13 +38,13 @@ function upgradeV2824(){
   return `Ver.2.8.24 更新完了：党員支持ランクB ${rankUpdated}件／訪問回数初期化 ${countInitialized}件`;
 }
 
-// Ver.2.8.25: 既存の名簿取込「党員」で支持ランク未判定のものを再確認しBへ補完します。1回だけ実行してください。
+// Ver.2.8.26: 既存の名簿取込「党員」で支持ランク未判定のものを再確認しBへ補完します。1回だけ実行してください。
 function upgradeV2825(){
   const ss=SpreadsheetApp.getActive(),sh=ss.getSheetByName(SHEETS.RECORDS);
   if(!sh)throw Error('Recordsシートが見つかりません');
   ensureHeadersByName_(sh,RECORD_HEADERS);
   const headers=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String),idx=Object.fromEntries(headers.map((h,i)=>[h,i]));
-  if(sh.getLastRow()<2)return 'Ver.2.8.25 更新完了（対象データなし）';
+  if(sh.getLastRow()<2)return 'Ver.2.8.26 更新完了（対象データなし）';
   const vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();let rankUpdated=0;
   vals.forEach(r=>{
     const imported=String(r[idx.source]||'').trim()==='import';
@@ -53,7 +53,7 @@ function upgradeV2825(){
     if(imported&&party&&!rank){r[idx.supporter]='B';rankUpdated++;}
   });
   sh.getRange(2,1,vals.length,headers.length).setValues(vals);
-  return `Ver.2.8.25 更新完了：党員支持ランクB補完 ${rankUpdated}件`;
+  return `Ver.2.8.26 更新完了：党員支持ランクB補完 ${rankUpdated}件`;
 }
 
 // Ver.2 → Ver.2.1 移行。現在のシートを残しつつ構造を更新します。1回だけ実行してください。

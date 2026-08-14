@@ -1,4 +1,8 @@
 "use strict";
+
+function filterToggleMarkup(open){
+  return `<svg class="filter-funnel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6.3 7.1v4.5l-3.4 1.8v-6.3L4 6Z"/></svg><span>${open?'絞り込みを閉じる':'絞り込み'}</span>`;
+}
 function formatShortDate(v){const d=new Date(v);return isNaN(d)?String(v||""):`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`}
 function renderAll(){renderMarkers();renderLists();renderAnalysis()}
 
@@ -45,9 +49,8 @@ function recordCard(r){
   const located=!!(Number(r.lat)&&Number(r.lng));
   const sourceLabel={import:'名簿取込',manual:'手入力',map:'地図登録'};
   return `<article class="card" style="border-left-color:${st.color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
-    <div class="card-title">${esc(recordDisplayName(r)||r.fullAddress||'名称未設定')} <span class="badge status-badge"><span class="status-icon">${esc(st.icon||'')}</span>${esc(st.label)}</span></div>
+    <div class="card-title">${esc(recordDisplayName(r)||'名前未登録')} <span class="badge status-badge"><span class="status-icon">${esc(st.icon||'')}</span>${esc(st.label)}</span></div>
     <div class="muted">${esc(r.fullAddress||'住所未設定')}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
-    ${r.phone?`<div class="muted">☎ ${esc(r.phone)}</div>`:''}
     <div class="badges">
       <span class="badge">${esc(memberTypeLabel(mt))}</span>
       <span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span>
@@ -72,7 +75,7 @@ function toggleListFilters(force){
   panel.classList.toggle('filters-collapsed',!open);
   if(btn){
     btn.setAttribute('aria-expanded',open?'true':'false');
-    btn.textContent=open?'× 閉じる':'⚙ 絞り込み';
+    btn.innerHTML=filterToggleMarkup(open);
   }
 }
 function clearListFilters(){
@@ -290,7 +293,7 @@ function renderAnalysis(){
     </div>
   </div>
 
-  <div class="panel"><div class="section-heading"><div class="heading-icon orange activity-icon">🤝</div><div><h2>つながり</h2><p>名簿とフォローの状況</p></div></div>
+  <div class="panel"><div class="section-heading"><div class="heading-icon orange activity-icon">🤝</div><div><h2>つながり</h2><p>党員・サポーター・フォロー状況</p></div></div>
     <div class="analysis-grid"><button class="analysis-metric analysis-clickable" onclick="analysisGo('party')"><div class="analysis-value">${party}</div><div class="analysis-label">党員</div><span class="analysis-link-hint">一覧を見る →</span></button><button class="analysis-metric analysis-clickable" onclick="analysisGo('supporter')"><div class="analysis-value">${supporter}</div><div class="analysis-label">サポーター</div><span class="analysis-link-hint">一覧を見る →</span></button><button class="analysis-metric analysis-clickable" onclick="analysisGo('follow')"><div class="analysis-value">${follow.length}</div><div class="analysis-label">フォロー対象</div><span class="analysis-link-hint">一覧を見る →</span></button>${metric('ポスター依頼',poster.length)}${metric('位置未取得',unlocated)}</div>
   </div>
   <div class="panel"><div class="section-heading"><div class="heading-icon green activity-icon">🗺️</div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
