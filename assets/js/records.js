@@ -136,7 +136,81 @@ function updateDetailHeader(r){
 }
 
 function closeEdit(){$('editModal').style.display='none';editing=null}
-async function saveRecord(){const btn=document.getElementById('saveRecordBtn');try{if(btn){btn.disabled=true;btn.textContent='保存中…'}const rec={id:$('recordId').value,areaId:currentAreaId,source:$('recordSource').value||'manual',memberType:$('recordMemberType').value||'general',contactId:editing?.contactId||'',lat:Number($('lat').value),lng:Number($('lng').value),fullAddress:$('fullAddress').value.trim(),personName:$('personName').value.trim(),phone:$('recordPhone').value.trim(),email:$('recordEmail').value.trim(),status:editStatus,supporter:$('supporter').value,revisitPriority:$('priority').value,referrer:$('referrer').value.trim(),followParty:$('followParty').checked,followSupporter:$('followSupporter').checked,followDetails:$('followDetails').checked,followDone:$('followDone').checked,followMemo:$('followMemo').value.trim(),warning:$('warning').checked,warningReason:$('warningReason').value,warningMemo:$('warningMemo').value.trim(),posterRequest:$('posterRequest').checked,posterReported:$('posterReported').checked,posterRequestMemo:$('posterRequestMemo').value.trim(),type:$('type').value,date:$('date').value,memo:$('memo').value.trim(),updatedAt:editing?.updatedAt||''};await api('saveRecord',{record:rec});closeEdit();await loadRecords()}catch(e){console.error(e);alert(e.message||String(e))}finally{if(btn){btn.disabled=false;btn.textContent='保存'}}}
+async function geocodeAddressQuietly(address){
+  const q=String(address||'').trim();
+  if(!q)return null;
+  try{
+    const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(q)}`);
+    const data=await res.json();
+    if(!data?.[0])return null;
+    const lat=Number(data[0].lat),lng=Number(data[0].lon);
+    if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng)return null;
+    return {lat,lng};
+  }catch(_){return null}
+}
+
+async function saveRecord(){
+  const btn=document.getElementById('saveRecordBtn');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='保存中…'}
+
+    const fullAddress=$('fullAddress').value.trim();
+    let lat=Number($('lat').value),lng=Number($('lng').value);
+    const hasCoords=Number.isFinite(lat)&&Number.isFinite(lng)&&lat&&lng;
+    const addressChanged=String(editing?.fullAddress||'').trim()!==fullAddress;
+    const shouldGeocode=fullAddress && (!hasCoords || (addressChanged && String($('recordSource').value||'manual')!=='map'));
+
+    if(shouldGeocode){
+      if(btn)btn.textContent='位置確認中…';
+      const pos=await geocodeAddressQuietly(fullAddress);
+      if(pos){
+        lat=pos.lat;lng=pos.lng;
+        $('lat').value=lat;$('lng').value=lng;
+      }
+    }
+
+    const rec={
+      id:$('recordId').value,
+      areaId:currentAreaId,
+      source:$('recordSource').value||'manual',
+      memberType:$('recordMemberType').value||'general',
+      contactId:editing?.contactId||'',
+      lat:Number.isFinite(lat)?lat:0,
+      lng:Number.isFinite(lng)?lng:0,
+      fullAddress,
+      personName:$('personName').value.trim(),
+      phone:$('recordPhone').value.trim(),
+      email:$('recordEmail').value.trim(),
+      status:editStatus,
+      supporter:$('supporter').value,
+      revisitPriority:$('priority').value,
+      referrer:$('referrer').value.trim(),
+      followParty:$('followParty').checked,
+      followSupporter:$('followSupporter').checked,
+      followDetails:$('followDetails').checked,
+      followDone:$('followDone').checked,
+      followMemo:$('followMemo').value.trim(),
+      warning:$('warning').checked,
+      warningReason:$('warningReason').value,
+      warningMemo:$('warningMemo').value.trim(),
+      posterRequest:$('posterRequest').checked,
+      posterReported:$('posterReported').checked,
+      posterRequestMemo:$('posterRequestMemo').value.trim(),
+      type:$('type').value,
+      date:$('date').value,
+      memo:$('memo').value.trim(),
+      updatedAt:editing?.updatedAt||''
+    };
+    await api('saveRecord',{record:rec});
+    closeEdit();
+    await loadRecords();
+  }catch(e){
+    console.error(e);
+    alert(e.message||String(e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='保存'}
+  }
+}
 async function deleteRecord(){
   if(!editing?.id){closeEdit();return}
   const imported=String(editing.source||'')==='import';

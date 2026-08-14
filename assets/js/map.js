@@ -116,6 +116,30 @@ function renderMarkers(){
   else if(pts.length===1)map.setView(pts[0],17);
 }
 
+function showRecordOnMap(recordId){
+  const r=records.find(x=>String(x.id)===String(recordId));
+  if(!r){alert('訪問先が見つかりません');return}
+
+  const lat=Number(r.lat),lng=Number(r.lng);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng){
+    alert('この訪問先は位置情報が登録されていません');
+    return;
+  }
+
+  showView('map');
+  setTimeout(()=>{
+    if(!map)return;
+    map.invalidateSize();
+    if(!markers['r_'+r.id])renderMarkers();
+    map.setView([lat,lng],18);
+    const marker=markers['r_'+r.id];
+    if(marker){
+      marker.openTooltip();
+      setTimeout(()=>{try{marker.closeTooltip()}catch(_){ }},2200);
+    }
+  },220);
+}
+
 async function searchMap(){
   const q=$('searchText').value.trim();if(!q)return;
   const local=records.find(r=>[r.personName,r.fullAddress,r.phone].some(v=>String(v||'').includes(q))&&Number(r.lat)&&Number(r.lng));

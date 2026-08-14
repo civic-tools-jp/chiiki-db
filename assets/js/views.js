@@ -34,6 +34,23 @@ function recordCard(r){
     </div>
   </article>`;
 }
+function toggleListFilters(force){
+  const panel=$('listFilterPanel');
+  const btn=$('listFilterToggle');
+  if(!panel)return;
+  const isMobile=window.matchMedia('(max-width:700px)').matches;
+  if(!isMobile){
+    panel.classList.remove('mobile-collapsed');
+    if(btn)btn.setAttribute('aria-expanded','true');
+    return;
+  }
+  const open=typeof force==='boolean'?force:panel.classList.contains('mobile-collapsed');
+  panel.classList.toggle('mobile-collapsed',!open);
+  if(btn){
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.textContent=open?'× 閉じる':'⚙ 絞り込み';
+  }
+}
 function renderLists(){
   const q=($('listSearch')?.value||'').trim().toLowerCase();
   const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',location=$('listLocation')?.value||'';
@@ -81,10 +98,57 @@ function analysisGo(kind){
   if(kind==='posterPending')$('listPosterPending').checked=true;
   showView('list');renderLists();
 }
+async function loadBranchMessages(){
+  try{
+    const d=await api('listBranchMessages',{limit:5});
+    branchMessages=d.messages||[];
+    if(!$('view-analysis')?.classList.contains('hidden'))renderAnalysis();
+  }catch(e){
+    console.warn('支部連絡の取得:',e.message);
+    branchMessages=[];
+  }
+}
+function branchName(id){
+  if(String(id)==='all')return '全支部';
+  return branches.find(b=>String(b.branchId)===String(id))?.name||'支部';
+}
+function formatMessageDate(v){
+  if(!v)return'';
+  const d=new Date(v);if(isNaN(d))return String(v);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function renderBranchMessages(){
+  if(!branchMessages.length)return '<div class="branch-message-empty">連絡はまだありません。</div>';
+  return branchMessages.slice(0,5).map(m=>`<article class="branch-message-item">
+    <div class="branch-message-top"><b>${esc(m.title||'連絡')}</b><time>${esc(formatMessageDate(m.createdAt))}</time></div>
+    <div class="branch-message-route">${esc(branchName(m.fromBranchId))} → ${esc(branchName(m.toBranchId))}</div>
+    <div class="branch-message-body">${esc(m.body)}</div>
+    <div class="branch-message-author">${esc(m.createdByName||'')}</div>
+  </article>`).join('');
+}
+function openBranchMessageModal(){
+  const modal=$('branchMessageModal');if(!modal)return;
+  const sel=$('branchMessageTo');
+  sel.innerHTML=`<option value="all">全支部</option>${branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('')}`;
+  $('branchMessageTitle').value='';$('branchMessageBody').value='';
+  modal.style.display='flex';
+}
+function closeBranchMessageModal(){$('branchMessageModal').style.display='none'}
+async function saveBranchMessage(){
+  const btn=$('branchMessageSaveBtn');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='送信中…'}
+    await api('saveBranchMessage',{message:{toBranchId:$('branchMessageTo').value,title:$('branchMessageTitle').value.trim(),body:$('branchMessageBody').value.trim()}});
+    closeBranchMessageModal();await loadBranchMessages();renderAnalysis();
+  }catch(e){alert(e.message)}
+  finally{if(btn){btn.disabled=false;btn.textContent='連絡を追加'}}
+}
+
 function renderAnalysis(){
   const total=records.length,countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
-  const unvisited=countStatus('unvisited'),visited=total-unvisited,revisit=records.filter(isRevisit).length,warning=records.filter(r=>boolValue(r.warning)).length;
-  const unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
+  const unvisited=countStatus('unvisited'),handshake=countStatus('handshake'),absent=countStatus('absent'),refused=countStatus('refused');
+  const revisit=records.filter(isRevisit).length,warning=records.filter(r=>boolValue(r.warning)).length;
+  const visited=Math.max(0,total-unvisited),unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
   const follow=records.filter(hasFollow),followPending=follow.filter(r=>!boolValue(r.followDone)).length;
   const poster=records.filter(r=>boolValue(r.posterRequest)),posterPending=poster.filter(r=>!boolValue(r.posterReported)).length;
   const party=records.filter(r=>r.memberType==='party_member').length,supporter=records.filter(r=>r.memberType==='supporter').length;
@@ -96,33 +160,47 @@ function renderAnalysis(){
   const metric=(label,value)=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div></div>`;
   const el=$('analysisContent');if(!el)return;
   el.innerHTML=`
-  <div class="activity-summary-grid">
-    <button class="activity-summary-card follow-card" onclick="analysisGo('follow')">
-      <div class="activity-summary-title">🤝 フォロー</div>
-      <div class="activity-summary-row"><span>フォロー対象</span><b>${follow.length}件</b></div>
-      <div class="activity-summary-row"><span>未対応</span><b>${followPending}件</b></div>
-    </button>
-    <button class="activity-summary-card status-card" onclick="analysisGo('unvisited')">
-      <div class="activity-summary-title">📋 活動状況</div>
-      <div class="activity-summary-row"><span>未訪問</span><b>${unvisited}件</b></div>
-      <div class="activity-summary-row"><span>要再訪</span><b>${revisit}件</b></div>
-    </button>
-    <button class="activity-summary-card attention-card" onclick="analysisGo('warning')">
-      <div class="activity-summary-title">⚠ 注意・未対応</div>
-      <div class="activity-summary-row"><span>訪問注意</span><b>${warning}件</b></div>
-      <div class="activity-summary-row"><span>ポスター未報告</span><b>${posterPending}件</b></div>
-    </button>
+  <div class="panel activity-section branch-messages-section">
+    <div class="section-heading branch-message-heading">
+      <div class="heading-icon orange">📣</div>
+      <div><h2>支部連絡</h2><p>支部間の連絡・共有事項（最新5件）</p></div>
+      <button type="button" class="btn branch-message-add" onclick="openBranchMessageModal()">＋ 連絡を追加</button>
+    </div>
+    <div class="branch-message-list">${renderBranchMessages()}</div>
   </div>
 
-  <div class="panel"><div class="section-heading"><div class="heading-icon orange">🤝</div><div><h2>今日の優先対応</h2><p>対応漏れを先に確認</p></div></div>
-    <div class="analysis-actions">${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}${action('posterPending','ポスター未報告',posterPending,'党への報告待ち')}${action('revisit','要再訪',revisit,'次に回る候補')}${action('warning','訪問注意',warning,'訪問前に確認')}</div>
+  <div class="panel activity-section priority-section">
+    <div class="section-heading"><div class="heading-icon orange">✓</div><div><h2>対応が必要なもの</h2><p>未対応の項目を確認</p></div></div>
+    <div class="analysis-actions">
+      ${action('revisit','要再訪',revisit,'もう一度訪問する')}
+      ${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}
+      ${action('posterPending','ポスター依頼',posterPending,'党への報告待ち')}
+    </div>
   </div>
-  <div class="panel"><div class="section-heading"><div class="heading-icon green">📊</div><div><h2>活動の進捗</h2><p>${visited} / ${total}件 訪問済み</p></div></div>
+
+  <div class="panel activity-section">
+    <div class="section-heading"><div class="heading-icon green">📋</div><div><h2>訪問状況</h2><p>${visited} / ${total}件 訪問済み　進捗 ${visitRate}%</p></div></div>
     <div class="analysis-progress-head"><b>訪問進捗</b><span>${visitRate}%</span></div><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${visitRate}%"></div></div>
-    <div class="analysis-grid">${metric('全登録',total)}${metric('未訪問',unvisited)}${metric('要再訪',revisit)}${metric('位置未取得',unlocated)}</div>
+    <div class="analysis-grid visit-status-grid">
+      <button class="analysis-metric" onclick="analysisGo('unvisited')"><div class="analysis-value">${unvisited}</div><div class="analysis-label">未訪問</div></button>
+      ${metric('訪問済',visited)}
+      ${metric('手応え',handshake)}
+      ${metric('不在',absent)}
+      <button class="analysis-metric" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">要再訪</div></button>
+      ${metric('断られた',refused)}
+    </div>
   </div>
+
+  <div class="panel activity-section attention-section">
+    <div class="section-heading"><div class="heading-icon danger">⚠</div><div><h2>対応が必要</h2><p>注意事項・報告漏れを確認</p></div></div>
+    <div class="analysis-actions">
+      ${action('warning','訪問注意',warning,'訪問前に注意事項を確認')}
+      ${action('posterPending','ポスター未報告',posterPending,'党への報告が必要')}
+    </div>
+  </div>
+
   <div class="panel"><div class="section-heading"><div class="heading-icon orange">👥</div><div><h2>つながり</h2><p>名簿とフォローの状況</p></div></div>
-    <div class="analysis-grid"><button class="analysis-metric" onclick="analysisGo('party')"><div class="analysis-value">${party}</div><div class="analysis-label">党員</div></button><button class="analysis-metric" onclick="analysisGo('supporter')"><div class="analysis-value">${supporter}</div><div class="analysis-label">サポーター</div></button><button class="analysis-metric" onclick="analysisGo('follow')"><div class="analysis-value">${follow.length}</div><div class="analysis-label">フォロー対象</div></button>${metric('ポスター依頼',poster.length)}</div>
+    <div class="analysis-grid"><button class="analysis-metric" onclick="analysisGo('party')"><div class="analysis-value">${party}</div><div class="analysis-label">党員</div></button><button class="analysis-metric" onclick="analysisGo('supporter')"><div class="analysis-value">${supporter}</div><div class="analysis-label">サポーター</div></button><button class="analysis-metric" onclick="analysisGo('follow')"><div class="analysis-value">${follow.length}</div><div class="analysis-label">フォロー対象</div></button>${metric('ポスター依頼',poster.length)}${metric('位置未取得',unlocated)}</div>
   </div>
   <div class="panel"><div class="section-heading"><div class="heading-icon green">📍</div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
 }
@@ -130,5 +208,6 @@ function showView(v){
   ['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x)?.classList.toggle('hidden',x!==v));
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   if(v==='analysis')renderAnalysis();
-  if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();updateMapDashboard?.()},100);
+  if(v==='list')setTimeout(()=>toggleListFilters(window.innerWidth>700),0);
+  if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();},100);
 }

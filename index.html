@@ -3,59 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.1</title>
+<title>あいサポ Ver.2.8.8</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.1">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.8">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
-    <div class="brand-lockup login-brand"><svg class="brand-mark aisapo-official-mark" viewBox="0 0 80 80" aria-hidden="true">
-  <!-- orange location pin -->
-  <path d="M40 3C21 3 9 16 9 33c0 18 20 35 31 42 11-7 31-24 31-42C71 16 59 3 40 3Z" fill="#ff8614"/>
-  <circle cx="40" cy="32" r="23" fill="#fff"/>
-  <!-- two people facing each other -->
-  <circle cx="29" cy="27" r="5.2" fill="#ff8614"/>
-  <path d="M20 45c1-9 4.5-13 10-13 4.4 0 7.3 2.7 9 7.5-3.2-2.3-6.1-3.3-9-3.3-3.5 0-6.7 2.8-10 8.8Z" fill="#ff8614"/>
-  <circle cx="51" cy="27" r="5.2" fill="#4b9347"/>
-  <path d="M60 45c-1-9-4.5-13-10-13-4.4 0-7.3 2.7-9 7.5 3.2-2.3 6.1-3.3 9-3.3 3.5 0 6.7 2.8 10 8.8Z" fill="#4b9347"/>
-  <!-- connection -->
-  <path d="M34 39c2.2 2.2 4.1 3.2 6 3.2s3.8-1 6-3.2" fill="none" stroke="#f4a54b" stroke-width="2.8" stroke-linecap="round"/>
-  <!-- green map -->
-  <path d="M18 58l14-5 16 5 14-5v12l-14 5-16-5-14 5Z" fill="#75a94d"/>
-  <path d="M32 53v12M48 58v12" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/>
-  <!-- small heart -->
-  <path d="M65 13c-3-4-9-1-9 3.5 0 4.2 9 9.2 9 9.2s9-5 9-9.2C74 12 68 9 65 13Z" fill="#ff8614" stroke="#fff" stroke-width="1.8"/>
-</svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+    <div class="brand-lockup login-brand brand-image-lockup">
+      <img src="assets/img/aisapo-logo.png?v=2.8.8" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+    </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
     <label class="label">ユーザーID</label><input id="loginId" autocomplete="username">
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.1</div>
+    <div class="version-note">Ver.2.8.8</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
-    <div class="brand-lockup"><svg class="brand-mark aisapo-official-mark" viewBox="0 0 80 80" aria-hidden="true">
-  <!-- orange location pin -->
-  <path d="M40 3C21 3 9 16 9 33c0 18 20 35 31 42 11-7 31-24 31-42C71 16 59 3 40 3Z" fill="#ff8614"/>
-  <circle cx="40" cy="32" r="23" fill="#fff"/>
-  <!-- two people facing each other -->
-  <circle cx="29" cy="27" r="5.2" fill="#ff8614"/>
-  <path d="M20 45c1-9 4.5-13 10-13 4.4 0 7.3 2.7 9 7.5-3.2-2.3-6.1-3.3-9-3.3-3.5 0-6.7 2.8-10 8.8Z" fill="#ff8614"/>
-  <circle cx="51" cy="27" r="5.2" fill="#4b9347"/>
-  <path d="M60 45c-1-9-4.5-13-10-13-4.4 0-7.3 2.7-9 7.5 3.2-2.3 6.1-3.3 9-3.3 3.5 0 6.7 2.8 10 8.8Z" fill="#4b9347"/>
-  <!-- connection -->
-  <path d="M34 39c2.2 2.2 4.1 3.2 6 3.2s3.8-1 6-3.2" fill="none" stroke="#f4a54b" stroke-width="2.8" stroke-linecap="round"/>
-  <!-- green map -->
-  <path d="M18 58l14-5 16 5 14-5v12l-14 5-16-5-14 5Z" fill="#75a94d"/>
-  <path d="M32 53v12M48 58v12" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/>
-  <!-- small heart -->
-  <path d="M65 13c-3-4-9-1-9 3.5 0 4.2 9 9.2 9 9.2s9-5 9-9.2C74 12 68 9 65 13Z" fill="#ff8614" stroke="#fff" stroke-width="1.8"/>
-</svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+    <div class="brand-lockup brand-image-lockup">
+      <img src="assets/img/aisapo-logo.png?v=2.8.8" alt="あいサポ" class="aisapo-logo-image">
+    </div>
+    <div class="mobile-user-actions">
+      <div class="mobile-user-name" id="mobileUserName">ユーザー</div>
+      <button type="button" class="mobile-pw-btn" onclick="openPasswordModal(false)">PW変更</button>
+      <button type="button" class="mobile-logout-btn" onclick="logout()">ログアウト</button>
+    </div>
     <nav class="tabs">
       <button class="tab active has-tip" data-tip="訪問先を地図で確認・登録できます" data-view="map" onclick="showView('map')"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg><span>地図</span></button>
       <button class="tab has-tip" data-tip="訪問先を検索・絞り込みできます" data-view="list" onclick="showView('list')"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>一覧</span></button>
@@ -71,7 +48,20 @@
   </header>
 
   <main class="app-main">
-    <div id="appMsg"></div><div id="mobileTip" class="mobile-tip" aria-live="polite"></div>
+    <div id="appMsg"></div><div id="branchMessageModal" class="modal-bg" style="display:none">
+  <div class="modal-card branch-message-modal">
+    <div class="modal-head"><h2>📣 支部連絡を追加</h2><button class="icon-btn" onclick="closeBranchMessageModal()">×</button></div>
+    <label class="label">宛先</label>
+    <select id="branchMessageTo"></select>
+    <label class="label">件名</label>
+    <input id="branchMessageTitle" maxlength="80" placeholder="例：ポスター掲示について">
+    <label class="label">内容</label>
+    <textarea id="branchMessageBody" maxlength="1000" placeholder="支部間で共有する内容を入力"></textarea>
+    <div class="notice">個人宅の詳しい情報は訪問先メモに記録してください。</div>
+    <div class="actions"><button class="btn" onclick="closeBranchMessageModal()">キャンセル</button><button id="branchMessageSaveBtn" class="btn primary" onclick="saveBranchMessage()">連絡を追加</button></div>
+  </div>
+</div>
+<div id="mobileTip" class="mobile-tip" aria-live="polite"></div>
     <div class="context-bar">
       <div class="branch-context"><span id="branchLabel"></span><span class="context-sep">/</span><b id="areaLabel"></b></div>
       <div id="areaControl" class="area-control"><span class="area-caption">活動エリア</span><select id="areaSelect" onchange="changeArea()"></select></div>
@@ -83,8 +73,8 @@
           <div class="section-heading map-heading"><div class="heading-icon orange"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg></div><div><h2>地図</h2><p>訪問先を地図で確認・登録できます</p></div></div>
           <div class="map-search-row">
             <div class="search-box"><span>⌕</span><input id="searchText" placeholder="住所・名称で検索"></div>
-            <button class="btn map-mini has-tip" data-tip="現在地を中心に地図を表示します" onclick="addCurrentLocation()">◎ 現在地</button>
-            <button class="btn map-mini has-tip" data-tip="最新の訪問先データを読み込みます" onclick="changeArea(false)">↻ 更新</button>
+            <button class="btn map-mini location-btn has-tip" aria-label="現在地" data-tip="現在地を中心に地図を表示します" onclick="addCurrentLocation()"><span class="map-control-icon">◎</span><span class="map-control-label">現在地</span></button>
+            <button class="btn map-mini refresh-btn has-tip" aria-label="更新" data-tip="最新の訪問先データを読み込みます" onclick="changeArea(false)"><span class="map-control-icon">↻</span><span class="map-control-label">更新</span></button>
           </div>
 <div class="desktop-map-meta">
             <div class="map-legend-row">
@@ -108,21 +98,26 @@
     <section id="view-list" class="view-section hidden">
       <div class="panel list-filter-panel">
         <div class="section-heading"><div class="heading-icon green"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></div><div><h2>訪問先一覧</h2><p>検索・絞り込みから次に回る場所を確認</p></div></div>
-        <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
-        <div class="row list-select-filters">
-          <div><label class="label">登録方法</label><select id="listSource" onchange="renderLists()"><option value="">すべて</option><option value="import">名簿取込</option><option value="manual">手入力</option><option value="map">地図登録</option></select></div>
-          <div><label class="label">区分</label><select id="listMemberType" onchange="renderLists()"><option value="">すべて</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="general">一般</option><option value="unknown">未設定</option></select></div>
-          <div><label class="label">位置</label><select id="listLocation" onchange="renderLists()"><option value="">すべて</option><option value="located">取得済</option><option value="unlocated">未取得</option></select></div>
+        <div class="list-search-tools">
+          <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
+          <button type="button" id="listFilterToggle" class="btn list-filter-toggle" onclick="toggleListFilters()">⚙ 絞り込み</button>
         </div>
-        <div id="listQuickFilters" class="chip-filters">
-          <label><input id="listRevisit" type="checkbox" onchange="renderLists()"> 🔁 再訪</label>
-          <label><input id="listUnvisited" type="checkbox" onchange="renderLists()"> 未訪問</label>
-          <label><input id="listRefused" type="checkbox" onchange="renderLists()"> × 断られた</label>
-          <label><input id="listWarning" type="checkbox" onchange="renderLists()"> ⚠ 訪問注意</label>
-          <label><input id="listFollow" type="checkbox" onchange="renderLists()"> 🤝 フォロー対象</label>
-          <label><input id="listFollowPending" type="checkbox" onchange="renderLists()"> 未対応のみ</label>
-          <label><input id="listPosterRequest" type="checkbox" onchange="renderLists()"> 🍊 ポスター依頼</label>
-          <label><input id="listPosterPending" type="checkbox" onchange="renderLists()"> 未報告のみ</label>
+        <div id="listFilterPanel" class="list-filter-body">
+          <div class="row list-select-filters">
+            <div><label class="label">登録方法</label><select id="listSource" onchange="renderLists()"><option value="">すべて</option><option value="import">名簿取込</option><option value="manual">手入力</option><option value="map">地図登録</option></select></div>
+            <div><label class="label">区分</label><select id="listMemberType" onchange="renderLists()"><option value="">すべて</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="general">一般</option><option value="unknown">未設定</option></select></div>
+            <div><label class="label">位置</label><select id="listLocation" onchange="renderLists()"><option value="">すべて</option><option value="located">取得済</option><option value="unlocated">未取得</option></select></div>
+          </div>
+          <div id="listQuickFilters" class="chip-filters">
+            <label><input id="listRevisit" type="checkbox" onchange="renderLists()"> 🔁 再訪</label>
+            <label><input id="listUnvisited" type="checkbox" onchange="renderLists()"> 未訪問</label>
+            <label><input id="listRefused" type="checkbox" onchange="renderLists()"> × 断られた</label>
+            <label><input id="listWarning" type="checkbox" onchange="renderLists()"> ⚠ 訪問注意</label>
+            <label><input id="listFollow" type="checkbox" onchange="renderLists()"> 🤝 フォロー対象</label>
+            <label><input id="listFollowPending" type="checkbox" onchange="renderLists()"> 未対応のみ</label>
+            <label><input id="listPosterRequest" type="checkbox" onchange="renderLists()"> 🍊 ポスター依頼</label>
+            <label><input id="listPosterPending" type="checkbox" onchange="renderLists()"> 未報告のみ</label>
+          </div>
         </div>
       </div>
       <div id="listCards" class="list card-grid"></div>
@@ -160,8 +155,8 @@
           <label class="label">支部</label><select id="areaBranch"></select>
           <label class="label">市区町村</label><input id="areaCity" value="福岡市">
           <label class="label">エリア名</label><input id="areaName" placeholder="例：博多区">
-          <div class="row"><input id="areaLat" placeholder="中心緯度"><input id="areaLng" placeholder="中心経度"></div>
-          <button class="btn primary full" onclick="createArea()">エリアを追加</button>
+          <input id="areaLat" type="hidden"><input id="areaLng" type="hidden">
+          <button class="btn primary full area-add-btn" onclick="createArea()">エリアを追加</button>
         </div>
         <div class="panel span-2"><div class="card-title">登録エリア</div><div id="areasTable"></div></div>
         <div class="panel span-2"><div class="card-title">登録ユーザー</div><div id="usersTable"></div></div>
@@ -185,10 +180,20 @@
           <label class="label">氏名・名称</label><input id="personName" placeholder="例：山田さん、○○商店">
           <label class="label">住所</label><input id="fullAddress">
           <div id="recordLocationNote" class="notice hidden"></div>
-          <div class="address-tools"><button id="recordGeocodeBtn" type="button" class="btn small has-tip" data-tip="入力した住所から地図位置を取得します" onclick="geocodeRecordAddress()">📍 住所から位置取得</button><button id="recordCurrentBtn" type="button" class="btn small has-tip" data-tip="端末の現在地から住所を取得します" onclick="fillAddressFromCurrentLocation()">◎ 現在地から住所取得</button><button id="recordMapCheckBtn" type="button" class="btn small has-tip" data-tip="この住所・位置をGoogleマップで確認します" onclick="openRecordGoogleMaps()">🗺 Googleマップで確認</button></div>
           <div class="row"><div><label class="label">区分</label><select id="recordMemberType"><option value="general">一般</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="unknown">未設定</option></select></div><div><label class="label">対象種別</label><select id="type"><option>戸建て</option><option>集合住宅</option><option>事業所</option><option>その他</option></select></div></div>
           <div class="row"><div><label class="label">電話</label><input id="recordPhone" inputmode="tel"></div><div><label class="label">メール</label><input id="recordEmail" type="email"></div></div>
           <label class="label">紹介者</label><input id="referrer" placeholder="例：山田さん、○○さんからの紹介">
+        </section>
+
+        <section class="detail-section status-section">
+          <div class="detail-section-title green"><span>📋</span> 訪問ステータス</div>
+          <div id="statusGrid" class="status-grid"></div>
+        </section>
+
+        <section class="detail-section">
+          <div class="detail-section-title"><span>📝</span> 訪問記録</div>
+          <label class="label">訪問日</label><input id="date" type="date">
+          <label class="label">メモ</label><textarea id="memo" placeholder="会話内容や次回につながる情報"></textarea>
         </section>
 
         <section class="detail-section follow-section">
@@ -205,20 +210,9 @@
           <label class="label">支持者候補</label><select id="supporter"><option value="">未設定</option><option>◎有力</option><option>○可能性あり</option><option>△様子見</option><option>×なし</option></select>
           <label class="label">再訪優先度</label><select id="priority"><option value="">なし</option><option>△低</option><option>○中</option><option>◎高</option></select>
         </section>
-
-        <section class="detail-section">
-          <div class="detail-section-title"><span>📝</span> 訪問記録</div>
-          <label class="label">訪問日</label><input id="date" type="date">
-          <label class="label">メモ</label><textarea id="memo" placeholder="会話内容や次回につながる情報"></textarea>
-        </section>
       </div>
 
       <aside class="detail-side">
-        <section class="detail-section status-section">
-          <div class="detail-section-title green"><span>📋</span> 訪問ステータス</div>
-          <div id="statusGrid" class="status-grid"></div>
-        </section>
-
         <section class="detail-section poster-request-box">
           <div class="detail-section-title orange"><span>🍊</span> ポスター掲示依頼</div>
           <label class="choice-chip"><input id="posterRequest" type="checkbox" onchange="togglePosterRequestFields()"> 掲示依頼あり</label>
@@ -269,5 +263,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.1"></script><script src="assets/js/state.js?v=2.8.1"></script><script src="assets/js/utils.js?v=2.8.1"></script><script src="assets/js/api.js?v=2.8.1"></script><script src="assets/js/auth.js?v=2.8.1"></script><script src="assets/js/map.js?v=2.8.1"></script><script src="assets/js/records.js?v=2.8.1"></script><script src="assets/js/contacts.js?v=2.8.1"></script><script src="assets/js/views.js?v=2.8.1"></script><script src="assets/js/admin.js?v=2.8.1"></script><script src="assets/js/main.js?v=2.8.1"></script>
+<script src="assets/js/config.js?v=2.8.8"></script><script src="assets/js/state.js?v=2.8.8"></script><script src="assets/js/utils.js?v=2.8.8"></script><script src="assets/js/api.js?v=2.8.8"></script><script src="assets/js/auth.js?v=2.8.8"></script><script src="assets/js/map.js?v=2.8.8"></script><script src="assets/js/records.js?v=2.8.8"></script><script src="assets/js/contacts.js?v=2.8.8"></script><script src="assets/js/views.js?v=2.8.8"></script><script src="assets/js/admin.js?v=2.8.8"></script><script src="assets/js/main.js?v=2.8.8"></script>
 </body></html>
