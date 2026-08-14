@@ -1025,3 +1025,55 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .activity-summary-grid{grid-template-columns:1fr;gap:9px}
   .activity-summary-card{padding:14px}
 }
+
+/* Ver.2.8.2 — mobile admin user cards */
+.admin-user-role{font-weight:800;margin-bottom:7px}
+.admin-area-note{display:inline-block;margin-top:4px;color:var(--muted);font-size:12px}
+.admin-user-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-user-actions .mini-btn{white-space:nowrap;width:auto;min-width:112px}
+.admin-area-select{width:100%;max-width:220px}
+.activity-section{margin-bottom:16px}
+.attention-section{background:#fffafa}
+@media(max-width:700px){
+  .admin-users-table,
+  .admin-users-table tbody,
+  .admin-users-table tr,
+  .admin-users-table td{display:block;width:100%}
+  .admin-users-table thead{display:none}
+  .admin-users-table tr{
+    padding:16px 0;
+    border-bottom:1px solid #eee2d5;
+  }
+  .admin-users-table tr:last-child{border-bottom:0}
+  .admin-users-table td{
+    border:0!important;
+    padding:6px 0!important;
+    display:grid;
+    grid-template-columns:92px minmax(0,1fr);
+    gap:10px;
+    align-items:start;
+    overflow:visible!important;
+    word-break:normal!important;
+  }
+  .admin-users-table td::before{
+    content:attr(data-label);
+    font-size:12px;
+    font-weight:800;
+    color:var(--muted);
+  }
+  .admin-users-table td > *{min-width:0}
+  .admin-user-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+  }
+  .admin-user-actions .mini-btn{
+    width:100%;
+    min-width:0;
+    white-space:normal;
+    line-height:1.35;
+    padding:10px 8px;
+  }
+  .admin-area-select{max-width:none}
+  .visit-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}

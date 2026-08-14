@@ -83,8 +83,9 @@ function analysisGo(kind){
 }
 function renderAnalysis(){
   const total=records.length,countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
-  const unvisited=countStatus('unvisited'),visited=total-unvisited,revisit=records.filter(isRevisit).length,warning=records.filter(r=>boolValue(r.warning)).length;
-  const unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
+  const unvisited=countStatus('unvisited'),handshake=countStatus('handshake'),absent=countStatus('absent'),refused=countStatus('refused');
+  const revisit=records.filter(isRevisit).length,warning=records.filter(r=>boolValue(r.warning)).length;
+  const visited=Math.max(0,total-unvisited),unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
   const follow=records.filter(hasFollow),followPending=follow.filter(r=>!boolValue(r.followDone)).length;
   const poster=records.filter(r=>boolValue(r.posterRequest)),posterPending=poster.filter(r=>!boolValue(r.posterReported)).length;
   const party=records.filter(r=>r.memberType==='party_member').length,supporter=records.filter(r=>r.memberType==='supporter').length;
@@ -96,33 +97,38 @@ function renderAnalysis(){
   const metric=(label,value)=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div></div>`;
   const el=$('analysisContent');if(!el)return;
   el.innerHTML=`
-  <div class="activity-summary-grid">
-    <button class="activity-summary-card follow-card" onclick="analysisGo('follow')">
-      <div class="activity-summary-title">🤝 フォロー</div>
-      <div class="activity-summary-row"><span>フォロー対象</span><b>${follow.length}件</b></div>
-      <div class="activity-summary-row"><span>未対応</span><b>${followPending}件</b></div>
-    </button>
-    <button class="activity-summary-card status-card" onclick="analysisGo('unvisited')">
-      <div class="activity-summary-title">📋 活動状況</div>
-      <div class="activity-summary-row"><span>未訪問</span><b>${unvisited}件</b></div>
-      <div class="activity-summary-row"><span>要再訪</span><b>${revisit}件</b></div>
-    </button>
-    <button class="activity-summary-card attention-card" onclick="analysisGo('warning')">
-      <div class="activity-summary-title">⚠ 注意・未対応</div>
-      <div class="activity-summary-row"><span>訪問注意</span><b>${warning}件</b></div>
-      <div class="activity-summary-row"><span>ポスター未報告</span><b>${posterPending}件</b></div>
-    </button>
+  <div class="panel activity-section priority-section">
+    <div class="section-heading"><div class="heading-icon orange">✓</div><div><h2>今日やること</h2><p>次の対応が必要なもの</p></div></div>
+    <div class="analysis-actions">
+      ${action('revisit','要再訪',revisit,'もう一度訪問する')}
+      ${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}
+      ${action('posterPending','ポスター依頼',posterPending,'党への報告待ち')}
+    </div>
   </div>
 
-  <div class="panel"><div class="section-heading"><div class="heading-icon orange">🤝</div><div><h2>今日の優先対応</h2><p>対応漏れを先に確認</p></div></div>
-    <div class="analysis-actions">${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}${action('posterPending','ポスター未報告',posterPending,'党への報告待ち')}${action('revisit','要再訪',revisit,'次に回る候補')}${action('warning','訪問注意',warning,'訪問前に確認')}</div>
-  </div>
-  <div class="panel"><div class="section-heading"><div class="heading-icon green">📊</div><div><h2>活動の進捗</h2><p>${visited} / ${total}件 訪問済み</p></div></div>
+  <div class="panel activity-section">
+    <div class="section-heading"><div class="heading-icon green">📋</div><div><h2>訪問状況</h2><p>${visited} / ${total}件 訪問済み　進捗 ${visitRate}%</p></div></div>
     <div class="analysis-progress-head"><b>訪問進捗</b><span>${visitRate}%</span></div><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${visitRate}%"></div></div>
-    <div class="analysis-grid">${metric('全登録',total)}${metric('未訪問',unvisited)}${metric('要再訪',revisit)}${metric('位置未取得',unlocated)}</div>
+    <div class="analysis-grid visit-status-grid">
+      <button class="analysis-metric" onclick="analysisGo('unvisited')"><div class="analysis-value">${unvisited}</div><div class="analysis-label">未訪問</div></button>
+      ${metric('訪問済',visited)}
+      ${metric('手応え',handshake)}
+      ${metric('不在',absent)}
+      <button class="analysis-metric" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">要再訪</div></button>
+      ${metric('断られた',refused)}
+    </div>
   </div>
+
+  <div class="panel activity-section attention-section">
+    <div class="section-heading"><div class="heading-icon danger">⚠</div><div><h2>対応が必要</h2><p>注意事項・報告漏れを確認</p></div></div>
+    <div class="analysis-actions">
+      ${action('warning','訪問注意',warning,'訪問前に注意事項を確認')}
+      ${action('posterPending','ポスター未報告',posterPending,'党への報告が必要')}
+    </div>
+  </div>
+
   <div class="panel"><div class="section-heading"><div class="heading-icon orange">👥</div><div><h2>つながり</h2><p>名簿とフォローの状況</p></div></div>
-    <div class="analysis-grid"><button class="analysis-metric" onclick="analysisGo('party')"><div class="analysis-value">${party}</div><div class="analysis-label">党員</div></button><button class="analysis-metric" onclick="analysisGo('supporter')"><div class="analysis-value">${supporter}</div><div class="analysis-label">サポーター</div></button><button class="analysis-metric" onclick="analysisGo('follow')"><div class="analysis-value">${follow.length}</div><div class="analysis-label">フォロー対象</div></button>${metric('ポスター依頼',poster.length)}</div>
+    <div class="analysis-grid"><button class="analysis-metric" onclick="analysisGo('party')"><div class="analysis-value">${party}</div><div class="analysis-label">党員</div></button><button class="analysis-metric" onclick="analysisGo('supporter')"><div class="analysis-value">${supporter}</div><div class="analysis-label">サポーター</div></button><button class="analysis-metric" onclick="analysisGo('follow')"><div class="analysis-value">${follow.length}</div><div class="analysis-label">フォロー対象</div></button>${metric('ポスター依頼',poster.length)}${metric('位置未取得',unlocated)}</div>
   </div>
   <div class="panel"><div class="section-heading"><div class="heading-icon green">📍</div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
 }
