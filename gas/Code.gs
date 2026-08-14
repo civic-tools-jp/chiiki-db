@@ -31,7 +31,7 @@ function upgradeV2824(){
   if(sh.getLastRow()<2)return 'Ver.2.8.24 更新完了（対象データなし）';
   const vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();let rankUpdated=0,countInitialized=0;
   vals.forEach(r=>{
-    if(String(r[idx.source]||'')==='import'&&normalizeMemberType_(r[idx.memberType])==='party_member'&&!String(r[idx.supporter]||'').trim()){r[idx.supporter]='B';rankUpdated++;}
+    if(String(r[idx.source]||'')==='import'&&['party_member','supporter'].includes(normalizeMemberType_(r[idx.memberType]))&&!String(r[idx.supporter]||'').trim()){r[idx.supporter]='B';rankUpdated++;}
     if(r[idx.visitCount]===''||r[idx.visitCount]===null||r[idx.visitCount]===undefined){r[idx.visitCount]=0;countInitialized++;}
   });
   sh.getRange(2,1,vals.length,headers.length).setValues(vals);
@@ -48,7 +48,7 @@ function upgradeV2825(){
   const vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();let rankUpdated=0;
   vals.forEach(r=>{
     const imported=String(r[idx.source]||'').trim()==='import';
-    const party=normalizeMemberType_(r[idx.memberType])==='party_member';
+    const party=['party_member','supporter'].includes(normalizeMemberType_(r[idx.memberType]));
     const rank=String(r[idx.supporter]||'').trim();
     if(imported&&party&&!rank){r[idx.supporter]='B';rankUpdated++;}
   });
@@ -603,7 +603,7 @@ function importContacts_(u,p){
       joinReason:String(raw.joinReason||'').trim(),sourceBranch:String(raw.sourceBranch||'').trim(),contactId:'',
       lat,lng,area:'',address:'',fullAddress:address,personName:cleanImportedPersonName_(name||'名称未設定'),
       phone,email:String(raw.email||'').trim(),status:'unvisited',type:'戸建て',household:'',contact:'',revisitPriority:'',
-      referrer:String(raw.referrer||'').trim(),supporter:String(raw.supporter||(memberType==='party_member'?'B':'')).trim(),
+      referrer:String(raw.referrer||'').trim(),supporter:String(raw.supporter||(['party_member','supporter'].includes(memberType)?'B':'')).trim(),
       followParty:false,followSupporter:false,followDetails:false,followDone:false,followMemo:'',
       warning:false,warningReason:'',warningMemo:'',posterRequest:false,posterReported:false,posterRequestMemo:'',
       visitCount:0,signboard:false,posterParty:'',posterMemo:'',memo:String(raw.memo||'').trim(),date:'',startTime:'',endTime:'',

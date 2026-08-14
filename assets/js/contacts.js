@@ -1,5 +1,5 @@
 "use strict";
-const MEMBER_LABELS={party_member:'⭐ 党員',supporter:'🟠 サポーター',general:'一般',unknown:'未設定'};
+const MEMBER_LABELS={party_member:'⭐ 党員',supporter:'♥ サポーター',general:'一般',unknown:'未設定'};
 const MEMBER_RANK={party_member:0,supporter:1,general:2,unknown:3,'':3};
 let contactListExpanded=false;
 async function loadContacts(){try{const d=await api('listContacts',{areaId:currentAreaId});contacts=d.contacts||[];renderContacts();renderContactSelect();if(map)renderMarkers();}catch(e){msg('appMsg',e.message)}}

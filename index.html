@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.26</title>
+<title>あいサポ Ver.2.8.27</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.26">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.27">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
     <div class="brand-lockup login-brand brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.26" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.27" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
     </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
@@ -19,14 +19,14 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.26</div>
+    <div class="version-note">Ver.2.8.27</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
     <div class="brand-lockup brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.26" alt="あいサポ" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.27" alt="あいサポ" class="aisapo-logo-image">
     </div>
     <div class="mobile-user-actions">
       <div class="mobile-user-identity">
@@ -98,10 +98,10 @@
             <button type="button" id="mapFilterToggle" class="btn map-filter-toggle" onclick="toggleMapFilters()" aria-expanded="false"><svg class="filter-funnel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6.3 7.1v4.5l-3.4 1.8v-6.3L4 6Z"/></svg><span>絞り込み</span></button>
           </div>
           <div id="mapQuickFilters" class="chip-filters map-quick-filters filters-collapsed">
-            <label><input id="mapFollow" type="checkbox" onchange="renderMarkers()"><span class="filter-dot filter-follow">◆</span>フォロー対象</label>
-            <label><input id="mapFollowPending" type="checkbox" onchange="renderMarkers()"><span class="filter-dot filter-pending">⌛</span>未対応のみ</label>
-            <label><input id="mapPosterRequest" type="checkbox" onchange="renderMarkers()"><span class="filter-dot filter-poster">▣</span>ポスター依頼</label>
-            <label class="map-priority-filter"><span class="filter-dot filter-priority">◎</span><select id="mapPriority" onchange="renderMarkers()"><option value="">優先度すべて</option><option value="◎高">優先度 高</option><option value="○中">優先度 中</option><option value="△低">優先度 低</option></select></label>
+            <label><input id="mapFollow" type="checkbox" onchange="renderMarkers()">フォロー対象</label>
+            <label><input id="mapFollowPending" type="checkbox" onchange="renderMarkers()">未対応のみ</label>
+            <label><input id="mapPosterRequest" type="checkbox" onchange="renderMarkers()">ポスター依頼</label>
+            <label class="map-priority-filter"><select id="mapPriority" onchange="renderMarkers()"><option value="">選択なし</option><option value="◎高">優先度 高</option><option value="○中">優先度 中</option><option value="△低">優先度 低</option></select></label>
           </div>
           <div class="mobile-map-meta">
       <button type="button" class="map-legend-toggle" onclick="toggleMobileLegend()">地図の見方 <span aria-hidden="true">›</span></button>
@@ -258,7 +258,7 @@
 
     <div class="detail-footer">
       <div id="deleteRecordRow" class="delete-record-row hidden"><button id="deleteRecordBtn" class="btn danger-outline" onclick="deleteRecord()">この訪問先を削除</button></div>
-      <div class="actions"><button id="cancelRecordBtn" class="btn" onclick="closeEdit()">キャンセル</button><button id="saveRecordBtn" class="btn primary" onclick="saveRecord()">保存</button></div>
+      <div class="actions"><button id="openGoogleMapsBtn" class="btn google-maps-btn" onclick="openRecordInGoogleMaps()">Google マップで開く</button><button id="cancelRecordBtn" class="btn" onclick="closeEdit()">キャンセル</button><button id="saveRecordBtn" class="btn primary" onclick="saveRecord()">保存</button></div>
     </div>
   </div>
 </div>
@@ -286,5 +286,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.26"></script><script src="assets/js/state.js?v=2.8.26"></script><script src="assets/js/utils.js?v=2.8.26"></script><script src="assets/js/api.js?v=2.8.26"></script><script src="assets/js/auth.js?v=2.8.26"></script><script src="assets/js/map.js?v=2.8.26"></script><script src="assets/js/records.js?v=2.8.26"></script><script src="assets/js/contacts.js?v=2.8.26"></script><script src="assets/js/views.js?v=2.8.26"></script><script src="assets/js/admin.js?v=2.8.26"></script><script src="assets/js/main.js?v=2.8.26"></script>
+<script src="assets/js/config.js?v=2.8.27"></script><script src="assets/js/state.js?v=2.8.27"></script><script src="assets/js/utils.js?v=2.8.27"></script><script src="assets/js/api.js?v=2.8.27"></script><script src="assets/js/auth.js?v=2.8.27"></script><script src="assets/js/map.js?v=2.8.27"></script><script src="assets/js/records.js?v=2.8.27"></script><script src="assets/js/contacts.js?v=2.8.27"></script><script src="assets/js/views.js?v=2.8.27"></script><script src="assets/js/admin.js?v=2.8.27"></script><script src="assets/js/main.js?v=2.8.27"></script>
 </body></html>

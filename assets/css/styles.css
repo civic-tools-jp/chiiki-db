@@ -1804,3 +1804,19 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   }
   .list-filter-toggle .filter-funnel-icon,.map-filter-toggle .filter-funnel-icon{width:19px;height:19px}
 }
+
+
+/* Ver.2.8.27 — compact map filters and friendlier member badges */
+.map-quick-filters label{gap:8px}
+.map-priority-filter select{min-width:132px}
+.member-badge.member-party{background:#fff8e7;color:#72500b}
+.member-badge.member-supporter{background:#fff0f5;color:#b23a67}
+.google-maps-btn{color:#2e7d43;border-color:#cfe3d2;background:#f6fbf6;font-weight:800}
+@media(max-width:700px){
+  .map-quick-filters{gap:7px}
+  .map-quick-filters label{padding:9px 12px}
+  .map-priority-filter{min-width:160px}
+  .map-priority-filter select{width:100%;min-width:0;padding:2px 24px 2px 2px}
+  .detail-footer .actions{flex-wrap:wrap}
+  .detail-footer .google-maps-btn{width:100%;order:-1}
+}
