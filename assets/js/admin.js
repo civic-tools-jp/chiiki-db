@@ -1,5 +1,5 @@
 "use strict";
-async function loadAdmin(){try{const d=await api('adminData');branches=d.branches||branches;areas=d.areas||areas;users=d.users||[];$('newBranch').innerHTML=branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('');$('areaBranch').innerHTML=$('newBranch').innerHTML;syncNewUserArea();renderUsers();renderAdminAreas()}catch(e){msg('appMsg',e.message)}}
+async function loadAdmin(){try{const d=await api('adminData');branches=d.branches||branches;areas=d.areas||areas;users=d.users||[];window.loginHistory=d.loginHistory||[];$('newBranch').innerHTML=branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('');$('areaBranch').innerHTML=$('newBranch').innerHTML;syncNewUserArea();renderUsers();renderAdminAreas();renderLoginHistory();if($('loginHistoryPanel'))$('loginHistoryPanel').classList.toggle('hidden',session?.role!=='system_admin')}catch(e){msg('appMsg',e.message)}}
 function syncNewUserArea(){const role=$('newRole').value,branchId=$('newBranch').value;$('newAreaWrap').classList.toggle('hidden',role!=='member');$('newArea').innerHTML=areas.filter(a=>String(a.branchId)===String(branchId)).map(a=>`<option value="${esc(a.areaId)}">${esc((a.city?a.city+' ':'')+a.name)}</option>`).join('')}
 function areaOptionsForUser(u){return areas.filter(a=>String(a.branchId)===String(u.branchId)).map(a=>`<option value="${esc(a.areaId)}" ${String(a.areaId)===String(u.areaId)?'selected':''}>${esc((a.city?a.city+' ':'')+a.name)}</option>`).join('')}
 function roleLabel(role){return ({system_admin:'システム管理者',leader:'支部管理者',member:'一般利用者'})[role]||role}
@@ -13,12 +13,13 @@ function renderUsers(){
     if(active==='inactive'&&u.active)return false;
     return true;
   });
-  $('usersTable').innerHTML=`<table class="admin-table admin-users-table"><thead><tr><th>ID</th><th>氏名</th><th>支部</th><th>権限/エリア</th><th>状態</th><th>操作</th></tr></thead><tbody>${rows.map(u=>`<tr class="${u.active?'':'admin-user-inactive'}">
+  $('usersTable').innerHTML=`<table class="admin-table admin-users-table"><thead><tr><th>ID</th><th>氏名</th><th>支部</th><th>権限/エリア</th><th>状態</th><th>最終ログイン</th><th>操作</th></tr></thead><tbody>${rows.map(u=>`<tr class="${u.active?'':'admin-user-inactive'}">
 <td data-label="ID">${esc(u.loginId)}</td>
 <td data-label="氏名"><b>${esc(u.name)}</b></td>
 <td data-label="支部">${esc(u.branchName)}</td>
 <td data-label="権限/エリア"><div class="admin-user-role">${esc(roleLabel(u.role))}</div>${u.role==='member'?`<span class="admin-area-note">${esc((areas.find(a=>String(a.areaId)===String(u.areaId))?.city||'')+' '+(areas.find(a=>String(a.areaId)===String(u.areaId))?.name||''))}</span>`:'<span class="admin-area-note">エリア選択可</span>'}</td>
 <td data-label="状態"><span class="badge">${u.active?'有効':'無効'}</span></td>
+<td data-label="最終ログイン">${u.lastLoginAt?esc(formatLoginDate(u.lastLoginAt)):'—'}</td>
 <td data-label="操作"><div class="admin-user-actions">${u.role!=='system_admin'?`<button class="mini-btn" onclick="openUserEdit('${esc(u.userId)}')">編集</button>`:''}<button class="mini-btn" onclick="resetUserPassword('${esc(u.userId)}','${esc(u.loginId)}')">PWリセット</button>${u.role!=='system_admin'?`<button class="mini-btn" onclick="toggleUserActive('${esc(u.userId)}',${u.active?'false':'true'})">${u.active?'無効化':'有効化'}</button>`:''}${session?.role==='system_admin'&&u.role!=='system_admin'?`<button class="mini-btn danger" onclick="deleteUser('${esc(u.userId)}','${esc(u.loginId)}')">削除</button>`:''}</div></td>
 </tr>`).join('')}</tbody></table>`;
 }
@@ -96,3 +97,7 @@ async function createArea(){
     if(btn){btn.disabled=false;btn.textContent=oldText||'エリアを追加'}
   }
 }
+
+function formatLoginDate(v){if(!v)return '';const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function toggleLoginHistory(){const box=$('loginHistoryTable'),btn=$('loginHistoryToggleBtn');if(!box||!btn)return;const opening=box.classList.contains('hidden');box.classList.toggle('hidden',!opening);btn.textContent=opening?'履歴を閉じる ▲':'履歴を表示 ▼';}
+function renderLoginHistory(){const panel=$('loginHistoryPanel'),box=$('loginHistoryTable');if(!panel||!box)return;if(session?.role!=='system_admin'){panel.classList.add('hidden');return;}const logs=(window.loginHistory||[]).slice(0,100);box.innerHTML=`<div class="login-history-note">直近${logs.length}件（成功・失敗）</div><table class="admin-table login-history-table"><thead><tr><th>日時</th><th>ユーザーID</th><th>表示名</th><th>結果</th></tr></thead><tbody>${logs.map(x=>`<tr><td data-label="日時">${esc(formatLoginDate(x.loggedAt))}</td><td data-label="ユーザーID">${esc(x.loginId||'')}</td><td data-label="表示名">${esc(x.name||'')}</td><td data-label="結果"><span class="badge ${x.success?'':'login-failed'}">${x.success?'成功':'失敗'}</span></td></tr>`).join('')}</tbody></table>`;}

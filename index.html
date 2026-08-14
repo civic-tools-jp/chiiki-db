@@ -3,30 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.31</title>
+<title>あいサポ Ver.2.8.32</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.31">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.32">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
     <div class="brand-lockup login-brand brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.31" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.32" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
     </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
     <label class="label">ユーザーID</label><input id="loginId" autocomplete="username">
-    <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
+    <label class="label">パスワード</label><div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password"><button type="button" id="loginPasswordToggle" class="password-toggle" onclick="toggleLoginPassword()" aria-label="パスワードを表示" title="パスワードを表示">👁</button></div>
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.31</div>
+    <div class="version-note">Ver.2.8.32</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
     <div class="brand-lockup brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.31" alt="あいサポ" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.32" alt="あいサポ" class="aisapo-logo-image">
     </div>
     <div class="mobile-user-actions">
       <div class="mobile-user-identity">
@@ -107,7 +107,7 @@
           </div>
           <div class="mobile-map-meta">
       <button type="button" class="map-legend-toggle" onclick="toggleMobileLegend()">地図の見方 <span aria-hidden="true">›</span></button>
-      <strong id="mobileMapCount">表示 <span id="mobileMapCountValue">0</span>件</strong>
+      <div class="mobile-map-actions"><strong id="mobileMapCount">表示 <span id="mobileMapCountValue">0</span>件</strong><button type="button" id="mobileMapFilterToggle" class="btn map-filter-toggle mobile-map-filter-toggle" onclick="toggleMapFilters()" aria-expanded="false"><svg class="filter-funnel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6.3 7.1v4.5l-3.4 1.8v-6.3L4 6Z"/></svg><span>絞り込み</span></button></div>
     </div>
     <div id="mobileMapLegend" class="mobile-map-legend hidden"></div>
     <div id="map"></div>
@@ -185,7 +185,7 @@
           <button class="btn primary full area-add-btn" onclick="createArea()">エリアを追加</button>
         </div>
         <div class="panel span-2 admin-areas-panel"><div class="card-title admin-areas-title">登録エリア <button type="button" class="mini-btn admin-areas-toggle" id="areasToggleBtn" onclick="toggleAdminAreas()">一覧を表示 ▼</button></div><div id="areasTable" class="hidden"></div></div>
-        <div class="panel span-2"><div class="card-title">登録ユーザー</div><div class="admin-user-filters"><input id="adminUserSearch" placeholder="ID・氏名で検索" oninput="renderUsers()"><select id="adminUserRole" onchange="renderUsers()"><option value="">権限すべて</option><option value="system_admin">システム管理者</option><option value="leader">支部管理者</option><option value="member">一般利用者</option></select><select id="adminUserActive" onchange="renderUsers()"><option value="">有効・無効すべて</option><option value="active">有効</option><option value="inactive">無効</option></select></div><div id="usersTable"></div></div>
+        <div class="panel span-2"><div class="card-title">登録ユーザー</div><div class="admin-user-filters"><input id="adminUserSearch" placeholder="ID・氏名で検索" oninput="renderUsers()"><select id="adminUserRole" onchange="renderUsers()"><option value="">権限すべて</option><option value="system_admin">システム管理者</option><option value="leader">支部管理者</option><option value="member">一般利用者</option></select><select id="adminUserActive" onchange="renderUsers()"><option value="">有効・無効すべて</option><option value="active">有効</option><option value="inactive">無効</option></select></div><div id="usersTable"></div></div><div id="loginHistoryPanel" class="panel span-2 hidden"><div class="card-title admin-areas-title">ログイン履歴 <button type="button" class="mini-btn admin-areas-toggle" id="loginHistoryToggleBtn" onclick="toggleLoginHistory()">履歴を表示 ▼</button></div><div id="loginHistoryTable" class="hidden"></div></div>
       </div>
     </section>
   </main>
@@ -303,5 +303,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.31"></script><script src="assets/js/state.js?v=2.8.31"></script><script src="assets/js/utils.js?v=2.8.31"></script><script src="assets/js/api.js?v=2.8.31"></script><script src="assets/js/auth.js?v=2.8.31"></script><script src="assets/js/map.js?v=2.8.31"></script><script src="assets/js/records.js?v=2.8.31"></script><script src="assets/js/contacts.js?v=2.8.31"></script><script src="assets/js/views.js?v=2.8.31"></script><script src="assets/js/admin.js?v=2.8.31"></script><script src="assets/js/main.js?v=2.8.31"></script>
+<script src="assets/js/config.js?v=2.8.32"></script><script src="assets/js/state.js?v=2.8.32"></script><script src="assets/js/utils.js?v=2.8.32"></script><script src="assets/js/api.js?v=2.8.32"></script><script src="assets/js/auth.js?v=2.8.32"></script><script src="assets/js/map.js?v=2.8.32"></script><script src="assets/js/records.js?v=2.8.32"></script><script src="assets/js/contacts.js?v=2.8.32"></script><script src="assets/js/views.js?v=2.8.32"></script><script src="assets/js/admin.js?v=2.8.32"></script><script src="assets/js/main.js?v=2.8.32"></script>
 </body></html>

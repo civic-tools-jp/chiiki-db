@@ -1,4 +1,4 @@
-const SHEETS={USERS:'Users',BRANCHES:'Branches',AREAS:'Areas',CONTACTS:'Contacts',RECORDS:'Records',SESSIONS:'Sessions',BRANCH_MESSAGES:'BranchMessages'};
+const SHEETS={USERS:'Users',BRANCHES:'Branches',AREAS:'Areas',CONTACTS:'Contacts',RECORDS:'Records',SESSIONS:'Sessions',BRANCH_MESSAGES:'BranchMessages',LOGIN_HISTORY:'LoginHistory'};
 const USER_HEADERS=['userId','loginId','name','passwordHash','salt','role','branchId','areaId','active','mustChangePassword','createdAt','updatedAt'];
 const BRANCH_HEADERS=['branchId','name','prefecture','active'];
 const AREA_HEADERS=['areaId','branchId','city','name','mapLat','mapLng','active'];
@@ -6,8 +6,9 @@ const CONTACT_HEADERS=['contactId','branchId','areaId','partyId','lastName','fir
 const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy','inactiveReason','source','memberType','partyId','lastName','firstName','lastNameKana','firstNameKana','postalCode','birthDate','gender','occupation','approvedAt','branchParticipation','joinReason','sourceBranch','contactId','lat','lng','area','address','fullAddress','personName','phone','email','status','type','household','contact','revisitPriority','referrer','supporter','followParty','followSupporter','followDetails','followDone','followMemo','warning','warningReason','warningMemo','posterRequest','posterReported','posterRequestMemo','visitCount','signboard','posterParty','posterMemo','memo','date','startTime','endTime','durationMinutes','googleMapsUrl','assigneeId','assigneeName','createdAt','updatedAt','updatedBy'];
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 const BRANCH_MESSAGE_HEADERS=['messageId','fromBranchId','toBranchId','title','body','createdBy','createdByName','createdAt','active'];
+const LOGIN_HISTORY_HEADERS=['logId','userId','loginId','name','success','loggedAt'];
 
-function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.31 API'});}
+function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.32 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -17,7 +18,7 @@ case'adminData':return json_(adminData_(user));case'createUser':return json_(cre
 default:throw Error('不明な処理です');}}catch(err){return json_({ok:false,error:String(err.message||err)});}}
 
 // 初回用。既にVer.2をセットアップ済みなら upgradeV21() を実行してください。
-function setup_(p){const ss=SpreadsheetApp.getActive();ensureSheet_(ss,SHEETS.USERS,USER_HEADERS);ensureSheet_(ss,SHEETS.BRANCHES,BRANCH_HEADERS);ensureSheet_(ss,SHEETS.AREAS,AREA_HEADERS);ensureSheet_(ss,SHEETS.CONTACTS,CONTACT_HEADERS);ensureSheet_(ss,SHEETS.RECORDS,RECORD_HEADERS);ensureSheet_(ss,SHEETS.SESSIONS,SESSION_HEADERS);ensureSheet_(ss,SHEETS.BRANCH_MESSAGES,BRANCH_MESSAGE_HEADERS);
+function setup_(p){const ss=SpreadsheetApp.getActive();ensureSheet_(ss,SHEETS.USERS,USER_HEADERS);ensureSheet_(ss,SHEETS.BRANCHES,BRANCH_HEADERS);ensureSheet_(ss,SHEETS.AREAS,AREA_HEADERS);ensureSheet_(ss,SHEETS.CONTACTS,CONTACT_HEADERS);ensureSheet_(ss,SHEETS.RECORDS,RECORD_HEADERS);ensureSheet_(ss,SHEETS.SESSIONS,SESSION_HEADERS);ensureSheet_(ss,SHEETS.BRANCH_MESSAGES,BRANCH_MESSAGE_HEADERS);ensureSheet_(ss,SHEETS.LOGIN_HISTORY,LOGIN_HISTORY_HEADERS);
 const bs=ss.getSheetByName(SHEETS.BRANCHES);if(bs.getLastRow()===1)bs.appendRow(['branch_fukuoka_1','福岡第1支部','福岡県',true]);
 const as=ss.getSheetByName(SHEETS.AREAS);if(as.getLastRow()===1)as.appendRow(['area_higashi','branch_fukuoka_1','福岡市','東区',33.6452,130.4319,true]);
 const us=ss.getSheetByName(SHEETS.USERS);if(us.getLastRow()===1){const salt=uuid_(),pw=p.adminPassword||'ChangeMe123!';us.appendRow([uuid_(),p.adminLoginId||'admin',p.adminName||'管理者',hash_(pw,salt),salt,'system_admin','','',true,false,now_(),now_()]);}return{ok:true,message:'初期設定が完了しました'};}
@@ -172,26 +173,22 @@ function migrateRecordsToV212_(ss){
   sh.setFrozenRows(1);
 }
 
-function login_(p){cleanupSessions_();const id=String(p.loginId||'').trim(),pw=String(p.password||'');if(!id||!pw)throw Error('ユーザーIDとパスワードを入力してください');const users=rows_(SHEETS.USERS);const u=users.find(x=>String(x.loginId)===id&&truth_(x.active));if(!u||!passwordMatches_(pw,u))throw Error('ユーザーIDまたはパスワードが違います');const branch=rows_(SHEETS.BRANCHES).find(b=>String(b.branchId)===String(u.branchId))||{};const token=uuid_()+uuid_();const expires=new Date(Date.now()+1000*60*60*12).toISOString();SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS).appendRow([token,u.userId,expires,now_()]);return{ok:true,session:{token,userId:u.userId,loginId:u.loginId,name:u.name,role:u.role,branchId:u.branchId,areaId:u.areaId||'',branchName:branch.name||'全支部',mustChangePassword:truth_(u.mustChangePassword),expiresAt:expires}};}
-
-
-// Ver.2.8.30: 名簿取込の党員・サポーターで支持ランク未判定をBへ補完します。1回だけ実行してください。
-function upgradeV2829(){
-  const ss=SpreadsheetApp.getActive();
-  const sh=ss.getSheetByName('Records');
-  if(!sh||sh.getLastRow()<2)return 'Ver.2.8.30 更新完了（対象データなし）';
-  const vals=sh.getDataRange().getValues(),heads=vals[0].map(String),idx={};heads.forEach((h,i)=>idx[h]=i);
-  let updated=0;
-  for(let i=1;i<vals.length;i++){
-    const r=vals[i];
-    const imported=String(r[idx.source]||'')==='import';
-    const mt=normalizeMemberType_(r[idx.memberType]);
-    const rank=String(r[idx.supporter]||'').trim();
-    if(imported&&['party_member','supporter'].includes(mt)&&!rank){r[idx.supporter]='B';updated++;}
-  }
-  if(updated)sh.getRange(2,1,vals.length-1,vals[0].length).setValues(vals.slice(1));
-  return `Ver.2.8.30 更新完了：支持ランクB補完 ${updated}件`;
+function login_(p){
+  cleanupSessions_();
+  const id=String(p.loginId||'').trim(),pw=String(p.password||'');
+  if(!id||!pw){logLoginAttempt_({loginId:id,success:false});throw Error('ユーザーIDとパスワードを入力してください');}
+  const users=rows_(SHEETS.USERS);
+  const anyUser=users.find(x=>String(x.loginId)===id);
+  const u=users.find(x=>String(x.loginId)===id&&truth_(x.active));
+  if(!u||!passwordMatches_(pw,u)){logLoginAttempt_({user:anyUser,loginId:id,success:false});throw Error('ユーザーIDまたはパスワードが違います');}
+  const branch=rows_(SHEETS.BRANCHES).find(b=>String(b.branchId)===String(u.branchId))||{};
+  const token=uuid_()+uuid_(),expires=new Date(Date.now()+1000*60*60*12).toISOString();
+  SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS).appendRow([token,u.userId,expires,now_()]);
+  logLoginAttempt_({user:u,loginId:id,success:true});
+  return{ok:true,session:{token,userId:u.userId,loginId:u.loginId,name:u.name,role:u.role,branchId:u.branchId,areaId:u.areaId||'',branchName:branch.name||'全支部',mustChangePassword:truth_(u.mustChangePassword),expiresAt:expires}};
 }
+function logLoginAttempt_(x){try{const ss=SpreadsheetApp.getActive();ensureSheet_(ss,SHEETS.LOGIN_HISTORY,LOGIN_HISTORY_HEADERS);const u=x.user||{};ss.getSheetByName(SHEETS.LOGIN_HISTORY).appendRow([uuid_(),u.userId||'',x.loginId||u.loginId||'',u.name||'',!!x.success,now_()]);}catch(_){}}
+
 
 // Ver.2.8.8: 支部間の共有連絡を追加します。1回だけ実行してください。
 function upgradeV288(){
@@ -465,22 +462,19 @@ function saveContact_(u,c){
 }
 function deleteContact_(u,p){const all=rowsWithRow_(SHEETS.CONTACTS),old=all.find(x=>String(x.contactId)===String(p.contactId));if(!old)return{ok:true};if(!canAccessAreaId_(u,old.areaId))throw Error('削除できません');if(rows_(SHEETS.RECORDS).some(r=>String(r.contactId)===String(old.contactId)))throw Error('訪問記録に紐づいているため削除できません');SpreadsheetApp.getActive().getSheetByName(SHEETS.CONTACTS).deleteRow(old._row);return{ok:true};}
 
-function adminData_(u){requireAdmin_(u);const branches=visibleBranches_(u),areas=visibleAreas_(u);let users=rows_(SHEETS.USERS);if(u.role==='leader')users=users.filter(x=>String(x.branchId)===String(u.branchId));const bm=Object.fromEntries(rows_(SHEETS.BRANCHES).map(b=>[b.branchId,b.name])),am=Object.fromEntries(rows_(SHEETS.AREAS).map(a=>[a.areaId,(a.city?a.city+' ':'')+a.name]));return{ok:true,branches,areas,users:users.map(x=>({userId:x.userId,loginId:x.loginId,name:x.name,role:x.role,branchId:x.branchId,areaId:x.areaId||'',branchName:bm[x.branchId]||'全支部',areaName:am[x.areaId]||(['prefecture_admin','system_admin','leader'].includes(x.role)?'選択可':'未設定'),active:truth_(x.active),mustChangePassword:truth_(x.mustChangePassword)}))};}
-function createUser_(u,x){requireAdmin_(u);if(!x.loginId||!x.name||!x.password)throw Error('必須項目を入力してください');validateNewPassword_(x.password);if(rows_(SHEETS.USERS).some(v=>String(v.loginId)===String(x.loginId)))throw Error('同じユーザーIDが登録されています');let role=x.role||'member',branchId=x.branchId||'',areaId=x.areaId||'';if(u.role==='leader'){role=role==='member'?'member':'leader';branchId=u.branchId;}if(!isGlobal_(u)&&String(branchId)!==String(u.branchId))throw Error('他支部には登録できません');if(role==='member'){const a=rows_(SHEETS.AREAS).find(a=>String(a.areaId)===String(areaId)&&truth_(a.active));if(!a||String(a.branchId)!==String(branchId))throw Error('一般利用者には活動エリアを設定してください');}else areaId='';const salt=uuid_();SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS).appendRow([uuid_(),x.loginId,x.name,hash_(x.password,salt),salt,role,branchId,areaId,true,true,now_(),now_()]);return{ok:true};}
-
-function changePassword_(u,p){
-  const current=String(p.currentPassword||'');
-  const next=String(p.newPassword||'');
-  if(!current)throw Error('現在のパスワードを入力してください');
-  validateNewPassword_(next);
-  const me=rowsWithRow_(SHEETS.USERS).find(x=>String(x.userId)===String(u.userId));
-  if(!me)throw Error('利用者が見つかりません');
-  if(!passwordMatches_(current,me))throw Error('現在のパスワードが違います');
-  if(passwordMatches_(next,me))throw Error('現在と同じパスワードは使用できません');
-  setUserPassword_(me,next,false);
-  deleteSessionsForUser_(u.userId,p.token);
-  return{ok:true,mustChangePassword:false};
+function adminData_(u){
+  requireAdmin_(u);
+  const branches=visibleBranches_(u),areas=visibleAreas_(u);
+  let users=rows_(SHEETS.USERS);if(u.role==='leader')users=users.filter(x=>String(x.branchId)===String(u.branchId));
+  const bm=Object.fromEntries(rows_(SHEETS.BRANCHES).map(b=>[b.branchId,b.name])),am=Object.fromEntries(rows_(SHEETS.AREAS).map(a=>[a.areaId,(a.city?a.city+' ':'')+a.name]));
+  ensureSheet_(SpreadsheetApp.getActive(),SHEETS.LOGIN_HISTORY,LOGIN_HISTORY_HEADERS);
+  const history=rows_(SHEETS.LOGIN_HISTORY).sort((a,b)=>String(b.loggedAt||'').localeCompare(String(a.loggedAt||'')));
+  const lastByUser={};history.forEach(h=>{if(truth_(h.success)&&h.userId&&!lastByUser[h.userId])lastByUser[h.userId]=h.loggedAt;});
+  const result={ok:true,branches,areas,users:users.map(x=>({userId:x.userId,loginId:x.loginId,name:x.name,role:x.role,branchId:x.branchId,areaId:x.areaId||'',branchName:bm[x.branchId]||'全支部',areaName:am[x.areaId]||(['prefecture_admin','system_admin','leader'].includes(x.role)?'選択可':'未設定'),active:truth_(x.active),mustChangePassword:truth_(x.mustChangePassword),lastLoginAt:lastByUser[x.userId]||''}))};
+  if(u.role==='system_admin')result.loginHistory=history.slice(0,100).map(h=>({userId:h.userId||'',loginId:h.loginId||'',name:h.name||'',success:truth_(h.success),loggedAt:h.loggedAt||''}));
+  return result;
 }
+
 function resetPassword_(u,p){
   requireAdmin_(u);
   const targetId=String(p.userId||''),temp=String(p.temporaryPassword||'');
@@ -1185,3 +1179,6 @@ function upgradeV270(){
   ensureHeadersByName_(rsh,RECORD_HEADERS);
   return 'あいサポ Ver.2.7.0 移行完了：フォロー項目を追加しました';
 }
+
+// Ver.2.8.32: ログイン履歴シートを追加します。1回だけ実行してください。
+function upgradeV2832(){const ss=SpreadsheetApp.getActive();ensureSheet_(ss,SHEETS.LOGIN_HISTORY,LOGIN_HISTORY_HEADERS);return 'あいサポ Ver.2.8.32 ログイン履歴の準備が完了しました';}

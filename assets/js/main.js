@@ -4,14 +4,14 @@ window.addEventListener('load',()=>{if(session)startApp()});
 
 function toggleMapFilters(force){
   const panel=document.getElementById('mapQuickFilters');
-  const btn=document.getElementById('mapFilterToggle');
   if(!panel)return;
   const open=typeof force==='boolean'?force:panel.classList.contains('filters-collapsed');
   panel.classList.toggle('filters-collapsed',!open);
-  if(btn){
+  ['mapFilterToggle','mobileMapFilterToggle'].forEach(id=>{
+    const btn=document.getElementById(id);if(!btn)return;
     btn.setAttribute('aria-expanded',open?'true':'false');
     btn.innerHTML=filterToggleMarkup(open);
-  }
+  });
 }
 
 (function initTouchTips(){
