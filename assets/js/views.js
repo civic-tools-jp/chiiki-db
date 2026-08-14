@@ -76,11 +76,27 @@ function renderLists(){
   $('listCards').innerHTML=filtered.map(recordCard).join('')||'<div class="panel notice">該当データはありません。</div>';
 }
 
+function normalizeTownName(name){
+  const digitMap={'０':'0','１':'1','２':'2','３':'3','４':'4','５':'5','６':'6','７':'7','８':'8','９':'9'};
+  const kanjiMap={'〇':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+  let s=String(name||'').replace(/[０-９]/g,c=>digitMap[c]||c);
+  s=s.replace(/([〇一二三四五六七八九十]+)丁目/g,(all,n)=>{
+    let v=0;
+    if(n.includes('十')){
+      const parts=n.split('十');
+      v=(parts[0]?kanjiMap[parts[0]]:1)*10+(parts[1]?kanjiMap[parts[1]]:0);
+    }else{
+      v=[...n].reduce((a,c)=>a*10+(kanjiMap[c]??0),0);
+    }
+    return `${v}丁目`;
+  });
+  return s;
+}
 function townKey(address){
   const s=String(address||'').replace(/\s+/g,'');if(!s)return'住所未設定';
-  const m=s.match(/(?:東区|博多区|中央区|南区|城南区|早良区|西区)(.+?丁目)/);if(m)return m[1];
-  const m2=s.match(/(?:東区|博多区|中央区|南区|城南区|早良区|西区)([^0-9\-－ー番地号]+?)(?=\d|$)/);if(m2&&m2[1])return m2[1];
-  return s.replace(/^.*?(?:東区|博多区|中央区|南区|城南区|早良区|西区)/,'').slice(0,12)||'その他';
+  const m=s.match(/(?:東区|博多区|中央区|南区|城南区|早良区|西区)(.+?丁目)/);if(m)return normalizeTownName(m[1]);
+  const m2=s.match(/(?:東区|博多区|中央区|南区|城南区|早良区|西区)([^0-9０-９\-－ー番地号]+?)(?=[0-9０-９]|$)/);if(m2&&m2[1])return normalizeTownName(m2[1]);
+  return normalizeTownName(s.replace(/^.*?(?:東区|博多区|中央区|南区|城南区|早良区|西区)/,'').slice(0,12)||'その他');
 }
 function clearListChecks(){
   ['listRevisit','listUnvisited','listRefused','listWarning','listFollow','listFollowPending','listPosterRequest','listPosterPending'].forEach(id=>{if($(id))$(id).checked=false});
@@ -95,6 +111,7 @@ function analysisGo(kind){
   if(kind==='supporter')$('listMemberType').value='supporter';
   if(kind==='follow')$('listFollow').checked=true;
   if(kind==='followPending')$('listFollowPending').checked=true;
+  if(kind==='posterRequest')$('listPosterRequest').checked=true;
   if(kind==='posterPending')$('listPosterPending').checked=true;
   showView('list');renderLists();
 }
@@ -170,11 +187,17 @@ function renderAnalysis(){
   </div>
 
   <div class="panel activity-section priority-section">
-    <div class="section-heading"><div class="heading-icon orange">✓</div><div><h2>対応が必要なもの</h2><p>未対応の項目を確認</p></div></div>
+    <div class="section-heading"><div class="heading-icon orange">✓</div><div><h2>対応が必要</h2><p>次に確認・対応する項目</p></div></div>
+    <div class="analysis-action-group-label">訪問対応</div>
     <div class="analysis-actions">
       ${action('revisit','要再訪',revisit,'もう一度訪問する')}
+      ${action('warning','訪問注意',warning,'訪問前に注意事項を確認')}
+    </div>
+    <div class="analysis-action-group-label">フォロー・報告</div>
+    <div class="analysis-actions">
       ${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}
-      ${action('posterPending','ポスター依頼',posterPending,'党への報告待ち')}
+      ${action('posterRequest','ポスター依頼',poster.length,'掲示依頼を確認')}
+      ${action('posterPending','ポスター未報告',posterPending,'党への報告が必要')}
     </div>
   </div>
 
@@ -188,14 +211,6 @@ function renderAnalysis(){
       ${metric('不在',absent)}
       <button class="analysis-metric" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">要再訪</div></button>
       ${metric('断られた',refused)}
-    </div>
-  </div>
-
-  <div class="panel activity-section attention-section">
-    <div class="section-heading"><div class="heading-icon danger">⚠</div><div><h2>対応が必要</h2><p>注意事項・報告漏れを確認</p></div></div>
-    <div class="analysis-actions">
-      ${action('warning','訪問注意',warning,'訪問前に注意事項を確認')}
-      ${action('posterPending','ポスター未報告',posterPending,'党への報告が必要')}
     </div>
   </div>
 

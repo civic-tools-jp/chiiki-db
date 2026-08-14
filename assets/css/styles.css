@@ -1545,3 +1545,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .cute-pin-wrap{transform:scale(.92);transform-origin:50% 100%}
   .cute-map-legend>span{font-size:10px}
 }
+
+/* Ver.2.8.11 — unified action dashboard */
+.analysis-action-group-label{
+  margin:18px 2px 9px;
+  font-size:14px;
+  font-weight:800;
+  color:#756b62;
+}
+.priority-section .analysis-action-group-label:first-of-type{margin-top:12px}
