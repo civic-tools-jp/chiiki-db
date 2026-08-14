@@ -182,7 +182,7 @@
           <input id="areaLat" type="hidden"><input id="areaLng" type="hidden">
           <button class="btn primary full area-add-btn" onclick="createArea()">エリアを追加</button>
         </div>
-        <div class="panel span-2"><div class="card-title">登録エリア</div><div id="areasTable"></div></div>
+        <div class="panel span-2 admin-areas-panel"><div class="card-title admin-areas-title">登録エリア <button type="button" class="mini-btn admin-areas-toggle" id="areasToggleBtn" onclick="toggleAdminAreas()">一覧を表示 ▼</button></div><div id="areasTable" class="hidden"></div></div>
         <div class="panel span-2"><div class="card-title">登録ユーザー</div><div class="admin-user-filters"><input id="adminUserSearch" placeholder="ID・氏名で検索" oninput="renderUsers()"><select id="adminUserRole" onchange="renderUsers()"><option value="">権限すべて</option><option value="system_admin">システム管理者</option><option value="leader">支部管理者</option><option value="member">一般利用者</option></select><select id="adminUserActive" onchange="renderUsers()"><option value="">有効・無効すべて</option><option value="active">有効</option><option value="inactive">無効</option></select></div><div id="usersTable"></div></div>
       </div>
     </section>

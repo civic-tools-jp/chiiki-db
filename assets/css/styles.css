@@ -1820,3 +1820,5 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .detail-footer .actions{flex-wrap:wrap}
   .detail-footer .google-maps-btn{width:100%;order:-1}
 }
+.admin-areas-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-areas-toggle{min-width:140px}
