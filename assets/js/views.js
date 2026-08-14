@@ -11,7 +11,7 @@ function recordDisplayName(r){
   if(!r)return '';
   // 名簿取込は氏名の正本(lastName/firstName)を優先。旧personNameに内部値が残っていても表示しない。
   if(String(r.source||'')==='import'){
-    const canonical=[r.lastName,r.firstName].map(v=>String(v||'').trim()).filter(Boolean).join(' ');
+    const canonical=[r.lastName,r.firstName].map(v=>cleanDisplayName(v)).filter(Boolean).join(' ');
     if(canonical)return canonical;
   }
   return cleanDisplayName(r.personName);
@@ -31,7 +31,7 @@ function recordCard(r){
   const located=!!(Number(r.lat)&&Number(r.lng));
   const sourceLabel={import:'名簿取込',manual:'手入力',map:'地図登録'};
   return `<article class="card" style="border-left-color:${st.color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
-    <div class="card-title">${priorityBadge(mt)} ${esc(recordDisplayName(r)||r.fullAddress||'名称未設定')} <span class="badge">${esc(st.label)}</span></div>
+    <div class="card-title">${esc(recordDisplayName(r)||r.fullAddress||'名称未設定')} <span class="badge">${esc(st.label)}</span></div>
     <div class="muted">${esc(r.fullAddress||'住所未設定')}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
     ${r.phone?`<div class="muted">☎ ${esc(r.phone)}</div>`:''}
     <div class="badges">
