@@ -475,6 +475,44 @@ function adminData_(u){
   return result;
 }
 
+
+function createUser_(u,x){
+  requireAdmin_(u);
+  x=x||{};
+  const loginId=String(x.loginId||'').trim();
+  const name=String(x.name||'').trim();
+  const password=String(x.password||'');
+  if(!loginId||!name||!password)throw Error('必須項目を入力してください');
+  validateNewPassword_(password);
+  if(rows_(SHEETS.USERS).some(v=>String(v.loginId)===loginId))throw Error('同じユーザーIDが登録されています');
+
+  let role=String(x.role||'member');
+  let branchId=String(x.branchId||'');
+  let areaId=String(x.areaId||'');
+
+  // 支部管理者は自支部の一般利用者のみ作成可能
+  if(u.role==='leader'){
+    role='member';
+    branchId=String(u.branchId||'');
+  }
+
+  if(!['member','leader'].includes(role))throw Error('登録できない権限です');
+  if(!isGlobal_(u)&&branchId!==String(u.branchId||''))throw Error('他支部には登録できません');
+
+  if(role==='member'){
+    const area=rows_(SHEETS.AREAS).find(a=>String(a.areaId)===areaId&&truth_(a.active));
+    if(!area||String(area.branchId)!==branchId)throw Error('一般利用者には所属支部の活動エリアを設定してください');
+  }else{
+    areaId='';
+  }
+
+  const salt=uuid_();
+  SpreadsheetApp.getActive().getSheetByName(SHEETS.USERS).appendRow([
+    uuid_(),loginId,name,hash_(password,salt),salt,role,branchId,areaId,true,true,now_(),now_()
+  ]);
+  return{ok:true};
+}
+
 function resetPassword_(u,p){
   requireAdmin_(u);
   const targetId=String(p.userId||''),temp=String(p.temporaryPassword||'');
