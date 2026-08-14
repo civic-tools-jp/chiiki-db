@@ -66,33 +66,43 @@ function openRecordGoogleMaps(){
 }
 
 function initMap(){if(map)return;map=L.map('map').setView([33.5902,130.4017],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);map.on('click',async e=>{const address=await reverseAddress(e.latlng.lat,e.latlng.lng);openEdit({id:'',lat:e.latlng.lat,lng:e.latlng.lng,fullAddress:address,status:'unvisited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)});setTimeout(()=>map.invalidateSize(),100)}
-function priorityBadge(memberType){return memberType==='party_member'?'⭐':memberType==='supporter'?'🟠':''}
+function priorityBadge(memberType){return memberType==='party_member'?'party':memberType==='supporter'?'supporter':''}
 function recordMemberType(r){return r.memberType||'general'}
-function markerSymbol(key){
-  return ({
-    unvisited:'●',
-    visited:'✓',
-    good:'♥',
-    absent:'⌂',
-    revisit:'↻',
-    refused:'×'
-  })[key]||'●';
+
+function markerSvg(key){
+  const common='viewBox="0 0 24 24" aria-hidden="true"';
+  const icons={
+    unvisited:`<svg ${common}><path d="M4.7 10.2 12 4.6l7.3 5.6v8.1a1.7 1.7 0 0 1-1.7 1.7H6.4a1.7 1.7 0 0 1-1.7-1.7v-8.1Z" fill="currentColor"/><path d="M9.1 20v-5.7h5.8V20" fill="var(--pin-color)"/></svg>`,
+    visited:`<svg ${common}><path d="m6.2 12.5 3.4 3.4 8.2-8.4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    good:`<svg ${common}><path d="M12 20.2S4.4 15.7 4.4 9.6c0-2.7 1.9-4.6 4.4-4.6 1.6 0 2.7.8 3.2 1.8.6-1 1.7-1.8 3.3-1.8 2.5 0 4.3 1.9 4.3 4.6 0 6.1-7.6 10.6-7.6 10.6Z" fill="currentColor"/></svg>`,
+    absent:`<svg ${common}><circle cx="12" cy="7.1" r="2.6" fill="currentColor"/><path d="M7.3 19.2c.4-4.1 2-6.2 4.7-6.2s4.3 2.1 4.7 6.2H7.3Z" fill="currentColor"/></svg>`,
+    revisit:`<svg ${common}><path d="M12 4.3a7.7 7.7 0 1 1-7.2 10.4" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="m3.7 8.2 1.1 6.5 5.4-3.6" fill="currentColor"/></svg>`,
+    refused:`<svg ${common}><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`
+  };
+  return icons[key]||icons.unvisited;
 }
+
+function markerExtraBadge(r){
+  if(boolValue(r.warning))return '<span class="pin-extra pin-extra-warning" title="訪問注意">!</span>';
+  const mt=recordMemberType(r);
+  if(mt==='party_member')return '<span class="pin-extra pin-extra-party" title="党員">★</span>';
+  if(mt==='supporter')return '<span class="pin-extra pin-extra-supporter" title="サポーター">♥</span>';
+  return '';
+}
+
 function icon(r){
-  const key=statusKey(r.status),c=STATUS[key].color,b=priorityBadge(recordMemberType(r));
-  const warning=boolValue(r.warning);
-  const f=typeof hasFollow==='function'&&hasFollow(r)?'🤝':'';
-  const p=boolValue(r.posterRequest)?'🍊':'';
+  const key=statusKey(r.status),c=STATUS[key].color;
   return L.divIcon({
     className:'aisapo-leaflet-marker',
-    html:`<div class="pin-wrap">
-      <div class="pin pin-${key}" style="--pin-color:${c}"><span class="pin-symbol">${markerSymbol(key)}</span></div>
-      ${b?`<div class="pin-priority">${b}</div>`:''}
-      ${warning?`<div class="pin-warning" title="訪問注意">!</div>`:''}
-      ${f?`<div class="pin-follow">${f}</div>`:''}
-      ${p?`<div class="pin-poster">${p}</div>`:''}
+    html:`<div class="cute-pin-wrap">
+      <div class="cute-pin pin-${key}" style="--pin-color:${c}">
+        <span class="cute-pin-icon">${markerSvg(key)}</span>
+      </div>
+      ${markerExtraBadge(r)}
     </div>`,
-    iconSize:[42,48],iconAnchor:[21,45],tooltipAnchor:[0,-38]
+    iconSize:[48,56],
+    iconAnchor:[24,53],
+    tooltipAnchor:[0,-43]
   })
 }
 function contactIcon(c){const b=priorityBadge(c.memberType);return L.divIcon({className:'',html:`<div class="contact-pin ${c.memberType==='party_member'?'member':'support'}">${b||'○'}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}
