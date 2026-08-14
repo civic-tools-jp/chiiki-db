@@ -24,21 +24,34 @@ function renderUsers(){
 }
 function openUserEdit(userId){
   const u=users.find(x=>String(x.userId)===String(userId));if(!u)return;
-  const name=prompt('表示名を変更してください',u.name||'');if(name===null)return;if(!name.trim()){alert('表示名を入力してください');return}
-  let role=u.role,branchId=u.branchId,areaId=u.areaId||'';
-  if(session?.role==='system_admin'){
-    const r=prompt('権限を入力してください（member=一般利用者 / leader=支部管理者）',u.role);if(r===null)return;
-    if(!['member','leader'].includes(r)){alert('権限は member または leader を入力してください');return}role=r;
-    const b=prompt('所属支部IDを入力してください',u.branchId||'');if(b===null)return;if(!branches.some(x=>String(x.branchId)===String(b))){alert('所属支部が見つかりません');return}branchId=b;
-  }
-  if(role==='member'){
-    const opts=areas.filter(a=>String(a.branchId)===String(branchId));
-    if(!opts.length){alert('所属支部に活動エリアがありません');return}
-    const guide=opts.map(a=>`${a.areaId}: ${(a.city?a.city+' ':'')+a.name}`).join('\n');
-    const a=prompt(`活動エリアIDを入力してください\n\n${guide}`,areaId||opts[0].areaId);if(a===null)return;
-    if(!opts.some(x=>String(x.areaId)===String(a))){alert('所属支部の活動エリアを選択してください');return}areaId=a;
-  }else areaId='';
-  saveUserEdit(userId,{name:name.trim(),role,branchId,areaId});
+  $('editUserId').value=u.userId||'';$('editUserLoginId').value=u.loginId||'';$('editUserName').value=u.name||'';
+  $('editUserRole').value=['member','leader'].includes(u.role)?u.role:'member';
+  $('editUserBranch').innerHTML=branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('');
+  $('editUserBranch').value=u.branchId||'';
+  $('editUserRole').disabled=session?.role!=='system_admin';
+  $('editUserBranch').disabled=session?.role!=='system_admin';
+  syncUserEditArea(u.areaId||'');
+  $('userEditModal').style.display='flex';
+}
+function closeUserEditModal(){$('userEditModal').style.display='none'}
+function syncUserEditArea(preferred){
+  const role=$('editUserRole').value,branchId=$('editUserBranch').value;
+  const wrap=$('editUserAreaWrap'),sel=$('editUserArea');
+  wrap.classList.toggle('hidden',role!=='member');
+  if(role!=='member'){sel.innerHTML='';return}
+  const opts=areas.filter(a=>String(a.branchId)===String(branchId));
+  sel.innerHTML=opts.map(a=>`<option value="${esc(a.areaId)}">${esc((a.city?a.city+' ':'')+a.name)}</option>`).join('');
+  const candidate=preferred!==undefined?preferred:sel.value;
+  if(opts.some(a=>String(a.areaId)===String(candidate)))sel.value=candidate;
+}
+async function saveUserEditFromModal(){
+  const userId=$('editUserId').value,name=$('editUserName').value.trim(),role=$('editUserRole').value,branchId=$('editUserBranch').value;
+  if(!name){alert('表示名を入力してください');return}
+  if(!['member','leader'].includes(role)){alert('権限を選択してください');return}
+  const areaId=role==='member'?$('editUserArea').value:'';
+  if(role==='member'&&!areaId){alert('活動エリアを選択してください');return}
+  try{await api('updateUser',{userId,user:{name,role,branchId,areaId}});closeUserEditModal();await loadAdmin();}
+  catch(e){alert(e.message)}
 }
 async function saveUserEdit(userId,user){try{await api('updateUser',{userId,user});await loadAdmin();alert('ユーザー情報を更新しました')}catch(e){alert(e.message)}}
 function toggleAdminAreas(){const box=$('areasTable'),btn=$('areasToggleBtn');const opening=box.classList.contains('hidden');box.classList.toggle('hidden',!opening);btn.textContent=opening?'一覧を閉じる ▲':'一覧を表示 ▼'}

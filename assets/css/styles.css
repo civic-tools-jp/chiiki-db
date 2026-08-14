@@ -1822,3 +1822,23 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
 }
 .admin-areas-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .admin-areas-toggle{min-width:140px}
+
+
+/* Ver.2.8.29 — compact map filters and in-app user editor */
+.map-quick-filters>label:not(.map-priority-filter){
+  border:0!important;background:transparent!important;box-shadow:none!important;
+  padding:5px 4px!important;border-radius:0!important;min-height:auto!important;
+}
+.map-quick-filters>label:not(.map-priority-filter) input{margin:0 5px 0 0}
+.map-quick-filters{column-gap:14px!important;row-gap:6px!important;align-items:center}
+.map-priority-filter{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.map-priority-filter select{border:1px solid #ead8c6;background:#fffdf9;border-radius:14px;padding:10px 34px 10px 12px;min-height:42px}
+.user-edit-modal{max-width:620px}
+.user-edit-modal input[readonly]{background:#f5f3ef;color:#7f756c}
+.user-edit-actions{margin-top:20px}
+@media(max-width:700px){
+  .map-quick-filters>label:not(.map-priority-filter){padding:4px 2px!important}
+  .map-quick-filters{column-gap:10px!important}
+  .map-priority-filter{flex:1 1 100%!important;width:100%!important}
+  .map-priority-filter select{width:100%!important}
+}

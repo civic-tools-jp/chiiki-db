@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.27</title>
+<title>あいサポ Ver.2.8.29</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.27">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.29">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
     <div class="brand-lockup login-brand brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.27" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.29" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
     </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
@@ -19,14 +19,14 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.27</div>
+    <div class="version-note">Ver.2.8.29</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
     <div class="brand-lockup brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.27" alt="あいサポ" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.29" alt="あいサポ" class="aisapo-logo-image">
     </div>
     <div class="mobile-user-actions">
       <div class="mobile-user-identity">
@@ -281,10 +281,24 @@
 
 
 
+
+<div id="userEditModal" class="modal-bg" onclick="closeUserEditModal()">
+  <div class="modal user-edit-modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><div class="modal-title">ユーザー編集</div><button class="close" onclick="closeUserEditModal()">×</button></div>
+    <input id="editUserId" type="hidden">
+    <label class="label">ユーザーID</label><input id="editUserLoginId" readonly>
+    <label class="label">表示名</label><input id="editUserName">
+    <label class="label">権限</label><select id="editUserRole" onchange="syncUserEditArea()"><option value="member">一般利用者</option><option value="leader">支部管理者</option></select>
+    <label class="label">所属支部</label><select id="editUserBranch" onchange="syncUserEditArea()"></select>
+    <div id="editUserAreaWrap"><label class="label">活動エリア</label><select id="editUserArea"></select></div>
+    <div class="actions user-edit-actions"><button class="btn" onclick="closeUserEditModal()">キャンセル</button><button class="btn primary" onclick="saveUserEditFromModal()">保存</button></div>
+  </div>
+</div>
+
 <div id="passwordModal" class="modal-bg" onclick="closePasswordModal()"><div class="modal" onclick="event.stopPropagation()"><div class="modal-head"><div id="passwordModalTitle" class="modal-title">パスワード変更</div><button id="passwordClose" class="close" onclick="closePasswordModal()">×</button></div><div id="passwordModalNote" class="notice"></div><div id="passwordMsg"></div><label class="label">現在のパスワード</label><input id="currentPassword" type="password" autocomplete="current-password"><label class="label">新しいパスワード</label><input id="newPassword1" type="password" autocomplete="new-password" placeholder="10文字以上・英字と数字"><label class="label">新しいパスワード（確認）</label><input id="newPassword2" type="password" autocomplete="new-password"><button class="btn primary full" onclick="changeOwnPassword()">パスワードを変更</button></div></div>
 
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.27"></script><script src="assets/js/state.js?v=2.8.27"></script><script src="assets/js/utils.js?v=2.8.27"></script><script src="assets/js/api.js?v=2.8.27"></script><script src="assets/js/auth.js?v=2.8.27"></script><script src="assets/js/map.js?v=2.8.27"></script><script src="assets/js/records.js?v=2.8.27"></script><script src="assets/js/contacts.js?v=2.8.27"></script><script src="assets/js/views.js?v=2.8.27"></script><script src="assets/js/admin.js?v=2.8.27"></script><script src="assets/js/main.js?v=2.8.27"></script>
+<script src="assets/js/config.js?v=2.8.29"></script><script src="assets/js/state.js?v=2.8.29"></script><script src="assets/js/utils.js?v=2.8.29"></script><script src="assets/js/api.js?v=2.8.29"></script><script src="assets/js/auth.js?v=2.8.29"></script><script src="assets/js/map.js?v=2.8.29"></script><script src="assets/js/records.js?v=2.8.29"></script><script src="assets/js/contacts.js?v=2.8.29"></script><script src="assets/js/views.js?v=2.8.29"></script><script src="assets/js/admin.js?v=2.8.29"></script><script src="assets/js/main.js?v=2.8.29"></script>
 </body></html>

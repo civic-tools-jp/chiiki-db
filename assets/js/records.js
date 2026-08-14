@@ -49,6 +49,7 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
   }
 
   const hasCoords=!!(Number(r.lat)&&Number(r.lng));
+  $('openGoogleMapsBtn')?.classList.toggle('hidden',!hasCoords);
   const source=String(r.source||(isNew?'manual':'manual'));
   const geocodeBtn=$('recordGeocodeBtn'),currentBtn=$('recordCurrentBtn'),mapCheckBtn=$('recordMapCheckBtn');
 
@@ -139,10 +140,8 @@ function updateDetailHeader(r){
 
 function openRecordInGoogleMaps(){
   const lat=Number($('lat')?.value||editing?.lat||0),lng=Number($('lng')?.value||editing?.lng||0);
-  const address=String($('fullAddress')?.value||editing?.fullAddress||'').trim();
-  const q=(Number.isFinite(lat)&&Number.isFinite(lng)&&lat&&lng)?`${lat},${lng}`:address;
-  if(!q){alert('地図で開く位置または住所がありません');return}
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`,'_blank','noopener');
+  if(!(Number.isFinite(lat)&&Number.isFinite(lng)&&lat&&lng)){return}
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`,'_blank','noopener');
 }
 
 function closeEdit(){$('editModal').style.display='none';editing=null}
