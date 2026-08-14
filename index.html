@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.37</title>
+<title>あいサポ Ver.2.8.38</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.35">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.38">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
     <div class="brand-lockup login-brand brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.35" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.38" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
     </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
@@ -19,14 +19,14 @@
     <label class="label">パスワード</label><div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password"><button type="button" id="loginPasswordToggle" class="password-toggle" onclick="toggleLoginPassword()" aria-label="パスワードを表示" title="パスワードを表示"><img class="password-cute-icon" src="assets/img/password-person-hide.png" alt=""></button></div>
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.37</div>
+    <div class="version-note">Ver.2.8.38</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
     <div class="brand-lockup brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.35" alt="あいサポ" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.38" alt="あいサポ" class="aisapo-logo-image">
     </div>
     <div class="mobile-user-actions">
       <div class="mobile-user-identity">
@@ -117,7 +117,7 @@
 
     <section id="view-list" class="view-section hidden">
       <div class="panel list-filter-panel">
-        <div class="section-heading"><div class="heading-icon green"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></div><div><h2>訪問先一覧</h2><p>検索・絞り込みから次に回る場所を確認</p></div></div>
+        <div class="section-heading list-heading"><div class="heading-icon green"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></div><div><h2>訪問先一覧</h2><p>検索・絞り込みから次に回る場所を確認</p></div><button type="button" id="listBackToAnalysis" class="btn list-back-analysis hidden" onclick="showView('analysis')" aria-label="活動状況に戻る"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/><path d="M9 12h10"/></svg><span>活動状況へ戻る</span></button></div>
         <div class="list-search-tools">
           <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
           <button type="button" id="listFilterToggle" class="btn list-filter-toggle" onclick="toggleListFilters()"><svg class="filter-funnel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6.3 7.1v4.5l-3.4 1.8v-6.3L4 6Z"/></svg><span>絞り込み</span></button>
@@ -303,5 +303,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.35"></script><script src="assets/js/state.js?v=2.8.35"></script><script src="assets/js/utils.js?v=2.8.35"></script><script src="assets/js/api.js?v=2.8.35"></script><script src="assets/js/auth.js?v=2.8.35"></script><script src="assets/js/map.js?v=2.8.35"></script><script src="assets/js/records.js?v=2.8.35"></script><script src="assets/js/contacts.js?v=2.8.35"></script><script src="assets/js/views.js?v=2.8.35"></script><script src="assets/js/admin.js?v=2.8.35"></script><script src="assets/js/main.js?v=2.8.35"></script>
+<script src="assets/js/config.js?v=2.8.38"></script><script src="assets/js/state.js?v=2.8.38"></script><script src="assets/js/utils.js?v=2.8.38"></script><script src="assets/js/api.js?v=2.8.38"></script><script src="assets/js/auth.js?v=2.8.38"></script><script src="assets/js/map.js?v=2.8.38"></script><script src="assets/js/records.js?v=2.8.38"></script><script src="assets/js/contacts.js?v=2.8.38"></script><script src="assets/js/views.js?v=2.8.38"></script><script src="assets/js/admin.js?v=2.8.38"></script><script src="assets/js/main.js?v=2.8.38"></script>
 </body></html>

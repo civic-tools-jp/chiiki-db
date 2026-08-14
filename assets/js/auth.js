@@ -1,5 +1,8 @@
 "use strict";
-function toggleLoginPassword(){const input=$('loginPassword'),btn=$('loginPasswordToggle');if(!input)return;const showing=input.type==='text';input.type=showing?'password':'text';if(btn){btn.setAttribute('aria-label',showing?'パスワードを表示':'パスワードを隠す');btn.title=showing?'パスワードを表示':'パスワードを隠す';btn.innerHTML=`<img class="password-cute-icon" src="assets/img/${showing?'password-person-hide.png':'password-person-open.png'}" alt="">`;}}
+function syncLoginPasswordState(forceHidden=false){const input=$('loginPassword'),btn=$('loginPasswordToggle');if(!input)return;if(forceHidden)input.type='password';const hidden=input.type!=='text';if(btn){btn.setAttribute('aria-label',hidden?'パスワードを表示':'パスワードを隠す');btn.title=hidden?'パスワードを表示':'パスワードを隠す';btn.innerHTML=`<img class="password-cute-icon" src="assets/img/${hidden?'password-person-hide.png':'password-person-open.png'}" alt="">`;}}
+function toggleLoginPassword(){const input=$('loginPassword');if(!input)return;input.type=input.type==='text'?'password':'text';syncLoginPasswordState(false)}
+window.addEventListener('pageshow',()=>syncLoginPasswordState(true));
+window.addEventListener('DOMContentLoaded',()=>syncLoginPasswordState(true));
 async function login(){try{msg("loginMsg","");const data=await api("login",{loginId:$('loginId').value.trim(),password:$('loginPassword').value});session=data.session;localStorage.setItem("aisapo_session",JSON.stringify(session));startApp();}catch(e){msg("loginMsg",e.message)}}
 function logout(){localStorage.removeItem("aisapo_session");localStorage.removeItem("gdbv2_session");session=null;location.reload()}
 async function startApp(){

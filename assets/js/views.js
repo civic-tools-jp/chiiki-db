@@ -157,7 +157,7 @@ function analysisGo(kind){
   if(kind==='posterRequest')$('listPosterRequest').checked=true;
   if(kind==='posterPending')$('listPosterPending').checked=true;
   if(kind==='priorityHigh')$('listPriority').value='◎高'; if(kind==='priorityMedium')$('listPriority').value='○中'; if(kind==='priorityLow')$('listPriority').value='△低';
-  showView('list');renderLists();
+  showView('list',{fromAnalysis:true});renderLists();
 }
 async function loadBranchMessages(){
   try{
@@ -295,9 +295,14 @@ function renderAnalysis(){
   </div>
   <div class="panel"><div class="section-heading"><div class="heading-icon green activity-icon">🗺️</div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
 }
-function showView(v){
+function showView(v,opts={}){
   ['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x)?.classList.toggle('hidden',x!==v));
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  const back=$('listBackToAnalysis');
+  if(back){
+    if(v==='list'&&opts.fromAnalysis)back.classList.remove('hidden');
+    else if(v!=='list'||!opts.fromAnalysis)back.classList.add('hidden');
+  }
   if(v==='analysis')renderAnalysis();
   if(v==='list')setTimeout(()=>toggleListFilters(false),0);
   if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();},100);

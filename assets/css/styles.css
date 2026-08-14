@@ -1929,3 +1929,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
 
 /* Ver.2.8.36 — custom cute password visibility icons */
 .password-cute-icon{display:block;width:34px;height:32px;object-fit:contain;border-radius:10px;background:transparent;filter:none}
+
+/* Ver.2.8.38: 活動状況から一覧へ遷移した際の戻る導線 */
+.list-heading{position:relative;align-items:center}
+.list-back-analysis{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:9px 13px;white-space:nowrap;color:#28763f;border-color:#cfe2d1;background:#f7fbf6}
+.list-back-analysis svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:700px){
+  .list-heading{display:grid;grid-template-columns:auto 1fr auto;gap:10px}
+  .list-back-analysis{padding:8px 10px;border-radius:12px}
+  .list-back-analysis span{display:none}
+  .list-back-analysis svg{width:22px;height:22px}
+}
