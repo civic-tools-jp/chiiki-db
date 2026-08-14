@@ -491,7 +491,7 @@ function importContacts_(u,p){
   const branchNameById=Object.fromEntries(branches.map(b=>[String(b.branchId),String(b.name||'')]));
   const geocoder=Maps.newGeocoder().setLanguage('ja').setRegion('jp');
 
-  let added=0,updated=0,skipped=0,unmatched=0,geocoded=0,geocodeFailed=0;
+  let added=0,updated=0,skipped=0,duplicateSkipped=0,unmatched=0,geocoded=0,geocodeFailed=0;
 
   function detectArea_(address,sourceBranch){
     const a=String(address||'').replace(/\s+/g,'');
@@ -538,7 +538,13 @@ function importContacts_(u,p){
     });
   }
 
+  // 党員IDは一意キー。既存レコード＋同一取込バッチ内の両方で重複を検出する。
+  const existingPartyIds=new Set(existing.map(x=>String(x.partyId||'').trim()).filter(Boolean));
   for(const raw of input){
+    const incomingPartyId=String(raw.partyId||'').trim();
+    if(incomingPartyId && existingPartyIds.has(incomingPartyId)){
+      duplicateSkipped++; skipped++; continue;
+    }
     const lastName=cleanImportedPersonName_(raw.lastName);
     const firstName=cleanImportedPersonName_(raw.firstName);
     const name=String(raw.name||[lastName,firstName].filter(Boolean).join(' ')).trim();
@@ -591,9 +597,10 @@ function importContacts_(u,p){
       writeRecordByHeader_(sh,old._row,item); updated++; Object.assign(old,item);
     }else{
       const row=writeRecordByHeader_(sh,null,item); added++; existing.push({...item,_row:row});
+      if(item.partyId)existingPartyIds.add(String(item.partyId).trim());
     }
   }
-  return{ok:true,added,updated,skipped,unmatched,geocoded,geocodeFailed};
+  return{ok:true,added,updated,skipped,duplicateSkipped,unmatched,geocoded,geocodeFailed};
 }
 function createArea_(u,x){requireAdmin_(u);let branchId=x.branchId||u.branchId;if(u.role==='leader')branchId=u.branchId;if(!branchId)throw Error('支部を選択してください');if(!x.name)throw Error('エリア名を入力してください');const areaId=x.areaId||('area_'+uuid_().slice(0,12));SpreadsheetApp.getActive().getSheetByName(SHEETS.AREAS).appendRow([areaId,branchId,x.city||'',x.name,Number(x.mapLat)||'',Number(x.mapLng)||'',true]);return{ok:true,areaId};}
 function requireAdmin_(u){if(!['leader','prefecture_admin','system_admin'].includes(u.role))throw Error('管理権限がありません');}

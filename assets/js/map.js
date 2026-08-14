@@ -113,8 +113,15 @@ function renderMarkers(){
   const pts=[];
   let matched=0,shown=0;
 
+  const followOnly=!!$('mapFollow')?.checked;
+  const followPendingOnly=!!$('mapFollowPending')?.checked;
+  const posterOnly=!!$('mapPosterRequest')?.checked;
+
   records.forEach(r=>{
     if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
+    if(followOnly && !hasFollow(r))return;
+    if(followPendingOnly && (!hasFollow(r)||boolValue(r.followDone)))return;
+    if(posterOnly && !boolValue(r.posterRequest))return;
     matched++;
 
     const mt=recordMemberType(r),key=statusKey(r.status);

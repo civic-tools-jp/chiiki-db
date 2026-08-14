@@ -1692,3 +1692,18 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
 }
 
 /* v2.8.21: 訪問ステータスの表示名と地図/一覧の並びを統一 */
+
+
+/* Ver.2.8.23 — desktop admin card width and readable form width */
+@media (min-width:701px){
+  #view-admin .admin-user-create-panel{grid-column:1/-1;}
+  #view-admin .admin-user-create-panel > label,
+  #view-admin .admin-user-create-panel > input,
+  #view-admin .admin-user-create-panel > select,
+  #view-admin .admin-user-create-panel > .notice,
+  #view-admin .admin-user-create-panel > #newAreaWrap,
+  #view-admin .admin-user-create-panel > .btn{max-width:980px;}
+}
+@media (max-width:700px){
+  #view-admin .admin-user-create-panel{grid-column:auto;}
+}

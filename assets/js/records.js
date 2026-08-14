@@ -169,6 +169,18 @@ async function saveRecord(){
       }
     }
 
+    const statusNow=editStatus;
+    const priorityNow=$('priority').value;
+    const hasFollowNow=$('followParty').checked||$('followSupporter').checked||$('followDetails').checked;
+    const posterNow=$('posterRequest').checked;
+    const dateNow=$('date').value;
+    const cautions=[];
+    if(statusNow==='unvisited' && dateNow) cautions.push('訪問ステータスが「未訪問」ですが、訪問日が入力されています。');
+    if(statusNow==='refused' && priorityNow) cautions.push('「断られた」状態ですが、再訪優先度が設定されています。');
+    if(statusNow==='refused' && hasFollowNow) cautions.push('「断られた」状態ですが、フォロー対象が設定されています。');
+    if(statusNow==='refused' && posterNow) cautions.push('「断られた」状態ですが、ポスター依頼が設定されています。');
+    if(cautions.length && !confirm(cautions.join('\n')+'\n\nこの内容で保存しますか？')) return;
+
     const rec={
       id:$('recordId').value,
       areaId:currentAreaId,

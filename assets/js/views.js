@@ -216,8 +216,10 @@ async function deleteBranchMessage(messageId){
 
 function renderAnalysis(){
   const total=records.length,countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
-  const unvisited=countStatus('unvisited'),handshake=countStatus('good'),absent=countStatus('absent'),refused=countStatus('refused');
-  const revisit=records.filter(isRevisit).length,warning=records.filter(r=>boolValue(r.warning)).length;
+  const unvisited=countStatus('unvisited'),visitedStatus=countStatus('visited'),handshake=countStatus('good'),absent=countStatus('absent'),refused=countStatus('refused');
+  const revisit=countStatus('revisit'),warning=records.filter(r=>boolValue(r.warning)).length;
+  // 進捗上の「訪問済み」は未訪問以外のユニーク件数。
+  // ステータス別カードの「訪問済」は visited そのものだけを数え、二重計上しない。
   const visited=Math.max(0,total-unvisited),unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
   const follow=records.filter(hasFollow),followPending=follow.filter(r=>!boolValue(r.followDone)).length;
   const poster=records.filter(r=>boolValue(r.posterRequest)),posterPending=poster.filter(r=>!boolValue(r.posterReported)).length;
@@ -260,7 +262,7 @@ function renderAnalysis(){
     <div class="analysis-progress-head"><b>訪問進捗</b><span>${visitRate}%</span></div><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${visitRate}%"></div></div>
     <div class="analysis-grid visit-status-grid">
       <button class="analysis-metric analysis-clickable" onclick="analysisGo('unvisited')"><div class="analysis-value">${unvisited}</div><div class="analysis-label">未訪問</div><span class="analysis-link-hint">一覧を見る →</span></button>
-      ${metric('訪問済',visited)}
+      ${metric('訪問済',visitedStatus)}
       ${metric('手応え',handshake)}
       ${metric('不在',absent)}
       <button class="analysis-metric analysis-clickable" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">再訪予定</div><span class="analysis-link-hint">一覧を見る →</span></button>
