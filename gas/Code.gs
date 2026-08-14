@@ -7,7 +7,7 @@ const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 const BRANCH_MESSAGE_HEADERS=['messageId','fromBranchId','toBranchId','title','body','createdBy','createdByName','createdAt','active'];
 
-function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.29 API'});}
+function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.30 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -175,11 +175,11 @@ function migrateRecordsToV212_(ss){
 function login_(p){cleanupSessions_();const id=String(p.loginId||'').trim(),pw=String(p.password||'');if(!id||!pw)throw Error('ユーザーIDとパスワードを入力してください');const users=rows_(SHEETS.USERS);const u=users.find(x=>String(x.loginId)===id&&truth_(x.active));if(!u||!passwordMatches_(pw,u))throw Error('ユーザーIDまたはパスワードが違います');const branch=rows_(SHEETS.BRANCHES).find(b=>String(b.branchId)===String(u.branchId))||{};const token=uuid_()+uuid_();const expires=new Date(Date.now()+1000*60*60*12).toISOString();SpreadsheetApp.getActive().getSheetByName(SHEETS.SESSIONS).appendRow([token,u.userId,expires,now_()]);return{ok:true,session:{token,userId:u.userId,loginId:u.loginId,name:u.name,role:u.role,branchId:u.branchId,areaId:u.areaId||'',branchName:branch.name||'全支部',mustChangePassword:truth_(u.mustChangePassword),expiresAt:expires}};}
 
 
-// Ver.2.8.29: 名簿取込の党員・サポーターで支持ランク未判定をBへ補完します。1回だけ実行してください。
+// Ver.2.8.30: 名簿取込の党員・サポーターで支持ランク未判定をBへ補完します。1回だけ実行してください。
 function upgradeV2829(){
   const ss=SpreadsheetApp.getActive();
   const sh=ss.getSheetByName('Records');
-  if(!sh||sh.getLastRow()<2)return 'Ver.2.8.29 更新完了（対象データなし）';
+  if(!sh||sh.getLastRow()<2)return 'Ver.2.8.30 更新完了（対象データなし）';
   const vals=sh.getDataRange().getValues(),heads=vals[0].map(String),idx={};heads.forEach((h,i)=>idx[h]=i);
   let updated=0;
   for(let i=1;i<vals.length;i++){
@@ -190,7 +190,7 @@ function upgradeV2829(){
     if(imported&&['party_member','supporter'].includes(mt)&&!rank){r[idx.supporter]='B';updated++;}
   }
   if(updated)sh.getRange(2,1,vals.length-1,vals[0].length).setValues(vals.slice(1));
-  return `Ver.2.8.29 更新完了：支持ランクB補完 ${updated}件`;
+  return `Ver.2.8.30 更新完了：支持ランクB補完 ${updated}件`;
 }
 
 // Ver.2.8.8: 支部間の共有連絡を追加します。1回だけ実行してください。

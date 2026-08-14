@@ -1842,3 +1842,18 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .map-priority-filter{flex:1 1 100%!important;width:100%!important}
   .map-priority-filter select{width:100%!important}
 }
+
+
+/* Ver.2.8.30 — compact map header + Google Maps near address */
+.map-meta-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.map-meta-actions .map-filter-toggle{margin:0;min-height:34px;padding:6px 10px}
+.map-legend-row{align-items:center}
+.address-google-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.address-google-row .google-maps-btn{white-space:nowrap;min-height:44px}
+@media(max-width:700px){
+  .desktop-map-meta .map-legend-row{flex-direction:column;align-items:stretch}
+  .map-meta-actions{justify-content:space-between;width:100%}
+  .map-meta-actions .map-filter-toggle{width:auto;min-height:38px}
+  .address-google-row{grid-template-columns:1fr}
+  .address-google-row .google-maps-btn{width:100%}
+}
