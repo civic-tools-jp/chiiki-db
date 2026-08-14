@@ -53,7 +53,7 @@ function recordCard(r){
       <span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span>
       <span class="badge">${(session?.role==='member'&&['party_member','supporter'].includes(mt))?(r.locationConfirmed?'🔒 位置確認済':'⚠ 位置未確認'):(located?'📍 位置取得済':'⚠ 位置未取得')}</span>
       ${supportRankLabel(r.supporter)?`<span class="badge support-rank-badge rank-${supportRankValue(r.supporter).toLowerCase()}">${esc(supportRankLabel(r.supporter))}</span>`:''}
-      ${r.revisitPriority?`<span class="badge">再訪 ${esc(r.revisitPriority)}</span>`:''}
+      ${r.revisitPriority?`<span class="badge">優先度 ${esc(String(r.revisitPriority).replace(/^[△○◎]/,''))}</span>`:''}
       ${boolValue(r.warning)?'<span class="badge warning-soft">⚠ 訪問注意</span>':''}
       ${recordFollowBadges(r)}
     </div>
@@ -84,9 +84,9 @@ function toggleListFilters(force){
 function renderLists(){
   const q=($('listSearch')?.value||'').trim().toLowerCase();
   const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',supportRank=$('listSupportRank')?.value||'',location=$('listLocation')?.value||'';
-  const revisit=!!$('listRevisit')?.checked,unvisited=!!$('listUnvisited')?.checked,refused=!!$('listRefused')?.checked,warning=!!$('listWarning')?.checked;
+  const unvisited=!!$('listUnvisited')?.checked,visitedFilter=!!$('listVisited')?.checked,goodFilter=!!$('listGood')?.checked,absentFilter=!!$('listAbsent')?.checked,revisit=!!$('listRevisit')?.checked,refused=!!$('listRefused')?.checked,warning=!!$('listWarning')?.checked;
   const follow=!!$('listFollow')?.checked,followPending=!!$('listFollowPending')?.checked,poster=!!$('listPosterRequest')?.checked,posterPending=!!$('listPosterPending')?.checked;
-  const statusFilters=[];if(revisit)statusFilters.push('revisit');if(unvisited)statusFilters.push('unvisited');if(refused)statusFilters.push('refused');
+  const statusFilters=[];if(unvisited)statusFilters.push('unvisited');if(visitedFilter)statusFilters.push('visited');if(goodFilter)statusFilters.push('good');if(absentFilter)statusFilters.push('absent');if(revisit)statusFilters.push('revisit');if(refused)statusFilters.push('refused');
   const filtered=records.filter(r=>{
     if(currentAreaId&&String(r.areaId||'')!==String(currentAreaId))return false;
     if(q&&![r.personName,r.fullAddress,r.phone,r.email,r.partyId,r.sourceBranch,r.referrer,r.memo,r.followMemo,r.posterRequestMemo].some(v=>String(v||'').toLowerCase().includes(q)))return false;
@@ -132,7 +132,7 @@ function townKey(address){
   return normalizeTownName(s.replace(/^.*?(?:東区|博多区|中央区|南区|城南区|早良区|西区)/,'').slice(0,12)||'その他');
 }
 function clearListChecks(){
-  ['listRevisit','listUnvisited','listRefused','listWarning','listFollow','listFollowPending','listPosterRequest','listPosterPending'].forEach(id=>{if($(id))$(id).checked=false});
+  ['listUnvisited','listVisited','listGood','listAbsent','listRevisit','listRefused','listWarning','listFollow','listFollowPending','listPosterRequest','listPosterPending'].forEach(id=>{if($(id))$(id).checked=false});
 }
 function analysisGo(kind){
   if($('listSource'))$('listSource').value='';if($('listMemberType'))$('listMemberType').value='';if($('listSupportRank'))$('listSupportRank').value='';if($('listLocation'))$('listLocation').value='';clearListChecks();
@@ -226,7 +226,7 @@ function renderAnalysis(){
   const visitRate=total?Math.round(visited/total*100):0;
   const towns={};
   records.forEach(r=>{const k=townKey(r.fullAddress);if(!towns[k])towns[k]={total:0,visited:0,unvisited:0,revisit:0};const t=towns[k];t.total++;const st=statusKey(r.status);if(st==='unvisited')t.unvisited++;else t.visited++;if(isRevisit(r))t.revisit++});
-  const townRows=Object.entries(towns).sort((a,b)=>b[1].unvisited-a[1].unvisited).slice(0,10).map(([name,t])=>{const rate=t.total?Math.round(t.visited/t.total*100):0;return `<div class="analysis-town-row"><div class="analysis-town-main"><b>${esc(name)}</b><span>${t.total}件</span></div><div class="analysis-town-stats"><span>未訪問 ${t.unvisited}</span><span>再訪 ${t.revisit}</span><span>進捗 ${rate}%</span></div><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${rate}%"></div></div></div>`}).join('');
+  const townRows=Object.entries(towns).sort((a,b)=>b[1].unvisited-a[1].unvisited).slice(0,10).map(([name,t])=>{const rate=t.total?Math.round(t.visited/t.total*100):0;return `<div class="analysis-town-row"><div class="analysis-town-main"><b>${esc(name)}</b><span>${t.total}件</span></div><div class="analysis-town-stats"><span>未訪問 ${t.unvisited}</span><span>再訪予定 ${t.revisit}</span><span>進捗 ${rate}%</span></div><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${rate}%"></div></div></div>`}).join('');
   const action=(kind,label,value,detail)=>`<button class="analysis-action analysis-clickable" onclick="analysisGo('${kind}')"><span class="analysis-action-value">${value}</span><span class="analysis-action-label">${esc(label)}</span><span class="analysis-action-sub">${esc(detail)}</span><span class="analysis-link-hint">一覧を見る →</span></button>`;
   const metric=(label,value)=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div></div>`;
   const el=$('analysisContent');if(!el)return;
@@ -244,7 +244,7 @@ function renderAnalysis(){
     <div class="section-heading"><div class="heading-icon orange activity-icon">⚡</div><div><h2>対応が必要</h2><p>次に確認・対応する項目</p></div></div>
     <div class="analysis-action-group-label">訪問対応</div>
     <div class="analysis-actions">
-      ${action('revisit','要再訪',revisit,'もう一度訪問する')}
+      ${action('revisit','再訪予定',revisit,'もう一度訪問する')}
       ${action('warning','訪問注意',warning,'訪問前に注意事項を確認')}
     </div>
     <div class="analysis-action-group-label">フォロー・報告</div>
@@ -263,7 +263,7 @@ function renderAnalysis(){
       ${metric('訪問済',visited)}
       ${metric('手応え',handshake)}
       ${metric('不在',absent)}
-      <button class="analysis-metric analysis-clickable" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">要再訪</div><span class="analysis-link-hint">一覧を見る →</span></button>
+      <button class="analysis-metric analysis-clickable" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">再訪予定</div><span class="analysis-link-hint">一覧を見る →</span></button>
       ${metric('断られた',refused)}
     </div>
   </div>
