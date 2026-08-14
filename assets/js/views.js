@@ -68,18 +68,18 @@ function toggleListFilters(force){
   const panel=$('listFilterPanel');
   const btn=$('listFilterToggle');
   if(!panel)return;
-  const isMobile=window.matchMedia('(max-width:700px)').matches;
-  if(!isMobile){
-    panel.classList.remove('mobile-collapsed');
-    if(btn)btn.setAttribute('aria-expanded','true');
-    return;
-  }
-  const open=typeof force==='boolean'?force:panel.classList.contains('mobile-collapsed');
-  panel.classList.toggle('mobile-collapsed',!open);
+  const open=typeof force==='boolean'?force:panel.classList.contains('filters-collapsed');
+  panel.classList.toggle('filters-collapsed',!open);
   if(btn){
     btn.setAttribute('aria-expanded',open?'true':'false');
     btn.textContent=open?'× 閉じる':'⚙ 絞り込み';
   }
+}
+function clearListFilters(){
+  const values={listSearch:'',listSource:'',listMemberType:'',listSupportRank:'',listLocation:'',listPriority:'',listSort:'default',listDateFrom:'',listDateTo:''};
+  Object.entries(values).forEach(([id,val])=>{const el=$(id);if(el)el.value=val;});
+  ['listUnvisited','listVisited','listGood','listAbsent','listRevisit','listRefused','listWarning','listFollow','listFollowPending','listPosterRequest','listPosterPending'].forEach(id=>{const el=$(id);if(el)el.checked=false;});
+  renderLists();
 }
 function renderLists(){
   const q=($('listSearch')?.value||'').trim().toLowerCase();
@@ -299,6 +299,6 @@ function showView(v){
   ['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x)?.classList.toggle('hidden',x!==v));
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   if(v==='analysis')renderAnalysis();
-  if(v==='list')setTimeout(()=>toggleListFilters(window.innerWidth>700),0);
+  if(v==='list')setTimeout(()=>toggleListFilters(false),0);
   if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();},100);
 }

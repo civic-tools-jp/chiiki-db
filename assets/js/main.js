@@ -1,6 +1,19 @@
 "use strict";
 window.addEventListener('load',()=>{if(session)startApp()});
 
+
+function toggleMapFilters(force){
+  const panel=document.getElementById('mapQuickFilters');
+  const btn=document.getElementById('mapFilterToggle');
+  if(!panel)return;
+  const open=typeof force==='boolean'?force:panel.classList.contains('filters-collapsed');
+  panel.classList.toggle('filters-collapsed',!open);
+  if(btn){
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.textContent=open?'× 閉じる':'⚙ 絞り込み';
+  }
+}
+
 (function initTouchTips(){
   let timer=null;
   document.addEventListener('click',e=>{

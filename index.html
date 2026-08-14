@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.24</title>
+<title>あいサポ Ver.2.8.25</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.24">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.25">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
     <div class="brand-lockup login-brand brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.24" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.25" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
     </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
@@ -19,14 +19,14 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.24</div>
+    <div class="version-note">Ver.2.8.25</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
     <div class="brand-lockup brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.24" alt="あいサポ" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.25" alt="あいサポ" class="aisapo-logo-image">
     </div>
     <div class="mobile-user-actions">
       <div id="mobileUserAvatar" class="mobile-user-avatar">👤</div><div class="mobile-user-name" id="mobileUserName">ユーザー</div>
@@ -91,7 +91,10 @@
               <div id="mapResultCount" class="map-result-count">該当 0件</div>
             </div>
           </div>
-          <div id="mapQuickFilters" class="chip-filters map-quick-filters">
+          <div class="map-filter-tools">
+            <button type="button" id="mapFilterToggle" class="btn map-filter-toggle" onclick="toggleMapFilters()" aria-expanded="false">⚙ 絞り込み</button>
+          </div>
+          <div id="mapQuickFilters" class="chip-filters map-quick-filters filters-collapsed">
             <label><input id="mapFollow" type="checkbox" onchange="renderMarkers()"><span class="filter-dot filter-follow">◆</span>フォロー対象</label>
             <label><input id="mapFollowPending" type="checkbox" onchange="renderMarkers()"><span class="filter-dot filter-pending">⌛</span>未対応のみ</label>
             <label><input id="mapPosterRequest" type="checkbox" onchange="renderMarkers()"><span class="filter-dot filter-poster">▣</span>ポスター依頼</label>
@@ -114,7 +117,8 @@
           <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
           <button type="button" id="listFilterToggle" class="btn list-filter-toggle" onclick="toggleListFilters()">⚙ 絞り込み</button>
         </div>
-        <div id="listFilterPanel" class="list-filter-body">
+        <div id="listFilterPanel" class="list-filter-body filters-collapsed">
+          <div class="filter-panel-actions"><button type="button" class="btn filter-clear-btn" onclick="clearListFilters()">条件をクリア</button></div>
           <div class="row list-select-filters">
             <div><label class="label">登録方法</label><select id="listSource" onchange="renderLists()"><option value="">すべて</option><option value="import">名簿取込</option><option value="manual">手入力</option><option value="map">地図登録</option></select></div>
             <div><label class="label">区分</label><select id="listMemberType" onchange="renderLists()"><option value="">すべて</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="general">一般</option><option value="unknown">未設定</option></select></div>
@@ -279,5 +283,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.24"></script><script src="assets/js/state.js?v=2.8.24"></script><script src="assets/js/utils.js?v=2.8.24"></script><script src="assets/js/api.js?v=2.8.24"></script><script src="assets/js/auth.js?v=2.8.24"></script><script src="assets/js/map.js?v=2.8.24"></script><script src="assets/js/records.js?v=2.8.24"></script><script src="assets/js/contacts.js?v=2.8.24"></script><script src="assets/js/views.js?v=2.8.24"></script><script src="assets/js/admin.js?v=2.8.24"></script><script src="assets/js/main.js?v=2.8.24"></script>
+<script src="assets/js/config.js?v=2.8.25"></script><script src="assets/js/state.js?v=2.8.25"></script><script src="assets/js/utils.js?v=2.8.25"></script><script src="assets/js/api.js?v=2.8.25"></script><script src="assets/js/auth.js?v=2.8.25"></script><script src="assets/js/map.js?v=2.8.25"></script><script src="assets/js/records.js?v=2.8.25"></script><script src="assets/js/contacts.js?v=2.8.25"></script><script src="assets/js/views.js?v=2.8.25"></script><script src="assets/js/admin.js?v=2.8.25"></script><script src="assets/js/main.js?v=2.8.25"></script>
 </body></html>

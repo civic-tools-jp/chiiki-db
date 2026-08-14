@@ -7,7 +7,7 @@ const RECORD_HEADERS=['id','branchId','areaId','active','inactiveAt','inactiveBy
 const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 const BRANCH_MESSAGE_HEADERS=['messageId','fromBranchId','toBranchId','title','body','createdBy','createdByName','createdAt','active'];
 
-function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.24 API'});}
+function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.25 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
@@ -36,6 +36,24 @@ function upgradeV2824(){
   });
   sh.getRange(2,1,vals.length,headers.length).setValues(vals);
   return `Ver.2.8.24 更新完了：党員支持ランクB ${rankUpdated}件／訪問回数初期化 ${countInitialized}件`;
+}
+
+// Ver.2.8.25: 既存の名簿取込「党員」で支持ランク未判定のものを再確認しBへ補完します。1回だけ実行してください。
+function upgradeV2825(){
+  const ss=SpreadsheetApp.getActive(),sh=ss.getSheetByName(SHEETS.RECORDS);
+  if(!sh)throw Error('Recordsシートが見つかりません');
+  ensureHeadersByName_(sh,RECORD_HEADERS);
+  const headers=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String),idx=Object.fromEntries(headers.map((h,i)=>[h,i]));
+  if(sh.getLastRow()<2)return 'Ver.2.8.25 更新完了（対象データなし）';
+  const vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();let rankUpdated=0;
+  vals.forEach(r=>{
+    const imported=String(r[idx.source]||'').trim()==='import';
+    const party=normalizeMemberType_(r[idx.memberType])==='party_member';
+    const rank=String(r[idx.supporter]||'').trim();
+    if(imported&&party&&!rank){r[idx.supporter]='B';rankUpdated++;}
+  });
+  sh.getRange(2,1,vals.length,headers.length).setValues(vals);
+  return `Ver.2.8.25 更新完了：党員支持ランクB補完 ${rankUpdated}件`;
 }
 
 // Ver.2 → Ver.2.1 移行。現在のシートを残しつつ構造を更新します。1回だけ実行してください。
@@ -510,7 +528,7 @@ function importContacts_(u,p){
   const branchNameById=Object.fromEntries(branches.map(b=>[String(b.branchId),String(b.name||'')]));
   const geocoder=Maps.newGeocoder().setLanguage('ja').setRegion('jp');
 
-  let added=0,updated=0,skipped=0,duplicateSkipped=0,unmatched=0,geocoded=0,geocodeFailed=0;
+  let added=0,skipped=0,duplicateSkipped=0,unmatched=0,areaUndetermined=0,geocoded=0,geocodeFailed=0;
 
   function detectArea_(address,sourceBranch){
     const a=String(address||'').replace(/\s+/g,'');
@@ -540,27 +558,14 @@ function importContacts_(u,p){
     return null;
   }
 
-  function findExisting_(raw,name,address,phone,targetAreaId){
-    const partyId=String(raw.partyId||'').trim();
-    if(partyId)return null; // 党員IDありはIDだけを一意キーとして扱う。ID不一致なら必ず新規。
-    const n=String(name||'').trim().toLowerCase();
-    const a=String(address||'').trim().toLowerCase();
-    const ph=String(phone||'').replace(/\D/g,'');
-    return existing.find(x=>{
-      if(targetAreaId&&String(x.areaId)!==String(targetAreaId))return false;
-      if(n&&a&&String(x.personName||'').trim().toLowerCase()===n&&String(x.fullAddress||'').trim().toLowerCase()===a)return true;
-      if(n&&ph&&String(x.personName||'').trim().toLowerCase()===n&&String(x.phone||'').replace(/\D/g,'')===ph)return true;
-      return false;
-    });
-  }
-
-  // 党員IDは一意キー。既存レコード＋同一取込バッチ内の両方で重複を検出する。
+  // 名簿取込では既存データを更新しない。党員IDが一致した行だけ重複としてスキップする。
   const existingPartyIds=new Set(existing.map(x=>String(x.partyId||'').trim()).filter(Boolean));
   for(const raw of input){
     const incomingPartyId=String(raw.partyId||'').trim();
-    if(incomingPartyId && existingPartyIds.has(incomingPartyId)){
-      duplicateSkipped++; skipped++; continue;
+    if(incomingPartyId&&existingPartyIds.has(incomingPartyId)){
+      duplicateSkipped++;skipped++;continue;
     }
+
     const lastName=cleanImportedPersonName_(raw.lastName);
     const firstName=cleanImportedPersonName_(raw.firstName);
     const name=String(raw.name||[lastName,firstName].filter(Boolean).join(' ')).trim();
@@ -569,14 +574,10 @@ function importContacts_(u,p){
     if(!name&&!address){skipped++;continue;}
 
     const detected=detectArea_(address,raw.sourceBranch);
-    // 住所があるのに登録済み活動エリアへ判定できない場合は、
-    // 現在選択中エリアへ誤登録せず取り込み対象外にする。
-    // 住所自体が空の場合のみ、選択中エリアの名簿として残す。
     if(address&&!detected){unmatched++;skipped++;continue;}
     const targetArea=detected||defaultArea;
 
-    const old=findExisting_(raw,name,address,phone,targetArea.areaId);
-    let lat=Number(raw.lat)||Number(old?.lat)||'',lng=Number(raw.lng)||Number(old?.lng)||'';
+    let lat=Number(raw.lat)||'',lng=Number(raw.lng)||'';
     if(address&&(!lat||!lng)){
       try{
         const geo=geocoder.geocode(address);
@@ -586,39 +587,33 @@ function importContacts_(u,p){
           lng=Number(result.geometry.location.lng)||'';
           if(lat&&lng)geocoded++;else geocodeFailed++;
         }else geocodeFailed++;
-      }catch(e){ geocodeFailed++; }
+      }catch(e){geocodeFailed++;}
     }
+    if(!lat||!lng)areaUndetermined++;
 
     const now=now_();
     const memberType=normalizeMemberType_(raw.memberType);
     const item={
-      id:old?old.id:uuid_(),branchId:old?old.branchId:targetArea.branchId,areaId:targetArea.areaId,
+      id:uuid_(),branchId:targetArea.branchId,areaId:targetArea.areaId,active:true,inactiveAt:'',inactiveBy:'',inactiveReason:'',
       source:'import',memberType,
-      partyId:String(raw.partyId||old?.partyId||'').trim(),
+      partyId:incomingPartyId,
       lastName,lastNameKana:String(raw.lastNameKana||'').trim(),firstName,firstNameKana:String(raw.firstNameKana||'').trim(),
       postalCode:String(raw.postalCode||'').trim(),birthDate:raw.birthDate||'',gender:String(raw.gender||'').trim(),
       occupation:String(raw.occupation||'').trim(),approvedAt:raw.approvedAt||'',branchParticipation:String(raw.branchParticipation||'').trim(),
       joinReason:String(raw.joinReason||'').trim(),sourceBranch:String(raw.sourceBranch||'').trim(),contactId:'',
-      lat,lng,area:old?.area||'',address:old?.address||'',fullAddress:address||old?.fullAddress||'',personName:cleanImportedPersonName_(name||old?.personName||'名称未設定'),
-      phone,email:String(raw.email||'').trim(),status:old?.status||'unvisited',type:old?.type||'戸建て',
-      household:old?.household||'',contact:old?.contact||'',revisitPriority:old?.revisitPriority||'',
-      referrer:String(raw.referrer||old?.referrer||'').trim(),supporter:String(raw.supporter||old?.supporter||(memberType==='party_member'?'B':'')).trim(),
-      warning:bool_(old?.warning),warningReason:old?.warningReason||'',warningMemo:old?.warningMemo||'',
-      visitCount:Number(old?.visitCount||0)||0,
-      signboard:bool_(old?.signboard),posterParty:old?.posterParty||'',posterMemo:old?.posterMemo||'',
-      memo:String(raw.memo||old?.memo||'').trim(),date:old?.date||'',startTime:old?.startTime||'',endTime:old?.endTime||'',
-      durationMinutes:old?.durationMinutes||'',googleMapsUrl:old?.googleMapsUrl||'',
-      assigneeId:old?.assigneeId||u.userId,assigneeName:old?.assigneeName||u.name,
-      createdAt:old?.createdAt||now,updatedAt:now,updatedBy:u.name
+      lat,lng,area:'',address:'',fullAddress:address,personName:cleanImportedPersonName_(name||'名称未設定'),
+      phone,email:String(raw.email||'').trim(),status:'unvisited',type:'戸建て',household:'',contact:'',revisitPriority:'',
+      referrer:String(raw.referrer||'').trim(),supporter:String(raw.supporter||(memberType==='party_member'?'B':'')).trim(),
+      followParty:false,followSupporter:false,followDetails:false,followDone:false,followMemo:'',
+      warning:false,warningReason:'',warningMemo:'',posterRequest:false,posterReported:false,posterRequestMemo:'',
+      visitCount:0,signboard:false,posterParty:'',posterMemo:'',memo:String(raw.memo||'').trim(),date:'',startTime:'',endTime:'',
+      durationMinutes:'',googleMapsUrl:'',assigneeId:u.userId,assigneeName:u.name,
+      createdAt:now,updatedAt:now,updatedBy:u.name
     };
-    if(old){
-      writeRecordByHeader_(sh,old._row,item); updated++; Object.assign(old,item);
-    }else{
-      const row=writeRecordByHeader_(sh,null,item); added++; existing.push({...item,_row:row});
-      if(item.partyId)existingPartyIds.add(String(item.partyId).trim());
-    }
+    const row=writeRecordByHeader_(sh,null,item);added++;existing.push({...item,_row:row});
+    if(item.partyId)existingPartyIds.add(String(item.partyId).trim());
   }
-  return{ok:true,added,updated,skipped,duplicateSkipped,unmatched,geocoded,geocodeFailed};
+  return{ok:true,added,skipped,duplicateSkipped,unmatched,areaUndetermined,geocoded,geocodeFailed};
 }
 function createArea_(u,x){requireAdmin_(u);let branchId=x.branchId||u.branchId;if(u.role==='leader')branchId=u.branchId;if(!branchId)throw Error('支部を選択してください');if(!x.name)throw Error('エリア名を入力してください');const areaId=x.areaId||('area_'+uuid_().slice(0,12));SpreadsheetApp.getActive().getSheetByName(SHEETS.AREAS).appendRow([areaId,branchId,x.city||'',x.name,Number(x.mapLat)||'',Number(x.mapLng)||'',true]);return{ok:true,areaId};}
 function deleteArea_(u,p){requireSystemAdmin_(u);const areaId=String(p.areaId||''),sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.AREAS),target=rowsWithRow_(SHEETS.AREAS).find(x=>String(x.areaId)===areaId);if(!target)throw Error('活動エリアが見つかりません');if(rows_(SHEETS.USERS).some(x=>truth_(x.active)&&String(x.areaId)===areaId))throw Error('利用中のユーザーがいるため削除できません');if(rows_(SHEETS.RECORDS).some(x=>String(x.areaId)===areaId&&String(x.active||'true').toLowerCase()!=='false'))throw Error('訪問先データがあるため削除できません');sh.deleteRow(target._row);return{ok:true};}

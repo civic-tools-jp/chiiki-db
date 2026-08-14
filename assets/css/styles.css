@@ -1731,3 +1731,32 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .mobile-user-avatar{display:grid}
   .mobile-user-actions{gap:6px}
 }
+
+/* Ver.2.8.25 — collapsible map/list filters */
+.filters-collapsed{display:none!important}
+.map-filter-tools{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:10px;
+}
+.map-filter-toggle,.filter-clear-btn{
+  min-height:38px;
+  padding:8px 12px;
+  border-radius:12px;
+  background:#fff7ec;
+  color:#2e7d43;
+  border:1px solid #ead8c5;
+  font-weight:900;
+}
+.map-quick-filters{margin-top:10px}
+.filter-panel-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:10px;
+}
+@media(max-width:700px){
+  .map-filter-tools{margin-top:8px}
+  .map-filter-toggle{width:100%;min-height:42px}
+  .filter-panel-actions{justify-content:stretch}
+  .filter-clear-btn{width:100%}
+}
