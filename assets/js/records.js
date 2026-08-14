@@ -69,7 +69,7 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
     locationNote.classList.toggle('hidden',!protectedMember);
   }
 
-  $('editModal').style.display='flex'}
+  const editModal=$('editModal');editModal.style.display='flex';requestAnimationFrame(()=>{editModal.scrollTop=0;const detail=editModal.querySelector('.detail-modal');if(detail)detail.scrollTop=0;window.scrollTo({top:0,left:0,behavior:'auto'});});}
 function toggleRecordContactLink(){
   const checked=!!$('linkContactCheck')?.checked;
   $('recordContactWrap')?.classList.toggle('hidden',!checked);

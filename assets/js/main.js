@@ -31,8 +31,8 @@ function toggleMapFilters(force){
 
 
 function toggleMobileLegend(){
-  const box=document.getElementById('mobileMapLegend');
-  if(box) box.classList.toggle('hidden');
+  // Ver.2.8.33: スマホでは地図の見方を常時表示。旧呼び出し互換のため残す。
+  document.getElementById('mobileMapLegend')?.classList.remove('hidden');
 }
 function syncMobileMapMeta(){
   const src=document.querySelector('.map-legend-inline');

@@ -1893,3 +1893,23 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   #mobileMapCount{white-space:nowrap}
   .password-toggle{width:44px;height:44px;font-size:21px}
 }
+
+
+/* Ver.2.8.33 — compact list cards, always-visible mobile legend, cute password toggle */
+.card-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.card-title-row .card-title{min-width:0;flex:1}
+.card-title-row .list-map-btn{flex:0 0 auto;margin:0}
+.map-legend-label{font-weight:900;color:#4d473f;font-size:12px;white-space:nowrap}
+.password-toggle{display:grid;place-items:center;background:#fff8ef;border:1px solid #f2dfc8;box-shadow:0 1px 3px rgba(99,72,42,.08)}
+.password-toggle:hover{background:#fff1df}
+.password-cute-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:linear-gradient(145deg,#fffaf4,#ffe9cf);font-size:18px;line-height:1;filter:saturate(.9)}
+@media(max-width:700px){
+  .map-legend-toggle{display:none!important}
+  .mobile-map-legend{display:flex!important}
+  .mobile-map-legend.hidden{display:flex!important}
+  .mobile-map-meta{margin-bottom:3px}
+  .map-legend-label{padding:4px 1px}
+  .card-title-row{align-items:flex-start;gap:6px}
+  .card-title-row .card-title{line-height:1.45}
+  .card-title-row .list-map-btn{width:36px;height:36px;min-width:36px;border-radius:11px;font-size:16px}
+}

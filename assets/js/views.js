@@ -49,7 +49,7 @@ function recordCard(r){
   const located=!!(Number(r.lat)&&Number(r.lng));
   const sourceLabel={import:'名簿取込',manual:'手入力',map:'地図登録'};
   return `<article class="card" style="border-left-color:${st.color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
-    <div class="card-title">${esc(recordDisplayName(r)||'名前未登録')} <span class="badge status-badge"><span class="status-icon">${esc(st.icon||'')}</span>${esc(st.label)}</span></div>
+    <div class="card-title-row"><div class="card-title">${esc(recordDisplayName(r)||'名前未登録')} <span class="badge status-badge"><span class="status-icon">${esc(st.icon||'')}</span>${esc(st.label)}</span></div>${located?`<button type="button" class="list-map-btn has-tip" data-tip="地図で見る" onclick="event.stopPropagation();showRecordOnMap('${esc(r.id)}')">📍 <span>地図で見る</span></button>`:''}</div>
     <div class="muted">${esc(r.fullAddress||'住所未設定')}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
     <div class="badges">
       <span class="badge member-badge ${mt==='party_member'?'member-party':mt==='supporter'?'member-supporter':''}">${esc(memberTypeLabel(mt))}</span>
@@ -62,9 +62,6 @@ function recordCard(r){
     </div>
     ${r.referrer?`<div class="card-sub">紹介：${esc(r.referrer)}</div>`:''}
     ${r.memo?`<div class="card-sub">${esc(r.memo)}</div>`:''}
-    <div class="card-actions">
-      ${located?`<button type="button" class="list-map-btn has-tip" data-tip="地図で見る" onclick="event.stopPropagation();showRecordOnMap('${esc(r.id)}')">📍 <span>地図で見る</span></button>`:`<span class="list-map-unavailable">位置未取得</span>`}
-    </div>
   </article>`;
 }
 function toggleListFilters(force){

@@ -8,7 +8,7 @@ const SESSION_HEADERS=['token','userId','expiresAt','createdAt'];
 const BRANCH_MESSAGE_HEADERS=['messageId','fromBranchId','toBranchId','title','body','createdBy','createdByName','createdAt','active'];
 const LOGIN_HISTORY_HEADERS=['logId','userId','loginId','name','success','loggedAt'];
 
-function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.32 API'});}
+function doGet(){return json_({ok:true,name:'あいサポ Ver.2.8.33 API'});}
 function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}');if(p.action==='setup')return json_(setup_(p));if(p.action==='login')return json_(login_(p));const user=auth_(p.token);switch(p.action){
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
