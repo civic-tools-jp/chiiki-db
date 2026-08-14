@@ -81,38 +81,13 @@ function renderMarkers(){
   Object.values(markers).forEach(m=>map.removeLayer(m));
   markers={};
   const pts=[];
-
-  // 同じグループ内は OR、グループ間は AND
-  const memberFilters=[];
-  if($('filterParty')?.checked)memberFilters.push('party_member');
-  if($('filterSupporter')?.checked)memberFilters.push('supporter');
-
-  const statusFilters=[];
-  if($('filterUnvisited')?.checked)statusFilters.push('unvisited');
-  if($('filterVisited')?.checked)statusFilters.push('visited');
-  if($('filterGood')?.checked)statusFilters.push('good');
-  if($('filterAbsent')?.checked)statusFilters.push('absent');
-  if($('filterRevisit')?.checked)statusFilters.push('revisit');
-  if($('filterRefused')?.checked)statusFilters.push('refused');
-
-  const warningOnly=!!$('filterWarning')?.checked;
-  const followOnly=!!$('filterFollow')?.checked;
-  const posterOnly=!!$('filterPosterRequest')?.checked;
-
   let matched=0,shown=0;
+
   records.forEach(r=>{
-    // 画面側でも現在の活動エリアを二重チェック。
     if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
-    const mt=recordMemberType(r),key=statusKey(r.status);
-    if(memberFilters.length&&!memberFilters.includes(mt))return;
-    if(statusFilters.length&&!statusFilters.includes(key))return;
-    if(warningOnly&&!boolValue(r.warning))return;
-    if(followOnly&&!(typeof hasFollow==='function'&&hasFollow(r)))return;
-    if(posterOnly&&!boolValue(r.posterRequest))return;
     matched++;
+    const mt=recordMemberType(r),key=statusKey(r.status);
     const lat=Number(r.lat),lng=Number(r.lng);
-    // 空欄は Number('') === 0 になるため、非表示にする。
-    // 一般ユーザー向けに位置情報を伏せた党員・サポーターもここで除外する。
     if(r.lat===''||r.lat==null||r.lng===''||r.lng==null)return;
     if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng)return;
 
@@ -126,20 +101,43 @@ function renderMarkers(){
       boolValue(r.posterRequest)?'🍊ポスター依頼':''
     ].filter(Boolean).join(' ');
     marker.bindTooltip(extras);
-    markers['r_'+r.id]=marker;pts.push([lat,lng]);shown++;
+    markers['r_'+r.id]=marker;
+    pts.push([lat,lng]);
+    shown++;
   });
 
   const countEl=$('mapResultCount');
   if(countEl){
-    const recordText=matched===shown?`該当 ${matched}件`:`該当 ${matched}件（地図表示 ${shown}件）`;
-    countEl.textContent=recordText;if(typeof syncMobileMapMeta==='function')syncMobileMapMeta();
+    const recordText=matched===shown?`表示 ${matched}件`:`登録 ${matched}件（地図表示 ${shown}件）`;
+    countEl.textContent=recordText;
+    if(typeof syncMobileMapMeta==='function')syncMobileMapMeta();
   }
 
   updateMapDashboard();
   if(pts.length>1)map.fitBounds(pts,{padding:[25,25],maxZoom:17});
   else if(pts.length===1)map.setView(pts[0],17);
 }
-function toggleMapFilters(){$('mapFilterPanel')?.classList.toggle('hidden')}
+
+function showRecordOnMap(recordId){
+  const r=records.find(x=>String(x.id)===String(recordId));
+  if(!r)return;
+  const lat=Number(r.lat),lng=Number(r.lng);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)||!lat||!lng){
+    alert('この訪問先は位置情報がまだ登録されていません');
+    return;
+  }
+  showView('map');
+  setTimeout(()=>{
+    if(!map)return;
+    map.invalidateSize();
+    map.setView([lat,lng],18);
+    const marker=markers['r_'+r.id];
+    if(marker){
+      marker.openTooltip();
+      setTimeout(()=>marker.closeTooltip(),2500);
+    }
+  },180);
+}
 function updateMapDashboard(){
   const areaRecords=records.filter(r=>!currentAreaId||String(r.areaId||'')===String(currentAreaId));
   const unvisited=areaRecords.filter(r=>statusKey(r.status)==='unvisited').length;

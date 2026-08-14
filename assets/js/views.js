@@ -29,6 +29,9 @@ function recordCard(r){
     </div>
     ${r.referrer?`<div class="card-sub">紹介：${esc(r.referrer)}</div>`:''}
     ${r.memo?`<div class="card-sub">${esc(r.memo)}</div>`:''}
+    <div class="card-actions">
+      ${located?`<button type="button" class="list-map-btn has-tip" data-tip="地図で見る" onclick="event.stopPropagation();showRecordOnMap('${esc(r.id)}')">📍 <span>地図で見る</span></button>`:`<span class="list-map-unavailable">位置未取得</span>`}
+    </div>
   </article>`;
 }
 function renderLists(){
