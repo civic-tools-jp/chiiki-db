@@ -45,7 +45,7 @@ function recordCard(r){
   const located=!!(Number(r.lat)&&Number(r.lng));
   const sourceLabel={import:'名簿取込',manual:'手入力',map:'地図登録'};
   return `<article class="card" style="border-left-color:${st.color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
-    <div class="card-title">${esc(recordDisplayName(r)||r.fullAddress||'名称未設定')} <span class="badge">${esc(st.label)}</span></div>
+    <div class="card-title">${esc(recordDisplayName(r)||r.fullAddress||'名称未設定')} <span class="badge status-badge"><span class="status-icon">${esc(st.icon||'')}</span>${esc(st.label)}</span></div>
     <div class="muted">${esc(r.fullAddress||'住所未設定')}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
     ${r.phone?`<div class="muted">☎ ${esc(r.phone)}</div>`:''}
     <div class="badges">
@@ -53,7 +53,7 @@ function recordCard(r){
       <span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span>
       <span class="badge">${(session?.role==='member'&&['party_member','supporter'].includes(mt))?(r.locationConfirmed?'🔒 位置確認済':'⚠ 位置未確認'):(located?'📍 位置取得済':'⚠ 位置未取得')}</span>
       ${supportRankLabel(r.supporter)?`<span class="badge support-rank-badge rank-${supportRankValue(r.supporter).toLowerCase()}">${esc(supportRankLabel(r.supporter))}</span>`:''}
-      ${r.revisitPriority?`<span class="badge">優先度 ${esc(String(r.revisitPriority).replace(/^[△○◎]/,''))}</span>`:''}
+      ${r.revisitPriority?`<span class="badge">優先度 ${esc(String(r.revisitPriority).replace(/^[△○◎]/,''))}</span>`:''}${Number(r.visitCount||0)>0?`<span class="badge">訪問 ${Number(r.visitCount||0)}回</span>`:''}
       ${boolValue(r.warning)?'<span class="badge warning-soft">⚠ 訪問注意</span>':''}
       ${recordFollowBadges(r)}
     </div>
@@ -83,7 +83,7 @@ function toggleListFilters(force){
 }
 function renderLists(){
   const q=($('listSearch')?.value||'').trim().toLowerCase();
-  const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',supportRank=$('listSupportRank')?.value||'',location=$('listLocation')?.value||'';
+  const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',supportRank=$('listSupportRank')?.value||'',location=$('listLocation')?.value||'',priority=$('listPriority')?.value||'',sort=$('listSort')?.value||'default',dateFrom=$('listDateFrom')?.value||'',dateTo=$('listDateTo')?.value||'';
   const unvisited=!!$('listUnvisited')?.checked,visitedFilter=!!$('listVisited')?.checked,goodFilter=!!$('listGood')?.checked,absentFilter=!!$('listAbsent')?.checked,revisit=!!$('listRevisit')?.checked,refused=!!$('listRefused')?.checked,warning=!!$('listWarning')?.checked;
   const follow=!!$('listFollow')?.checked,followPending=!!$('listFollowPending')?.checked,poster=!!$('listPosterRequest')?.checked,posterPending=!!$('listPosterPending')?.checked;
   const statusFilters=[];if(unvisited)statusFilters.push('unvisited');if(visitedFilter)statusFilters.push('visited');if(goodFilter)statusFilters.push('good');if(absentFilter)statusFilters.push('absent');if(revisit)statusFilters.push('revisit');if(refused)statusFilters.push('refused');
@@ -98,6 +98,8 @@ function renderLists(){
     const located=!!(Number(r.lat)&&Number(r.lng));
     if(location==='located'&&!located)return false;
     if(location==='unlocated'&&located)return false;
+    if(priority&&String(r.revisitPriority||'')!==priority)return false;
+    const d=String(r.date||'').slice(0,10); if(dateFrom&&(!d||d<dateFrom))return false; if(dateTo&&(!d||d>dateTo))return false;
     if(statusFilters.length&&!statusFilters.includes(statusKey(r.status)))return false;
     if(warning&&!boolValue(r.warning))return false;
     if(follow&&!hasFollow(r))return false;
@@ -106,6 +108,10 @@ function renderLists(){
     if(posterPending&&(!boolValue(r.posterRequest)||boolValue(r.posterReported)))return false;
     return true;
   });
+  const priorityScore=v=>v==='◎高'?3:v==='○中'?2:v==='△低'?1:0;
+  if(sort==='priority')filtered.sort((a,b)=>priorityScore(b.revisitPriority)-priorityScore(a.revisitPriority));
+  if(sort==='date_desc')filtered.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  if(sort==='date_asc')filtered.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
   $('listCards').innerHTML=filtered.map(recordCard).join('')||'<div class="panel notice">該当データはありません。</div>';
 }
 
@@ -135,7 +141,7 @@ function clearListChecks(){
   ['listUnvisited','listVisited','listGood','listAbsent','listRevisit','listRefused','listWarning','listFollow','listFollowPending','listPosterRequest','listPosterPending'].forEach(id=>{if($(id))$(id).checked=false});
 }
 function analysisGo(kind){
-  if($('listSource'))$('listSource').value='';if($('listMemberType'))$('listMemberType').value='';if($('listSupportRank'))$('listSupportRank').value='';if($('listLocation'))$('listLocation').value='';clearListChecks();
+  if($('listSource'))$('listSource').value='';if($('listMemberType'))$('listMemberType').value='';if($('listSupportRank'))$('listSupportRank').value='';if($('listLocation'))$('listLocation').value='';if($('listPriority'))$('listPriority').value='';if($('listSort'))$('listSort').value='default';clearListChecks();
   if(kind==='unlocated')$('listLocation').value='unlocated';
   if(kind==='revisit')$('listRevisit').checked=true;
   if(kind==='unvisited')$('listUnvisited').checked=true;
@@ -150,6 +156,7 @@ function analysisGo(kind){
   if(kind==='followPending')$('listFollowPending').checked=true;
   if(kind==='posterRequest')$('listPosterRequest').checked=true;
   if(kind==='posterPending')$('listPosterPending').checked=true;
+  if(kind==='priorityHigh')$('listPriority').value='◎高'; if(kind==='priorityMedium')$('listPriority').value='○中'; if(kind==='priorityLow')$('listPriority').value='△低';
   showView('list');renderLists();
 }
 async function loadBranchMessages(){
@@ -218,6 +225,7 @@ function renderAnalysis(){
   const total=records.length,countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
   const unvisited=countStatus('unvisited'),visitedStatus=countStatus('visited'),handshake=countStatus('good'),absent=countStatus('absent'),refused=countStatus('refused');
   const revisit=countStatus('revisit'),warning=records.filter(r=>boolValue(r.warning)).length;
+  const priorityHigh=records.filter(r=>String(r.revisitPriority||'')==='◎高').length,priorityMedium=records.filter(r=>String(r.revisitPriority||'')==='○中').length,priorityLow=records.filter(r=>String(r.revisitPriority||'')==='△低').length;
   // 進捗上の「訪問済み」は未訪問以外のユニーク件数。
   // ステータス別カードの「訪問済」は visited そのものだけを数え、二重計上しない。
   const visited=Math.max(0,total-unvisited),unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
@@ -247,6 +255,9 @@ function renderAnalysis(){
     <div class="analysis-action-group-label">訪問対応</div>
     <div class="analysis-actions">
       ${action('revisit','再訪予定',revisit,'もう一度訪問する')}
+      ${action('priorityHigh','優先度 高',priorityHigh,'優先して確認する')}
+      ${action('priorityMedium','優先度 中',priorityMedium,'次に確認する')}
+      ${action('priorityLow','優先度 低',priorityLow,'余裕がある時に確認')}
       ${action('warning','訪問注意',warning,'訪問前に注意事項を確認')}
     </div>
     <div class="analysis-action-group-label">フォロー・報告</div>

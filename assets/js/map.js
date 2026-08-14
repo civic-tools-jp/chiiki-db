@@ -75,7 +75,7 @@ function markerSvg(key){
     unvisited:`<svg ${common}><path d="M4.7 10.2 12 4.6l7.3 5.6v8.1a1.7 1.7 0 0 1-1.7 1.7H6.4a1.7 1.7 0 0 1-1.7-1.7v-8.1Z" fill="currentColor"/><path d="M9.1 20v-5.7h5.8V20" fill="var(--pin-color)"/></svg>`,
     visited:`<svg ${common}><path d="m6.2 12.5 3.4 3.4 8.2-8.4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     good:`<svg ${common}><path d="M12 20.2S4.4 15.7 4.4 9.6c0-2.7 1.9-4.6 4.4-4.6 1.6 0 2.7.8 3.2 1.8.6-1 1.7-1.8 3.3-1.8 2.5 0 4.3 1.9 4.3 4.6 0 6.1-7.6 10.6-7.6 10.6Z" fill="currentColor"/></svg>`,
-    absent:`<svg ${common}><circle cx="12" cy="7.1" r="2.6" fill="currentColor"/><path d="M7.3 19.2c.4-4.1 2-6.2 4.7-6.2s4.3 2.1 4.7 6.2H7.3Z" fill="currentColor"/></svg>`,
+    absent:`<svg ${common}><rect x="7" y="5" width="10" height="15" rx="1.2" fill="currentColor"/><circle cx="14.4" cy="12.6" r="1" fill="var(--pin-color)"/><path d="M5 7.5 19 19" stroke="var(--pin-color)" stroke-width="2.6" stroke-linecap="round"/></svg>`,
     revisit:`<svg ${common}><path d="M12 4.3a7.7 7.7 0 1 1-7.2 10.4" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="m3.7 8.2 1.1 6.5 5.4-3.6" fill="currentColor"/></svg>`,
     refused:`<svg ${common}><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`
   };
@@ -116,12 +116,14 @@ function renderMarkers(){
   const followOnly=!!$('mapFollow')?.checked;
   const followPendingOnly=!!$('mapFollowPending')?.checked;
   const posterOnly=!!$('mapPosterRequest')?.checked;
+  const priorityOnly=$('mapPriority')?.value||'';
 
   records.forEach(r=>{
     if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
     if(followOnly && !hasFollow(r))return;
     if(followPendingOnly && (!hasFollow(r)||boolValue(r.followDone)))return;
     if(posterOnly && !boolValue(r.posterRequest))return;
+    if(priorityOnly && String(r.revisitPriority||'')!==priorityOnly)return;
     matched++;
 
     const mt=recordMemberType(r),key=statusKey(r.status);
@@ -135,7 +137,8 @@ function renderMarkers(){
       (typeof recordDisplayName==='function'?recordDisplayName(r):(r.personName||''))||r.fullAddress||'訪問先',
       key==='refused'?'×断られた':'',
       boolValue(r.warning)?'⚠️訪問注意':'',
-      boolValue(r.posterRequest)?'🍊ポスター依頼':''
+      boolValue(r.posterRequest)?'🍊ポスター依頼':'',
+      Number(r.visitCount||0)>0?`訪問${Number(r.visitCount)}回`:''
     ].filter(Boolean).join(' ');
     marker.bindTooltip(extras);
     markers['r_'+r.id]=marker;

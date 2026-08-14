@@ -3,7 +3,7 @@ function boolValue(v){return v===true||v===1||String(v||"").toLowerCase()==="tru
 async function loadRecords(){try{setBusy(true);const d=await api('listRecords',{areaId:currentAreaId});records=d.records||[];renderAll();}catch(e){if(/セッション/.test(e.message)){logout();return}msg('appMsg',e.message)}finally{setBusy(false)}}
 function setBusy(v){$('app').classList.toggle('spinner',v)}
 function isRevisit(r){return statusKey(r.status)==='revisit'}
-function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button type="button" class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()">${v.label}</button>`).join('');if($('detailHeaderStatus'))$('detailHeaderStatus').textContent=(STATUS[editStatus]||STATUS.unvisited).label}
+function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button type="button" class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()"><span class="status-icon">${v.icon||''}</span>${v.label}</button>`).join('');if($('detailHeaderStatus')){const st=STATUS[editStatus]||STATUS.unvisited;$('detailHeaderStatus').innerHTML=`<span class="status-icon">${st.icon||''}</span>${st.label}`}}
 function inputDateValue(v){
   if(!v)return today();
   if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);
@@ -126,12 +126,13 @@ function toggleFollowFields(){
   if(!on&&$('followDone'))$('followDone').checked=false;
 }
 function updateDetailHeader(r){
+  const vc=Number(r?.visitCount||0); if($('detailVisitCount')){$('detailVisitCount').textContent=`訪問 ${vc}回`;$('detailVisitCount').classList.toggle('hidden',vc<=0);}
   const name=(typeof recordDisplayName==='function'?recordDisplayName(r):(r.personName||''))||r.fullAddress||'訪問先';
   if($('detailHeaderName'))$('detailHeaderName').textContent=name;
   if($('detailHeaderAddress'))$('detailHeaderAddress').textContent=r.fullAddress||'住所未設定';
   if($('detailHeaderStatus')){
     const st=STATUS[statusKey(r.status)]||STATUS.unvisited;
-    $('detailHeaderStatus').textContent=st.label;
+    $('detailHeaderStatus').innerHTML=`<span class="status-icon">${st.icon||''}</span>${st.label}`;
   }
 }
 

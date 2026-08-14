@@ -1707,3 +1707,27 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
 @media (max-width:700px){
   #view-admin .admin-user-create-panel{grid-column:auto;}
 }
+
+
+/* Ver.2.8.24 — admin polish, status consistency, filters */
+.status-icon{display:inline-grid;place-items:center;min-width:1.1em;margin-right:4px;font-weight:900}
+.status-badge{font-weight:800}
+.status-btn{display:flex;align-items:center;justify-content:center;gap:5px}
+.admin-user-filters{display:grid;grid-template-columns:minmax(240px,2fr) minmax(170px,1fr) minmax(170px,1fr);gap:12px;margin:14px 0 18px}
+.admin-user-inactive{opacity:.58;background:#faf8f5}
+.mini-btn.danger{color:#c84a43;border-color:#efc6c2;background:#fff8f7}
+#view-admin .admin-user-create-panel>.btn{margin-top:14px}
+#view-admin .admin-area-create-panel{grid-column:1/-1}
+#view-admin .admin-area-create-panel>label,
+#view-admin .admin-area-create-panel>input,
+#view-admin .admin-area-create-panel>select,
+#view-admin .admin-area-create-panel>.btn{max-width:980px}
+#view-admin .admin-area-create-panel>.area-add-btn{margin-top:14px}
+.map-priority-filter select{border:0;background:transparent;font:inherit;color:inherit;outline:0;min-width:120px}
+.filter-priority{background:#f59e0b}
+.mobile-user-avatar{display:none;width:28px;height:28px;border-radius:50%;place-items:center;background:var(--orange-soft);font-size:15px;flex:0 0 auto}
+@media(max-width:700px){
+  .admin-user-filters{grid-template-columns:1fr}
+  .mobile-user-avatar{display:grid}
+  .mobile-user-actions{gap:6px}
+}

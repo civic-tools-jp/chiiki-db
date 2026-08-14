@@ -7,6 +7,7 @@ async function startApp(){
   $('userName').textContent=session.name;
   if($('mobileUserName'))$('mobileUserName').textContent=session.name;
   $('userRole').textContent=({member:'一般',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[session.role]||session.role);
+  const avatar=({system_admin:'👑',prefecture_admin:'👑',leader:'🧭',member:'👤'}[session.role]||'👤'); if($('userAvatar'))$('userAvatar').textContent=avatar; if($('mobileUserAvatar'))$('mobileUserAvatar').textContent=avatar;
   $('branchLabel').textContent=session.branchName||'全支部';
   const manager=['leader','prefecture_admin','system_admin'].includes(session.role);
   if(manager){$('adminTab')?.classList.remove('hidden');$('contactsTab')?.classList.remove('hidden')}
