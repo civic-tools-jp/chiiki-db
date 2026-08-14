@@ -2,6 +2,13 @@
 function formatShortDate(v){const d=new Date(v);return isNaN(d)?String(v||""):`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`}
 function renderAll(){renderMarkers();renderLists();renderAnalysis()}
 
+function cleanDisplayName(v){
+  let s=String(v||'').trim();
+  // 名簿取込時の内部区分値が氏名先頭へ混入した旧データを表示時に除去
+  s=s.replace(/^(?:party_member|party|supporter|general|unknown)\s*[|｜:：\-–—]?\s*/i,'').trim();
+  return s;
+}
+
 function recordFollowBadges(r){
   const out=[];
   if(boolValue(r.followParty))out.push('<span class="badge">⭐ 党員希望</span>');
@@ -16,7 +23,7 @@ function recordCard(r){
   const located=!!(Number(r.lat)&&Number(r.lng));
   const sourceLabel={import:'名簿取込',manual:'手入力',map:'地図登録'};
   return `<article class="card" style="border-left-color:${st.color}" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")},false)'>
-    <div class="card-title">${priorityBadge(mt)} ${esc(r.personName||r.fullAddress||'名称未設定')} <span class="badge">${esc(st.label)}</span></div>
+    <div class="card-title">${priorityBadge(mt)} ${esc(cleanDisplayName(r.personName)||r.fullAddress||'名称未設定')} <span class="badge">${esc(st.label)}</span></div>
     <div class="muted">${esc(r.fullAddress||'住所未設定')}${r.date?' ｜ '+esc(formatShortDate(r.date)):''}</div>
     ${r.phone?`<div class="muted">☎ ${esc(r.phone)}</div>`:''}
     <div class="badges">

@@ -1653,3 +1653,15 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
     width:100%!important;
   }
 }
+
+/* Ver.2.8.16 — poster follow integration */
+.follow-subsection.poster-follow{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--line,#eadfce);
+}
+.detail-subtitle{
+  font-weight:800;
+  margin-bottom:10px;
+}
+.detail-subtitle.orange{color:#e87516;}

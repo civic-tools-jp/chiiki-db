@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.15</title>
+<title>あいサポ Ver.2.8.16</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.15">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.16">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
     <div class="brand-lockup login-brand brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.15" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.16" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
     </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
@@ -19,14 +19,14 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.15</div>
+    <div class="version-note">Ver.2.8.16</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
     <div class="brand-lockup brand-image-lockup">
-      <img src="assets/img/aisapo-logo.png?v=2.8.15" alt="あいサポ" class="aisapo-logo-image">
+      <img src="assets/img/aisapo-logo.png?v=2.8.16" alt="あいサポ" class="aisapo-logo-image">
     </div>
     <div class="mobile-user-actions">
       <div class="mobile-user-name" id="mobileUserName">ユーザー</div>
@@ -213,21 +213,20 @@
             <label class="choice-chip done-chip"><input id="followDone" type="checkbox"> ✓ 対応済み</label>
             <label class="label">フォローメモ</label><textarea id="followMemo" placeholder="連絡内容・次回対応など"></textarea>
           </div>
+          <div class="follow-subsection poster-follow">
+            <div class="detail-subtitle orange">🍊 ポスター掲示</div>
+            <label class="choice-chip"><input id="posterRequest" type="checkbox" onchange="togglePosterRequestFields()"> ポスター掲示依頼</label>
+            <div id="posterRequestFields" class="hidden">
+              <label class="choice-chip done-chip"><input id="posterReported" type="checkbox"> ✓ 党へ報告済み</label>
+              <label class="label">依頼メモ</label><textarea id="posterRequestMemo" placeholder="掲示場所や希望など"></textarea>
+            </div>
+          </div>
           <label class="label">支持者候補</label><select id="supporter"><option value="">未設定</option><option>◎有力</option><option>○可能性あり</option><option>△様子見</option><option>×なし</option></select>
           <label class="label">再訪優先度</label><select id="priority"><option value="">なし</option><option>△低</option><option>○中</option><option>◎高</option></select>
         </section>
       </div>
 
       <aside class="detail-side">
-        <section class="detail-section poster-request-box">
-          <div class="detail-section-title orange"><span>🍊</span> ポスター掲示依頼</div>
-          <label class="choice-chip"><input id="posterRequest" type="checkbox" onchange="togglePosterRequestFields()"> 掲示依頼あり</label>
-          <div id="posterRequestFields" class="hidden">
-            <label class="choice-chip done-chip"><input id="posterReported" type="checkbox"> ✓ 党へ報告済み</label>
-            <label class="label">依頼メモ</label><textarea id="posterRequestMemo" placeholder="掲示場所や希望など"></textarea>
-          </div>
-        </section>
-
         <section class="detail-section warning-box">
           <div class="detail-section-title danger"><span>⚠</span> 注意・特記事項</div>
           <label class="choice-chip danger-chip"><input id="warning" type="checkbox" onchange="toggleWarningFields()"> 訪問注意</label>
@@ -269,5 +268,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.15"></script><script src="assets/js/state.js?v=2.8.15"></script><script src="assets/js/utils.js?v=2.8.15"></script><script src="assets/js/api.js?v=2.8.15"></script><script src="assets/js/auth.js?v=2.8.15"></script><script src="assets/js/map.js?v=2.8.15"></script><script src="assets/js/records.js?v=2.8.15"></script><script src="assets/js/contacts.js?v=2.8.15"></script><script src="assets/js/views.js?v=2.8.15"></script><script src="assets/js/admin.js?v=2.8.15"></script><script src="assets/js/main.js?v=2.8.15"></script>
+<script src="assets/js/config.js?v=2.8.16"></script><script src="assets/js/state.js?v=2.8.16"></script><script src="assets/js/utils.js?v=2.8.16"></script><script src="assets/js/api.js?v=2.8.16"></script><script src="assets/js/auth.js?v=2.8.16"></script><script src="assets/js/map.js?v=2.8.16"></script><script src="assets/js/records.js?v=2.8.16"></script><script src="assets/js/contacts.js?v=2.8.16"></script><script src="assets/js/views.js?v=2.8.16"></script><script src="assets/js/admin.js?v=2.8.16"></script><script src="assets/js/main.js?v=2.8.16"></script>
 </body></html>
