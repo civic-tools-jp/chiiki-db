@@ -34,15 +34,22 @@ function openPasswordModal(forced=false){passwordChangeForced=!!forced;$('passwo
 function closePasswordModal(){if(passwordChangeForced)return;$('passwordModal').style.display='none';}
 async function changeOwnPassword(){try{const current=$('currentPassword').value,next=$('newPassword1').value,confirm=$('newPassword2').value;if(next!==confirm)throw Error('新しいパスワードが一致しません');await api('changePassword',{currentPassword:current,newPassword:next});session.mustChangePassword=false;localStorage.setItem('aisapo_session',JSON.stringify(session));passwordChangeForced=false;$('passwordModal').style.display='none';alert('パスワードを変更しました');}catch(e){msg('passwordMsg',e.message)}}
 
-// Ver.2.8.44 — reusable password character visibility toggle
-document.addEventListener('click',function(e){
- const btn=e.target.closest?.('[data-password-toggle]');
- if(!btn)return;
- const input=document.getElementById(btn.dataset.passwordToggle);
- if(!input)return;
- const show=input.type==='password';
- input.type=show?'text':'password';
- const img=btn.querySelector('img');
- if(img)img.src=show?'assets/img/password-person-open.png':'assets/img/password-person-hide.png';
- btn.setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示');
-});
+
+
+// Ver.2.8.46 — password visibility toggle (works on initial-password screen too)
+window.togglePasswordCharacter=function(ev,btn){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  if(!btn)return false;
+  const input=document.getElementById(btn.getAttribute('data-password-toggle'));
+  if(!input)return false;
+  const show=input.type==='password';
+  input.type=show?'text':'password';
+  const img=btn.querySelector('img');
+  if(img){
+    img.src=show?'assets/img/password-person-open.png?v=2.8.46':'assets/img/password-person-hide.png?v=2.8.46';
+    img.alt=show?'表示中':'非表示';
+  }
+  btn.setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示');
+  btn.setAttribute('aria-pressed',show?'true':'false');
+  return false;
+};
