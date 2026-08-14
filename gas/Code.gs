@@ -513,6 +513,21 @@ function createUser_(u,x){
   return{ok:true};
 }
 
+
+function changePassword_(u,p){
+  const current=String(p.currentPassword||'');
+  const next=String(p.newPassword||'');
+  if(!current)throw Error('現在のパスワードを入力してください');
+  validateNewPassword_(next);
+
+  const target=rowsWithRow_(SHEETS.USERS).find(x=>String(x.userId)===String(u.userId));
+  if(!target)throw Error('利用者が見つかりません');
+  if(!passwordMatches_(current,target))throw Error('現在のパスワードが違います');
+
+  setUserPassword_(target,next,false);
+  return{ok:true};
+}
+
 function resetPassword_(u,p){
   requireAdmin_(u);
   const targetId=String(p.userId||''),temp=String(p.temporaryPassword||'');
