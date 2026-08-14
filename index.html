@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.2</title>
+<title>あいサポ Ver.2.8.3</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.2">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.3">
 </head>
 <body>
 <div id="loginView" class="login-shell">
@@ -33,7 +33,7 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.2</div>
+    <div class="version-note">Ver.2.8.3</div>
   </div>
 </div>
 
@@ -83,8 +83,8 @@
           <div class="section-heading map-heading"><div class="heading-icon orange"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg></div><div><h2>地図</h2><p>訪問先を地図で確認・登録できます</p></div></div>
           <div class="map-search-row">
             <div class="search-box"><span>⌕</span><input id="searchText" placeholder="住所・名称で検索"></div>
-            <button class="btn map-mini has-tip" data-tip="現在地を中心に地図を表示します" onclick="addCurrentLocation()">◎ 現在地</button>
-            <button class="btn map-mini has-tip" data-tip="最新の訪問先データを読み込みます" onclick="changeArea(false)">↻ 更新</button>
+            <button class="btn map-mini location-btn has-tip" aria-label="現在地" data-tip="現在地を中心に地図を表示します" onclick="addCurrentLocation()"><span class="map-control-icon">◎</span><span class="map-control-label">現在地</span></button>
+            <button class="btn map-mini refresh-btn has-tip" aria-label="更新" data-tip="最新の訪問先データを読み込みます" onclick="changeArea(false)"><span class="map-control-icon">↻</span><span class="map-control-label">更新</span></button>
           </div>
 <div class="desktop-map-meta">
             <div class="map-legend-row">
@@ -160,8 +160,9 @@
           <label class="label">支部</label><select id="areaBranch"></select>
           <label class="label">市区町村</label><input id="areaCity" value="福岡市">
           <label class="label">エリア名</label><input id="areaName" placeholder="例：博多区">
-          <div class="row"><input id="areaLat" placeholder="中心緯度"><input id="areaLng" placeholder="中心経度"></div>
-          <button class="btn primary full" onclick="createArea()">エリアを追加</button>
+          <div class="area-auto-note">📍 中心位置は「市区町村＋エリア名」から自動取得します。</div>
+          <input id="areaLat" type="hidden"><input id="areaLng" type="hidden">
+          <button class="btn primary full area-add-btn" onclick="createArea()">エリアを追加</button>
         </div>
         <div class="panel span-2"><div class="card-title">登録エリア</div><div id="areasTable"></div></div>
         <div class="panel span-2"><div class="card-title">登録ユーザー</div><div id="usersTable"></div></div>
@@ -269,5 +270,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.2"></script><script src="assets/js/state.js?v=2.8.2"></script><script src="assets/js/utils.js?v=2.8.2"></script><script src="assets/js/api.js?v=2.8.2"></script><script src="assets/js/auth.js?v=2.8.2"></script><script src="assets/js/map.js?v=2.8.2"></script><script src="assets/js/records.js?v=2.8.2"></script><script src="assets/js/contacts.js?v=2.8.2"></script><script src="assets/js/views.js?v=2.8.2"></script><script src="assets/js/admin.js?v=2.8.2"></script><script src="assets/js/main.js?v=2.8.2"></script>
+<script src="assets/js/config.js?v=2.8.3"></script><script src="assets/js/state.js?v=2.8.3"></script><script src="assets/js/utils.js?v=2.8.3"></script><script src="assets/js/api.js?v=2.8.3"></script><script src="assets/js/auth.js?v=2.8.3"></script><script src="assets/js/map.js?v=2.8.3"></script><script src="assets/js/records.js?v=2.8.3"></script><script src="assets/js/contacts.js?v=2.8.3"></script><script src="assets/js/views.js?v=2.8.3"></script><script src="assets/js/admin.js?v=2.8.3"></script><script src="assets/js/main.js?v=2.8.3"></script>
 </body></html>

@@ -1077,3 +1077,78 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .admin-area-select{max-width:none}
   .visit-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Ver.2.8.3 — mobile admin select / automatic area center / visible map controls */
+.area-auto-note{
+  margin:10px 0 16px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#f7f5f0;
+  color:#70675e;
+  font-size:12px;
+}
+.area-add-btn{margin-top:4px}
+
+.map-control-icon{font-size:17px;font-weight:900;line-height:1}
+.map-control-label{font-size:13px;font-weight:900}
+.location-btn,.refresh-btn{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  color:var(--green-deep)!important;
+  border-color:#e9ddcf!important;
+  background:#fffaf3!important;
+}
+
+@media(max-width:700px){
+  /* Safariでエリア選択が細く潰れないよう、権限/エリアだけ1列表示 */
+  .admin-users-table td[data-label="権限/エリア"]{
+    display:block!important;
+  }
+  .admin-users-table td[data-label="権限/エリア"]::before{
+    display:block;
+    margin-bottom:8px;
+  }
+  .admin-users-table td[data-label="権限/エリア"] .admin-user-role{
+    margin-bottom:8px;
+  }
+  .admin-users-table td[data-label="権限/エリア"] .admin-area-select{
+    display:block;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    min-height:48px;
+    padding:10px 12px;
+    font-size:16px;
+  }
+
+  /* 地図ボタンは白い空箱に見えないようアイコンを常時表示 */
+  #view-map .map-search-row .location-btn,
+  #view-map .map-search-row .refresh-btn{
+    width:44px!important;
+    min-width:44px!important;
+    height:44px!important;
+    min-height:44px!important;
+    padding:0!important;
+    font-size:initial!important;
+    background:#fff7ec!important;
+    border:1px solid #efdac2!important;
+    color:#2e7d43!important;
+  }
+  #view-map .map-search-row .map-control-icon{
+    display:block!important;
+    font-size:21px!important;
+    color:#2e7d43!important;
+  }
+  #view-map .map-search-row .map-control-label{
+    display:none!important;
+  }
+  /* 古い疑似アイコンを無効化 */
+  #view-map .map-search-row .filter-btn::before,
+  #view-map .map-search-row .map-mini:nth-of-type(3)::before,
+  #view-map .map-search-row .map-mini:nth-of-type(4)::before{
+    content:none!important;
+  }
+}

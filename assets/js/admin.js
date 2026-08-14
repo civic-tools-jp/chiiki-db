@@ -14,4 +14,36 @@ function renderAdminAreas(){$('areasTable').innerHTML=`<table class="admin-table
 async function createUser(){try{await api('createUser',{user:{loginId:$('newLoginId').value.trim(),name:$('newName').value.trim(),password:$('newPassword').value,role:$('newRole').value,branchId:$('newBranch').value,areaId:$('newRole').value==='member'?$('newArea').value:''}});$('newLoginId').value=$('newName').value=$('newPassword').value='';await loadAdmin();alert('ユーザーを発行しました。一般利用者は設定した活動エリアだけ閲覧できます。')}catch(e){alert(e.message)}}
 async function saveUserArea(userId){try{const areaId=$('ua_'+userId).value;await api('setUserArea',{userId,areaId});await loadAdmin();alert('固定活動エリアを更新しました')}catch(e){alert(e.message)}}
 async function resetUserPassword(userId,loginId){const temp=prompt(`${loginId} の新しい仮パスワードを入力してください。\n10文字以上・英字と数字を含めてください。`);if(temp===null)return;try{await api('resetPassword',{userId,temporaryPassword:temp});await loadAdmin();alert('仮パスワードへリセットしました。次回ログイン時に本人のパスワード変更が必須になります。')}catch(e){alert(e.message)}}
-async function createArea(){try{await api('createArea',{area:{branchId:$('areaBranch').value,city:$('areaCity').value.trim(),name:$('areaName').value.trim(),mapLat:$('areaLat').value,mapLng:$('areaLng').value}});$('areaName').value='';await loadBootstrap();await loadAdmin();alert('活動エリアを追加しました')}catch(e){alert(e.message)}}
+async function lookupAreaCenter(city,name){
+  const q=[city,name,'福岡県','日本'].filter(Boolean).join(' ');
+  try{
+    const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(q)}`);
+    const data=await res.json();
+    if(!data?.[0])return null;
+    const lat=Number(data[0].lat),lng=Number(data[0].lon);
+    if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
+    return {lat,lng};
+  }catch(_){return null}
+}
+async function createArea(){
+  const branchId=$('areaBranch').value;
+  const city=$('areaCity').value.trim();
+  const name=$('areaName').value.trim();
+  if(!city||!name){alert('市区町村とエリア名を入力してください');return}
+  const btn=document.querySelector('.area-add-btn');
+  const oldText=btn?.textContent;
+  try{
+    if(btn){btn.disabled=true;btn.textContent='中心位置を取得中…'}
+    const center=await lookupAreaCenter(city,name);
+    if(!center){alert('中心位置を自動取得できませんでした。市区町村とエリア名を確認してください。');return}
+    $('areaLat').value=center.lat;$('areaLng').value=center.lng;
+    await api('createArea',{area:{branchId,city,name,mapLat:center.lat,mapLng:center.lng}});
+    $('areaName').value='';$('areaLat').value='';$('areaLng').value='';
+    await loadBootstrap();await loadAdmin();
+    alert('活動エリアを追加しました');
+  }catch(e){
+    alert(e.message)
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText||'エリアを追加'}
+  }
+}
