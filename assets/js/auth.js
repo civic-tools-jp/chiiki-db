@@ -1,5 +1,5 @@
 "use strict";
-function toggleLoginPassword(){const input=$('loginPassword'),btn=$('loginPasswordToggle');if(!input)return;const showing=input.type==='text';input.type=showing?'password':'text';if(btn){btn.setAttribute('aria-label',showing?'パスワードを表示':'パスワードを隠す');btn.title=showing?'パスワードを表示':'パスワードを隠す';btn.innerHTML=`<span class="password-cute-icon" aria-hidden="true">${showing?'👀':'🙈'}</span>`;}}
+function toggleLoginPassword(){const input=$('loginPassword'),btn=$('loginPasswordToggle');if(!input)return;const showing=input.type==='text';input.type=showing?'password':'text';if(btn){btn.setAttribute('aria-label',showing?'パスワードを表示':'パスワードを隠す');btn.title=showing?'パスワードを表示':'パスワードを隠す';btn.innerHTML=`<img class="password-cute-icon" src="assets/img/${showing?'password-eye.png':'password-monkey.png'}" alt="">`;}}
 async function login(){try{msg("loginMsg","");const data=await api("login",{loginId:$('loginId').value.trim(),password:$('loginPassword').value});session=data.session;localStorage.setItem("aisapo_session",JSON.stringify(session));startApp();}catch(e){msg("loginMsg",e.message)}}
 function logout(){localStorage.removeItem("aisapo_session");localStorage.removeItem("gdbv2_session");session=null;location.reload()}
 async function startApp(){
