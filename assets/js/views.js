@@ -260,7 +260,7 @@ function renderAnalysis(){
   el.innerHTML=`
   <div class="panel activity-section branch-messages-section">
     <div class="section-heading branch-message-heading">
-      <div class="heading-icon activity-icon activity-icon-image"><img src="assets/img/activity/branch.webp" alt=""></div>
+      <div class="heading-icon orange activity-icon">📣</div>
       <div><h2>支部連絡</h2><p>支部間の連絡・共有事項（最新5件）</p></div>
       <button type="button" class="btn branch-message-add" onclick="openBranchMessageModal()">＋ 連絡を追加</button>
     </div>
@@ -268,7 +268,7 @@ function renderAnalysis(){
   </div>
 
   <div class="panel activity-section priority-section">
-    <div class="section-heading"><div class="heading-icon activity-icon activity-icon-image"><img src="assets/img/activity/needs-action.webp" alt=""></div><div><h2>対応が必要</h2><p>次に確認・対応する項目</p></div></div>
+    <div class="section-heading"><div class="heading-icon orange activity-icon">⚡</div><div><h2>対応が必要</h2><p>次に確認・対応する項目</p></div></div>
     <div class="analysis-action-group-label">訪問対応</div>
     <div class="analysis-actions">
       ${action('revisit','再訪予定',revisit,'もう一度訪問する')}
@@ -286,7 +286,7 @@ function renderAnalysis(){
   </div>
 
   <div class="panel activity-section">
-    <div class="section-heading"><div class="heading-icon activity-icon activity-icon-image"><img src="assets/img/activity/visit-status.webp" alt=""></div><div><h2>訪問状況</h2><p>${visited} / ${total}件 訪問済み　進捗 ${visitRate}%</p></div></div>
+    <div class="section-heading"><div class="heading-icon green activity-icon">🚶</div><div><h2>訪問状況</h2><p>${visited} / ${total}件 訪問済み　進捗 ${visitRate}%</p></div></div>
     <div class="analysis-progress-head"><b>訪問進捗</b><span>${visitRate}%</span></div><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${visitRate}%"></div></div>
     <div class="analysis-grid visit-status-grid">
       <button class="analysis-metric analysis-clickable" onclick="analysisGo('unvisited')"><div class="analysis-value">${unvisited}</div><div class="analysis-label">未訪問</div><span class="analysis-link-hint">一覧を見る →</span></button>
@@ -298,7 +298,7 @@ function renderAnalysis(){
     </div>
   </div>
 
-  <div class="panel activity-section support-rank-section"><div class="section-heading"><div class="heading-icon activity-icon activity-icon-image"><img src="assets/img/activity/support-rank.webp" alt=""></div><div><h2>支持ランク</h2><p>訪問結果とは別に、現在の支持状況を管理</p></div></div>
+  <div class="panel activity-section support-rank-section"><div class="section-heading"><div class="heading-icon orange activity-icon">🎯</div><div><h2>支持ランク</h2><p>訪問結果とは別に、現在の支持状況を管理</p></div></div>
     <div class="analysis-grid support-rank-grid">
       <button class="analysis-metric analysis-clickable" onclick="analysisGo('rankA')"><div class="analysis-value">${rankA}</div><div class="analysis-label">A 強い支持</div><span class="analysis-link-hint">一覧を見る →</span></button>
       <button class="analysis-metric analysis-clickable" onclick="analysisGo('rankB')"><div class="analysis-value">${rankB}</div><div class="analysis-label">B 支持・好感</div><span class="analysis-link-hint">一覧を見る →</span></button>
@@ -307,10 +307,10 @@ function renderAnalysis(){
     </div>
   </div>
 
-  <div class="panel"><div class="section-heading"><div class="heading-icon activity-icon activity-icon-image"><img src="assets/img/activity/connection.webp" alt=""></div><div><h2>つながり</h2><p>党員・サポーター・フォロー状況</p></div></div>
+  <div class="panel"><div class="section-heading"><div class="heading-icon orange activity-icon">🤝</div><div><h2>つながり</h2><p>党員・サポーター・フォロー状況</p></div></div>
     <div class="analysis-grid"><button class="analysis-metric analysis-clickable" onclick="analysisGo('party')"><div class="analysis-value">${party}</div><div class="analysis-label">党員</div><span class="analysis-link-hint">一覧を見る →</span></button><button class="analysis-metric analysis-clickable" onclick="analysisGo('supporter')"><div class="analysis-value">${supporter}</div><div class="analysis-label">サポーター</div><span class="analysis-link-hint">一覧を見る →</span></button><button class="analysis-metric analysis-clickable" onclick="analysisGo('follow')"><div class="analysis-value">${follow.length}</div><div class="analysis-label">フォロー対象</div><span class="analysis-link-hint">一覧を見る →</span></button>${metric('ポスター依頼',poster.length)}${metric('位置未取得',unlocated)}</div>
   </div>
-  <div class="panel"><div class="section-heading"><div class="heading-icon activity-icon activity-icon-image"><img src="assets/img/activity/town-progress.webp" alt=""></div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
+  <div class="panel"><div class="section-heading"><div class="heading-icon green activity-icon">🗺️</div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
 }
 function updateScrollTopFloating(){
   const mobile=window.matchMedia('(max-width:700px)').matches;
