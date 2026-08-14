@@ -1,8 +1,79 @@
 "use strict";
-async function loadContacts(){try{const d=await api('listContacts',{areaId:currentAreaId});contacts=d.contacts||[];renderContacts();renderContactSelect();}catch(e){msg('appMsg',e.message)}}
-function renderContacts(){const q=($('contactSearch')?.value||'').toLowerCase();const list=contacts.filter(c=>JSON.stringify(c).toLowerCase().includes(q));$('contactCards').innerHTML=list.length?list.map(c=>`<div class="card" onclick='openContact(${JSON.stringify(c).replace(/'/g,"&#39;")})'><div class="card-title">${esc(c.name)}</div><div class="card-sub">${esc(c.fullAddress||'')}${c.phone?'｜'+esc(c.phone):''}</div><div class="badges">${c.supporter?`<span class="badge">${esc(c.supporter)}</span>`:''}${c.referrer?`<span class="badge">紹介：${esc(c.referrer)}</span>`:''}</div>${c.memo?`<div class="card-sub">${esc(c.memo)}</div>`:''}</div>`).join(''):'<div class="panel notice">名簿はまだありません。</div>'}
-function newContact(){openContact({areaId:currentAreaId,name:'',fullAddress:'',phone:'',referrer:'',supporter:'',memo:''})}
-function openContact(c){editingContact={...c};$('contactId').value=c.contactId||'';$('contactName').value=c.name||'';$('contactAddress').value=c.fullAddress||'';$('contactPhone').value=c.phone||'';$('contactReferrer').value=c.referrer||'';$('contactSupporter').value=c.supporter||'';$('contactMemo').value=c.memo||'';$('contactModal').style.display='flex'}
+const MEMBER_LABELS={party_member:'⭐ 党員',supporter:'🟠 サポーター',general:'一般',unknown:'未設定'};
+const MEMBER_RANK={party_member:0,supporter:1,general:2,unknown:3,'':3};
+let contactListExpanded=false;
+async function loadContacts(){try{const d=await api('listContacts',{areaId:currentAreaId});contacts=d.contacts||[];renderContacts();renderContactSelect();if(map)renderMarkers();}catch(e){msg('appMsg',e.message)}}
+function memberTypeLabel(v){return MEMBER_LABELS[v]||MEMBER_LABELS.unknown}
+function contactSearchChanged(){
+  const q=($('contactSearch')?.value||'').trim();
+  if(q)contactListExpanded=true;
+  renderContacts();
+}
+function toggleContactList(){contactListExpanded=!contactListExpanded;renderContacts()}
+function renderContacts(){
+  const q=($('contactSearch')?.value||'').toLowerCase();
+  const list=contacts.filter(c=>JSON.stringify(c).toLowerCase().includes(q)).sort((a,b)=>(MEMBER_RANK[a.memberType]??3)-(MEMBER_RANK[b.memberType]??3)||String(a.name||'').localeCompare(String(b.name||''),'ja'));
+  const cards=$('contactCards'),btn=$('toggleContactListBtn'),count=$('contactCount');
+  if(count)count.textContent=`${contacts.length}件`;
+  const show=contactListExpanded||!!q;
+  if(cards)cards.classList.toggle('hidden',!show);
+  if(btn)btn.textContent=show?'名簿一覧を閉じる':'名簿一覧を表示';
+  if(!cards)return;
+  cards.innerHTML=list.length?list.map(c=>{
+    const restricted=!!c.restricted;
+    const click=restricted?'':`onclick='openContact(${JSON.stringify(c).replace(/'/g,"&#39;")})'`;
+    return `<div class="card ${restricted?'restricted-contact':''}" ${click}>
+      <div class="card-title">${esc(memberTypeLabel(c.memberType))} ${esc(c.name)}</div>
+      <div class="card-sub">${esc(c.fullAddress||'')}</div>
+      <div class="badges">${c.partyId?`<span class="badge">ID ${esc(c.partyId)}</span>`:''}${c.sourceBranch?`<span class="badge">${esc(c.sourceBranch)}</span>`:''}${c.branchParticipation?`<span class="badge">支部参加 ${esc(c.branchParticipation)}</span>`:''}</div>
+      ${c.phone?`<div class="card-sub">☎ ${esc(c.phone)}</div>`:''}${c.email?`<div class="card-sub">✉ ${esc(c.email)}</div>`:''}
+      ${restricted?'<div class="privacy-note">🔒 正確な住所・連絡先は管理者のみ表示</div>':''}
+    </div>`;
+  }).join(''):'<div class="panel notice">名簿はまだありません。</div>'
+}
+function newContact(){openContact({areaId:currentAreaId,name:'',lastName:'',firstName:'',lastNameKana:'',firstNameKana:'',partyId:'',postalCode:'',fullAddress:'',phone:'',email:'',memberType:'unknown',birthDate:'',gender:'',occupation:'',approvedAt:'',branchParticipation:'',joinReason:'',sourceBranch:'',lat:'',lng:'',referrer:'',supporter:'',memo:''})}
+function openContact(c){
+  editingContact={...c};
+  $('contactId').value=c.contactId||'';$('contactPartyId').value=c.partyId||'';$('contactLastName').value=c.lastName||'';$('contactFirstName').value=c.firstName||'';
+  $('contactName').value=c.name||[c.lastName,c.firstName].filter(Boolean).join(' ');$('contactLastNameKana').value=c.lastNameKana||'';$('contactFirstNameKana').value=c.firstNameKana||'';
+  $('contactPostalCode').value=c.postalCode||'';$('contactAddress').value=c.fullAddress||'';$('contactPhone').value=c.phone||'';$('contactEmail').value=c.email||'';$('contactMemberType').value=c.memberType||'unknown';
+  $('contactBirthDate').value=dateInputValue(c.birthDate);$('contactGender').value=c.gender||'';$('contactOccupation').value=c.occupation||'';$('contactApprovedAt').value=dateInputValue(c.approvedAt);
+  $('contactBranchParticipation').value=c.branchParticipation||'';$('contactJoinReason').value=c.joinReason||'';$('contactSourceBranch').value=c.sourceBranch||'';
+  $('contactLat').value=c.lat||'';$('contactLng').value=c.lng||'';$('contactReferrer').value=c.referrer||'';$('contactSupporter').value=c.supporter||'';$('contactMemo').value=c.memo||'';
+  $('contactModal').style.display='flex';
+}
+function dateInputValue(v){if(!v)return'';const d=new Date(v);if(!isNaN(d))return d.toISOString().slice(0,10);return String(v).slice(0,10)}
 function closeContact(){$('contactModal').style.display='none';editingContact=null}
-async function saveContact(){try{await api('saveContact',{contact:{contactId:$('contactId').value,areaId:currentAreaId,name:$('contactName').value.trim(),fullAddress:$('contactAddress').value.trim(),phone:$('contactPhone').value.trim(),referrer:$('contactReferrer').value.trim(),supporter:$('contactSupporter').value,memo:$('contactMemo').value.trim(),updatedAt:editingContact?.updatedAt||''}});closeContact();await loadContacts()}catch(e){alert(e.message)}}
+async function geocodeContactAddress(){const address=$('contactAddress').value.trim();if(!address){alert('住所を入力してください');return}try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(address)}`);const j=await r.json();if(!j[0]){alert('住所から位置を取得できませんでした');return}$('contactLat').value=Number(j[0].lat);$('contactLng').value=Number(j[0].lon);if(map)map.setView([Number(j[0].lat),Number(j[0].lon)],17);alert('地図位置を取得しました。保存してください。')}catch(_){alert('位置取得に失敗しました')}}
+async function saveContact(){try{
+  const last=$('contactLastName').value.trim(),first=$('contactFirstName').value.trim(),display=$('contactName').value.trim()||[last,first].filter(Boolean).join(' ');
+  await api('saveContact',{contact:{contactId:$('contactId').value,areaId:currentAreaId,partyId:$('contactPartyId').value.trim(),lastName:last,firstName:first,lastNameKana:$('contactLastNameKana').value.trim(),firstNameKana:$('contactFirstNameKana').value.trim(),name:display,postalCode:$('contactPostalCode').value.trim(),fullAddress:$('contactAddress').value.trim(),phone:$('contactPhone').value.trim(),email:$('contactEmail').value.trim(),memberType:$('contactMemberType').value,birthDate:$('contactBirthDate').value,gender:$('contactGender').value.trim(),occupation:$('contactOccupation').value.trim(),approvedAt:$('contactApprovedAt').value,branchParticipation:$('contactBranchParticipation').value.trim(),joinReason:$('contactJoinReason').value.trim(),sourceBranch:$('contactSourceBranch').value.trim(),lat:$('contactLat').value,lng:$('contactLng').value,referrer:$('contactReferrer').value.trim(),supporter:$('contactSupporter').value,memo:$('contactMemo').value.trim(),updatedAt:editingContact?.updatedAt||''}});
+  closeContact();await loadContacts();
+}catch(e){alert(e.message)}}
 async function deleteContact(){if(!editingContact?.contactId){closeContact();return}if(!confirm('この名簿を削除しますか？'))return;try{await api('deleteContact',{contactId:editingContact.contactId,updatedAt:editingContact.updatedAt||''});closeContact();await loadContacts()}catch(e){alert(e.message)}}
+function headerValue(row,names){for(const n of names){if(Object.prototype.hasOwnProperty.call(row,n)&&row[n]!==''&&row[n]!=null)return row[n]}return''}
+function inferMemberType(row,forced){
+  if(forced&&forced!=='auto')return forced;
+  const raw=String(headerValue(row,[
+    '党員種別','党員(会員)種別','党員（会員）種別','党員・サポーター区分','党員/サポーター区分',
+    '会員種別','党員区分','会員区分','区分','種別','属性'
+  ])||'');
+  if(/サポ|support/i.test(raw))return'supporter';if(/党員|会員|member/i.test(raw))return'party_member';
+  const pm=String(headerValue(row,['党員'])||'').trim(),sp=String(headerValue(row,['サポーター','サポータ'])||'').trim();
+  if(pm&&!/^(0|false|いいえ|無)$/i.test(pm))return'party_member';if(sp&&!/^(0|false|いいえ|無)$/i.test(sp))return'supporter';return'unknown';
+}
+function normalizeImportRow(row,forced){
+  const last=String(headerValue(row,['氏名（姓）','氏名(姓)','姓'])||'').trim();
+  const first=String(headerValue(row,['氏名（名）','氏名(名)','名'])||'').trim();
+  return{
+    partyId:String(headerValue(row,['参政党ID','党員ID','会員ID'])||'').trim(),lastName:last,firstName:first,
+    lastNameKana:String(headerValue(row,['氏名（セイ）','氏名(セイ)','セイ'])||'').trim(),firstNameKana:String(headerValue(row,['氏名（メイ）','氏名(メイ)','メイ'])||'').trim(),
+    name:String(headerValue(row,['氏名','名前','お名前','氏名（漢字）','会員氏名'])||[last,first].filter(Boolean).join(' ')).trim(),
+    phone:String(headerValue(row,['電話番号','電話','携帯電話','携帯','TEL','Tel'])||'').trim(),email:String(headerValue(row,['メールアドレス','メール','E-mail','Email','email'])||'').trim(),
+    postalCode:String(headerValue(row,['郵便番号'])||'').trim(),fullAddress:String(headerValue(row,['住所(建物名なども含む)','住所（建物名なども含む）','住所','現住所','住所1','住所（自宅）'])||'').trim(),
+    memberType:inferMemberType(row,forced),birthDate:headerValue(row,['生年月日']),gender:String(headerValue(row,['性別'])||'').trim(),occupation:String(headerValue(row,['職業'])||'').trim(),
+    approvedAt:headerValue(row,['承認日']),branchParticipation:String(headerValue(row,['支部参加'])||'').trim(),joinReason:String(headerValue(row,['入党(入会)理由','入党（入会）理由','入党理由','入会理由'])||'').trim(),sourceBranch:String(headerValue(row,['支部'])||'').trim(),
+    referrer:String(headerValue(row,['紹介者','紹介元'])||'').trim(),memo:String(headerValue(row,['メモ','備考','摘要'])||'').trim()
+  };
+}
+async function importContactsFile(){const file=$('contactImportFile').files[0];if(!file){alert('ExcelまたはCSVを選んでください');return}if(!currentAreaId){alert('取込先の活動エリアを選んでください');return}try{$('importResult').textContent='読み込み中...';const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});const forced='auto';const normalized=raw.map(r=>normalizeImportRow(r,forced)).filter(r=>r.name||r.fullAddress);if(!normalized.length)throw Error('氏名または住所のある行が見つかりません');let added=0,updated=0,skipped=0,unmatched=0,geocoded=0,geocodeFailed=0;for(let i=0;i<normalized.length;i+=200){const d=await api('importContacts',{areaId:currentAreaId,contacts:normalized.slice(i,i+200)});added+=Number(d.added||0);updated+=Number(d.updated||0);skipped+=Number(d.skipped||0);unmatched+=Number(d.unmatched||0);geocoded+=Number(d.geocoded||0);geocodeFailed+=Number(d.geocodeFailed||0)}$('importResult').textContent=`取込完了：${added}件追加／${updated}件更新／地図位置取得 ${geocoded}件／位置取得失敗 ${geocodeFailed}件／エリア判定補完 ${unmatched}件／スキップ ${skipped}件`;await loadRecords();}catch(e){$('importResult').textContent='エラー：'+e.message}}
