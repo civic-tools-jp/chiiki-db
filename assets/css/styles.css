@@ -1334,3 +1334,35 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   /* 上部の余白を詰めつつ活動エリアは残す */
   .context-bar{gap:0!important}
 }
+
+
+/* Ver.2.8.7 — exact supplied あいサポ logo image */
+.brand-image-lockup{
+  display:flex;
+  align-items:center;
+}
+.aisapo-logo-image{
+  display:block;
+  width:auto;
+  height:72px;
+  object-fit:contain;
+}
+.login-brand .aisapo-logo-image{
+  height:88px;
+  max-width:100%;
+}
+@media(max-width:700px){
+  .app-header .brand-image-lockup{
+    justify-content:flex-start!important;
+  }
+  .app-header .aisapo-logo-image{
+    height:54px!important;
+    max-width:220px;
+  }
+  .login-brand .aisapo-logo-image{
+    height:auto!important;
+    width:min(330px,92vw)!important;
+  }
+  /* old split-logo elements are no longer used */
+  .brand-mark,.brand-name,.brand-tagline{display:none!important}
+}

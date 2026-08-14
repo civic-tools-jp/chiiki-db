@@ -3,57 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.6</title>
+<title>あいサポ Ver.2.8.7</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.6">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.7">
 </head>
 <body>
 <div id="loginView" class="login-shell">
   <div class="login-card">
-    <div class="brand-lockup login-brand"><svg class="brand-mark aisapo-official-mark" viewBox="0 0 92 86" aria-hidden="true">
-  <path d="M46 3C25 3 12 17 12 36c0 22 22 38 34 47 12-9 34-25 34-47C80 17 67 3 46 3Z" fill="#ff8412"/>
-  <circle cx="46" cy="35" r="25.5" fill="#fff"/>
-  <circle cx="34" cy="29" r="5.3" fill="#ff8412"/>
-  <path d="M23 49c1.1-10.2 5.3-15.4 11.4-15.4 5 0 8.4 3.1 10.6 8.8-4-2.6-7.1-3.8-10.1-3.8-4.6 0-8.4 3.6-11.9 10.4Z" fill="#ff8412"/>
-  <circle cx="58" cy="29" r="5.3" fill="#4d9347"/>
-  <path d="M69 49c-1.1-10.2-5.3-15.4-11.4-15.4-5 0-8.4 3.1-10.6 8.8 4-2.6 7.1-3.8 10.1-3.8 4.6 0 8.4 3.6 11.9 10.4Z" fill="#4d9347"/>
-  <path d="M38.5 42.5c2.8 2.7 5.2 4 7.5 4s4.7-1.3 7.5-4" fill="none" stroke="#f3a14b" stroke-width="3" stroke-linecap="round"/>
-  <g transform="translate(7 65)">
-    <path d="M0 12 17 0l17 3-7 13H3Z" fill="#66a83d"/>
-    <path d="M28 16 35 3l14-1 8 13Z" fill="#4f963a"/>
-    <path d="M50 2 66 0l13 12-19 3Z" fill="#75ad45"/>
-    <path d="M18 1 34 3 27 16 4 16Z" fill="none" stroke="#fff" stroke-width="1.6"/>
-    <path d="M49 2 57 15" fill="none" stroke="#fff" stroke-width="1.6"/>
-  </g>
-</svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+    <div class="brand-lockup login-brand brand-image-lockup">
+      <img src="assets/img/aisapo-logo.png?v=2.8.7" alt="あいサポ 会いに行く。つながる。地域をサポート。" class="aisapo-logo-image">
+    </div>
     <div class="login-title">ログイン</div>
     <div id="loginMsg"></div>
     <label class="label">ユーザーID</label><input id="loginId" autocomplete="username">
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.6</div>
+    <div class="version-note">Ver.2.8.7</div>
   </div>
 </div>
 
 <div id="app" class="hidden app-shell">
   <header class="app-header">
-    <div class="brand-lockup"><svg class="brand-mark aisapo-official-mark" viewBox="0 0 92 86" aria-hidden="true">
-  <path d="M46 3C25 3 12 17 12 36c0 22 22 38 34 47 12-9 34-25 34-47C80 17 67 3 46 3Z" fill="#ff8412"/>
-  <circle cx="46" cy="35" r="25.5" fill="#fff"/>
-  <circle cx="34" cy="29" r="5.3" fill="#ff8412"/>
-  <path d="M23 49c1.1-10.2 5.3-15.4 11.4-15.4 5 0 8.4 3.1 10.6 8.8-4-2.6-7.1-3.8-10.1-3.8-4.6 0-8.4 3.6-11.9 10.4Z" fill="#ff8412"/>
-  <circle cx="58" cy="29" r="5.3" fill="#4d9347"/>
-  <path d="M69 49c-1.1-10.2-5.3-15.4-11.4-15.4-5 0-8.4 3.1-10.6 8.8 4-2.6 7.1-3.8 10.1-3.8 4.6 0 8.4 3.6 11.9 10.4Z" fill="#4d9347"/>
-  <path d="M38.5 42.5c2.8 2.7 5.2 4 7.5 4s4.7-1.3 7.5-4" fill="none" stroke="#f3a14b" stroke-width="3" stroke-linecap="round"/>
-  <g transform="translate(7 65)">
-    <path d="M0 12 17 0l17 3-7 13H3Z" fill="#66a83d"/>
-    <path d="M28 16 35 3l14-1 8 13Z" fill="#4f963a"/>
-    <path d="M50 2 66 0l13 12-19 3Z" fill="#75ad45"/>
-    <path d="M18 1 34 3 27 16 4 16Z" fill="none" stroke="#fff" stroke-width="1.6"/>
-    <path d="M49 2 57 15" fill="none" stroke="#fff" stroke-width="1.6"/>
-  </g>
-</svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+    <div class="brand-lockup brand-image-lockup">
+      <img src="assets/img/aisapo-logo.png?v=2.8.7" alt="あいサポ" class="aisapo-logo-image">
+    </div>
     <div class="mobile-user-actions">
       <div class="mobile-user-name" id="mobileUserName">ユーザー</div>
       <button type="button" class="mobile-pw-btn" onclick="openPasswordModal(false)">PW変更</button>
@@ -276,5 +250,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.6"></script><script src="assets/js/state.js?v=2.8.6"></script><script src="assets/js/utils.js?v=2.8.6"></script><script src="assets/js/api.js?v=2.8.6"></script><script src="assets/js/auth.js?v=2.8.6"></script><script src="assets/js/map.js?v=2.8.6"></script><script src="assets/js/records.js?v=2.8.6"></script><script src="assets/js/contacts.js?v=2.8.6"></script><script src="assets/js/views.js?v=2.8.6"></script><script src="assets/js/admin.js?v=2.8.6"></script><script src="assets/js/main.js?v=2.8.6"></script>
+<script src="assets/js/config.js?v=2.8.7"></script><script src="assets/js/state.js?v=2.8.7"></script><script src="assets/js/utils.js?v=2.8.7"></script><script src="assets/js/api.js?v=2.8.7"></script><script src="assets/js/auth.js?v=2.8.7"></script><script src="assets/js/map.js?v=2.8.7"></script><script src="assets/js/records.js?v=2.8.7"></script><script src="assets/js/contacts.js?v=2.8.7"></script><script src="assets/js/views.js?v=2.8.7"></script><script src="assets/js/admin.js?v=2.8.7"></script><script src="assets/js/main.js?v=2.8.7"></script>
 </body></html>
