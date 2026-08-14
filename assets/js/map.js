@@ -116,14 +116,17 @@ function renderMarkers(){
   const followOnly=!!$('mapFollow')?.checked;
   const followPendingOnly=!!$('mapFollowPending')?.checked;
   const posterOnly=!!$('mapPosterRequest')?.checked;
-  const priorityOnly=$('mapPriority')?.value||'';
+  const priorityFilters=[];
+  if($('mapPriorityHigh')?.checked)priorityFilters.push('◎高');
+  if($('mapPriorityMedium')?.checked)priorityFilters.push('○中');
+  if($('mapPriorityLow')?.checked)priorityFilters.push('△低');
 
   records.forEach(r=>{
     if(currentAreaId && String(r.areaId||'')!==String(currentAreaId))return;
     if(followOnly && !hasFollow(r))return;
     if(followPendingOnly && (!hasFollow(r)||boolValue(r.followDone)))return;
     if(posterOnly && !boolValue(r.posterRequest))return;
-    if(priorityOnly && String(r.revisitPriority||'')!==priorityOnly)return;
+    if(priorityFilters.length && !priorityFilters.includes(String(r.revisitPriority||'')))return;
     matched++;
 
     const mt=recordMemberType(r),key=statusKey(r.status);

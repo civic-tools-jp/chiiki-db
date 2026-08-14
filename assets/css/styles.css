@@ -1857,3 +1857,20 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .address-google-row{grid-template-columns:1fr}
   .address-google-row .google-maps-btn{width:100%}
 }
+
+/* Ver.2.8.31 — multi-select revisit priority + compact detail header */
+.detail-identity-copy{min-width:0;flex:1}
+.detail-summary-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.detail-summary-badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.detail-summary-badges .status-pill{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.map-quick-filters>label{white-space:nowrap}
+@media(max-width:700px){
+  .detail-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}
+  .detail-identity{min-width:0;align-items:flex-start}
+  .detail-summary-line{gap:6px;justify-content:flex-start}
+  .detail-summary-badges{gap:5px}
+  .detail-summary-badges .status-pill{font-size:11px;padding:6px 8px}
+  .detail-hero-actions{display:block!important}
+  .map-quick-filters{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px!important}
+  .map-quick-filters>label{flex:0 0 auto!important;width:auto!important;padding:4px 2px!important}
+}
