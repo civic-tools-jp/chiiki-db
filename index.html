@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.4</title>
+<title>あいサポ Ver.2.8.5</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.4">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.5">
 </head>
 <body>
 <div id="loginView" class="login-shell">
@@ -33,7 +33,7 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.4</div>
+    <div class="version-note">Ver.2.8.5</div>
   </div>
 </div>
 
@@ -196,7 +196,6 @@
           <label class="label">氏名・名称</label><input id="personName" placeholder="例：山田さん、○○商店">
           <label class="label">住所</label><input id="fullAddress">
           <div id="recordLocationNote" class="notice hidden"></div>
-          <div class="address-tools"><button id="recordGeocodeBtn" type="button" class="btn small has-tip" data-tip="入力した住所から地図位置を取得します" onclick="geocodeRecordAddress()">📍 住所から位置取得</button><button id="recordCurrentBtn" type="button" class="btn small has-tip" data-tip="端末の現在地から住所を取得します" onclick="fillAddressFromCurrentLocation()">◎ 現在地から住所取得</button><button id="recordMapCheckBtn" type="button" class="btn small has-tip" data-tip="この住所・位置をGoogleマップで確認します" onclick="openRecordGoogleMaps()">🗺 Googleマップで確認</button></div>
           <div class="row"><div><label class="label">区分</label><select id="recordMemberType"><option value="general">一般</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="unknown">未設定</option></select></div><div><label class="label">対象種別</label><select id="type"><option>戸建て</option><option>集合住宅</option><option>事業所</option><option>その他</option></select></div></div>
           <div class="row"><div><label class="label">電話</label><input id="recordPhone" inputmode="tel"></div><div><label class="label">メール</label><input id="recordEmail" type="email"></div></div>
           <label class="label">紹介者</label><input id="referrer" placeholder="例：山田さん、○○さんからの紹介">
@@ -280,5 +279,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.4"></script><script src="assets/js/state.js?v=2.8.4"></script><script src="assets/js/utils.js?v=2.8.4"></script><script src="assets/js/api.js?v=2.8.4"></script><script src="assets/js/auth.js?v=2.8.4"></script><script src="assets/js/map.js?v=2.8.4"></script><script src="assets/js/records.js?v=2.8.4"></script><script src="assets/js/contacts.js?v=2.8.4"></script><script src="assets/js/views.js?v=2.8.4"></script><script src="assets/js/admin.js?v=2.8.4"></script><script src="assets/js/main.js?v=2.8.4"></script>
+<script src="assets/js/config.js?v=2.8.5"></script><script src="assets/js/state.js?v=2.8.5"></script><script src="assets/js/utils.js?v=2.8.5"></script><script src="assets/js/api.js?v=2.8.5"></script><script src="assets/js/auth.js?v=2.8.5"></script><script src="assets/js/map.js?v=2.8.5"></script><script src="assets/js/records.js?v=2.8.5"></script><script src="assets/js/contacts.js?v=2.8.5"></script><script src="assets/js/views.js?v=2.8.5"></script><script src="assets/js/admin.js?v=2.8.5"></script><script src="assets/js/main.js?v=2.8.5"></script>
 </body></html>
