@@ -17,6 +17,20 @@ function recordDisplayName(r){
   return cleanDisplayName(r.personName);
 }
 
+
+function supportRankValue(v){
+  const raw=String(v||'').trim();
+  if(['A','B','C'].includes(raw))return raw;
+  if(raw==='◎有力')return 'A';
+  if(raw==='○可能性あり')return 'B';
+  if(raw==='△様子見')return 'C';
+  return '';
+}
+function supportRankLabel(v){
+  const rank=supportRankValue(v);
+  return rank?`支持 ${rank}`:'';
+}
+
 function recordFollowBadges(r){
   const out=[];
   if(boolValue(r.followParty))out.push('<span class="badge">⭐ 党員希望</span>');
@@ -38,6 +52,7 @@ function recordCard(r){
       <span class="badge">${esc(memberTypeLabel(mt))}</span>
       <span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span>
       <span class="badge">${(session?.role==='member'&&['party_member','supporter'].includes(mt))?(r.locationConfirmed?'🔒 位置確認済':'⚠ 位置未確認'):(located?'📍 位置取得済':'⚠ 位置未取得')}</span>
+      ${supportRankLabel(r.supporter)?`<span class="badge support-rank-badge rank-${supportRankValue(r.supporter).toLowerCase()}">${esc(supportRankLabel(r.supporter))}</span>`:''}
       ${r.revisitPriority?`<span class="badge">再訪 ${esc(r.revisitPriority)}</span>`:''}
       ${boolValue(r.warning)?'<span class="badge warning-soft">⚠ 訪問注意</span>':''}
       ${recordFollowBadges(r)}
@@ -68,7 +83,7 @@ function toggleListFilters(force){
 }
 function renderLists(){
   const q=($('listSearch')?.value||'').trim().toLowerCase();
-  const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',location=$('listLocation')?.value||'';
+  const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',supportRank=$('listSupportRank')?.value||'',location=$('listLocation')?.value||'';
   const revisit=!!$('listRevisit')?.checked,unvisited=!!$('listUnvisited')?.checked,refused=!!$('listRefused')?.checked,warning=!!$('listWarning')?.checked;
   const follow=!!$('listFollow')?.checked,followPending=!!$('listFollowPending')?.checked,poster=!!$('listPosterRequest')?.checked,posterPending=!!$('listPosterPending')?.checked;
   const statusFilters=[];if(revisit)statusFilters.push('revisit');if(unvisited)statusFilters.push('unvisited');if(refused)statusFilters.push('refused');
@@ -77,6 +92,9 @@ function renderLists(){
     if(q&&![r.personName,r.fullAddress,r.phone,r.email,r.partyId,r.sourceBranch,r.referrer,r.memo,r.followMemo,r.posterRequestMemo].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     if(source&&String(r.source||'manual')!==source)return false;
     if(memberType&&String(r.memberType||'general')!==memberType)return false;
+    const rank=supportRankValue(r.supporter);
+    if(supportRank==='unranked'&&rank)return false;
+    if(supportRank&&supportRank!=='unranked'&&rank!==supportRank)return false;
     const located=!!(Number(r.lat)&&Number(r.lng));
     if(location==='located'&&!located)return false;
     if(location==='unlocated'&&located)return false;
@@ -117,13 +135,17 @@ function clearListChecks(){
   ['listRevisit','listUnvisited','listRefused','listWarning','listFollow','listFollowPending','listPosterRequest','listPosterPending'].forEach(id=>{if($(id))$(id).checked=false});
 }
 function analysisGo(kind){
-  if($('listSource'))$('listSource').value='';if($('listMemberType'))$('listMemberType').value='';if($('listLocation'))$('listLocation').value='';clearListChecks();
+  if($('listSource'))$('listSource').value='';if($('listMemberType'))$('listMemberType').value='';if($('listSupportRank'))$('listSupportRank').value='';if($('listLocation'))$('listLocation').value='';clearListChecks();
   if(kind==='unlocated')$('listLocation').value='unlocated';
   if(kind==='revisit')$('listRevisit').checked=true;
   if(kind==='unvisited')$('listUnvisited').checked=true;
   if(kind==='warning')$('listWarning').checked=true;
   if(kind==='party')$('listMemberType').value='party_member';
   if(kind==='supporter')$('listMemberType').value='supporter';
+  if(kind==='rankA')$('listSupportRank').value='A';
+  if(kind==='rankB')$('listSupportRank').value='B';
+  if(kind==='rankC')$('listSupportRank').value='C';
+  if(kind==='rankUnranked')$('listSupportRank').value='unranked';
   if(kind==='follow')$('listFollow').checked=true;
   if(kind==='followPending')$('listFollowPending').checked=true;
   if(kind==='posterRequest')$('listPosterRequest').checked=true;
@@ -194,12 +216,13 @@ async function deleteBranchMessage(messageId){
 
 function renderAnalysis(){
   const total=records.length,countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
-  const unvisited=countStatus('unvisited'),handshake=countStatus('handshake'),absent=countStatus('absent'),refused=countStatus('refused');
+  const unvisited=countStatus('unvisited'),handshake=countStatus('good'),absent=countStatus('absent'),refused=countStatus('refused');
   const revisit=records.filter(isRevisit).length,warning=records.filter(r=>boolValue(r.warning)).length;
   const visited=Math.max(0,total-unvisited),unlocated=records.filter(r=>!(Number(r.lat)&&Number(r.lng))).length;
   const follow=records.filter(hasFollow),followPending=follow.filter(r=>!boolValue(r.followDone)).length;
   const poster=records.filter(r=>boolValue(r.posterRequest)),posterPending=poster.filter(r=>!boolValue(r.posterReported)).length;
   const party=records.filter(r=>r.memberType==='party_member').length,supporter=records.filter(r=>r.memberType==='supporter').length;
+  const rankA=records.filter(r=>supportRankValue(r.supporter)==='A').length,rankB=records.filter(r=>supportRankValue(r.supporter)==='B').length,rankC=records.filter(r=>supportRankValue(r.supporter)==='C').length,rankUnranked=records.filter(r=>!supportRankValue(r.supporter)).length;
   const visitRate=total?Math.round(visited/total*100):0;
   const towns={};
   records.forEach(r=>{const k=townKey(r.fullAddress);if(!towns[k])towns[k]={total:0,visited:0,unvisited:0,revisit:0};const t=towns[k];t.total++;const st=statusKey(r.status);if(st==='unvisited')t.unvisited++;else t.visited++;if(isRevisit(r))t.revisit++});
@@ -242,6 +265,15 @@ function renderAnalysis(){
       ${metric('不在',absent)}
       <button class="analysis-metric analysis-clickable" onclick="analysisGo('revisit')"><div class="analysis-value">${revisit}</div><div class="analysis-label">要再訪</div><span class="analysis-link-hint">一覧を見る →</span></button>
       ${metric('断られた',refused)}
+    </div>
+  </div>
+
+  <div class="panel activity-section support-rank-section"><div class="section-heading"><div class="heading-icon orange activity-icon">🎯</div><div><h2>支持ランク</h2><p>訪問結果とは別に、現在の支持状況を管理</p></div></div>
+    <div class="analysis-grid support-rank-grid">
+      <button class="analysis-metric analysis-clickable" onclick="analysisGo('rankA')"><div class="analysis-value">${rankA}</div><div class="analysis-label">A 強い支持</div><span class="analysis-link-hint">一覧を見る →</span></button>
+      <button class="analysis-metric analysis-clickable" onclick="analysisGo('rankB')"><div class="analysis-value">${rankB}</div><div class="analysis-label">B 支持・好感</div><span class="analysis-link-hint">一覧を見る →</span></button>
+      <button class="analysis-metric analysis-clickable" onclick="analysisGo('rankC')"><div class="analysis-value">${rankC}</div><div class="analysis-label">C 接触済・未確定</div><span class="analysis-link-hint">一覧を見る →</span></button>
+      <button class="analysis-metric analysis-clickable" onclick="analysisGo('rankUnranked')"><div class="analysis-value">${rankUnranked}</div><div class="analysis-label">未判定</div><span class="analysis-link-hint">一覧を見る →</span></button>
     </div>
   </div>
 

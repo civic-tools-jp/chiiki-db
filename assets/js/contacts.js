@@ -39,7 +39,7 @@ function openContact(c){
   $('contactPostalCode').value=c.postalCode||'';$('contactAddress').value=c.fullAddress||'';$('contactPhone').value=c.phone||'';$('contactEmail').value=c.email||'';$('contactMemberType').value=c.memberType||'unknown';
   $('contactBirthDate').value=dateInputValue(c.birthDate);$('contactGender').value=c.gender||'';$('contactOccupation').value=c.occupation||'';$('contactApprovedAt').value=dateInputValue(c.approvedAt);
   $('contactBranchParticipation').value=c.branchParticipation||'';$('contactJoinReason').value=c.joinReason||'';$('contactSourceBranch').value=c.sourceBranch||'';
-  $('contactLat').value=c.lat||'';$('contactLng').value=c.lng||'';$('contactReferrer').value=c.referrer||'';$('contactSupporter').value=c.supporter||'';$('contactMemo').value=c.memo||'';
+  $('contactLat').value=c.lat||'';$('contactLng').value=c.lng||'';$('contactReferrer').value=c.referrer||'';$('contactSupporter').value=(typeof supportRankValue==='function'?supportRankValue(c.supporter):(c.supporter||''));$('contactMemo').value=c.memo||'';
   $('contactModal').style.display='flex';
 }
 function dateInputValue(v){if(!v)return'';const d=new Date(v);if(!isNaN(d))return d.toISOString().slice(0,10);return String(v).slice(0,10)}

@@ -1681,3 +1681,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .analysis-clickable:hover .analysis-label{color:#e87516;}
   .analysis-clickable .analysis-link-hint{display:block;}
 }
+
+
+/* v2.8.20: 支持ランク A/B/C */
+.support-rank-note{margin-top:8px}
+.support-rank-badge{font-weight:800}
+.support-rank-grid .analysis-label{line-height:1.35}
+@media (max-width:700px){
+  .support-rank-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
