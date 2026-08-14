@@ -34,6 +34,23 @@ function recordCard(r){
     </div>
   </article>`;
 }
+function toggleListFilters(force){
+  const panel=$('listFilterPanel');
+  const btn=$('listFilterToggle');
+  if(!panel)return;
+  const isMobile=window.matchMedia('(max-width:700px)').matches;
+  if(!isMobile){
+    panel.classList.remove('mobile-collapsed');
+    if(btn)btn.setAttribute('aria-expanded','true');
+    return;
+  }
+  const open=typeof force==='boolean'?force:panel.classList.contains('mobile-collapsed');
+  panel.classList.toggle('mobile-collapsed',!open);
+  if(btn){
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.textContent=open?'× 閉じる':'⚙ 絞り込み';
+  }
+}
 function renderLists(){
   const q=($('listSearch')?.value||'').trim().toLowerCase();
   const source=$('listSource')?.value||'',memberType=$('listMemberType')?.value||'',location=$('listLocation')?.value||'';
@@ -136,5 +153,6 @@ function showView(v){
   ['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x)?.classList.toggle('hidden',x!==v));
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   if(v==='analysis')renderAnalysis();
-  if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();updateMapDashboard?.()},100);
+  if(v==='list')setTimeout(()=>toggleListFilters(window.innerWidth>700),0);
+  if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();},100);
 }

@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.3</title>
+<title>あいサポ Ver.2.8.4</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/styles.css?v=2.8.3">
+<link rel="stylesheet" href="assets/css/styles.css?v=2.8.4">
 </head>
 <body>
 <div id="loginView" class="login-shell">
@@ -33,7 +33,7 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.3</div>
+    <div class="version-note">Ver.2.8.4</div>
   </div>
 </div>
 
@@ -56,6 +56,11 @@
   <!-- small heart -->
   <path d="M65 13c-3-4-9-1-9 3.5 0 4.2 9 9.2 9 9.2s9-5 9-9.2C74 12 68 9 65 13Z" fill="#ff8614" stroke="#fff" stroke-width="1.8"/>
 </svg><div><div class="brand-name"><span>あい</span><b>サ<span class="po-heart">ホ<span class="heart-mark">♥</span></span></b></div><div class="brand-tagline">会いに行く。つながる。地域をサポート。</div></div></div>
+    <div class="mobile-user-actions">
+      <div class="mobile-user-name" id="mobileUserName">ユーザー</div>
+      <button type="button" class="mobile-pw-btn" onclick="openPasswordModal(false)">PW変更</button>
+      <button type="button" class="mobile-logout-btn" onclick="logout()">ログアウト</button>
+    </div>
     <nav class="tabs">
       <button class="tab active has-tip" data-tip="訪問先を地図で確認・登録できます" data-view="map" onclick="showView('map')"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg><span>地図</span></button>
       <button class="tab has-tip" data-tip="訪問先を検索・絞り込みできます" data-view="list" onclick="showView('list')"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>一覧</span></button>
@@ -108,21 +113,26 @@
     <section id="view-list" class="view-section hidden">
       <div class="panel list-filter-panel">
         <div class="section-heading"><div class="heading-icon green"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></div><div><h2>訪問先一覧</h2><p>検索・絞り込みから次に回る場所を確認</p></div></div>
-        <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
-        <div class="row list-select-filters">
-          <div><label class="label">登録方法</label><select id="listSource" onchange="renderLists()"><option value="">すべて</option><option value="import">名簿取込</option><option value="manual">手入力</option><option value="map">地図登録</option></select></div>
-          <div><label class="label">区分</label><select id="listMemberType" onchange="renderLists()"><option value="">すべて</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="general">一般</option><option value="unknown">未設定</option></select></div>
-          <div><label class="label">位置</label><select id="listLocation" onchange="renderLists()"><option value="">すべて</option><option value="located">取得済</option><option value="unlocated">未取得</option></select></div>
+        <div class="list-search-tools">
+          <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
+          <button type="button" id="listFilterToggle" class="btn list-filter-toggle" onclick="toggleListFilters()">⚙ 絞り込み</button>
         </div>
-        <div id="listQuickFilters" class="chip-filters">
-          <label><input id="listRevisit" type="checkbox" onchange="renderLists()"> 🔁 再訪</label>
-          <label><input id="listUnvisited" type="checkbox" onchange="renderLists()"> 未訪問</label>
-          <label><input id="listRefused" type="checkbox" onchange="renderLists()"> × 断られた</label>
-          <label><input id="listWarning" type="checkbox" onchange="renderLists()"> ⚠ 訪問注意</label>
-          <label><input id="listFollow" type="checkbox" onchange="renderLists()"> 🤝 フォロー対象</label>
-          <label><input id="listFollowPending" type="checkbox" onchange="renderLists()"> 未対応のみ</label>
-          <label><input id="listPosterRequest" type="checkbox" onchange="renderLists()"> 🍊 ポスター依頼</label>
-          <label><input id="listPosterPending" type="checkbox" onchange="renderLists()"> 未報告のみ</label>
+        <div id="listFilterPanel" class="list-filter-body">
+          <div class="row list-select-filters">
+            <div><label class="label">登録方法</label><select id="listSource" onchange="renderLists()"><option value="">すべて</option><option value="import">名簿取込</option><option value="manual">手入力</option><option value="map">地図登録</option></select></div>
+            <div><label class="label">区分</label><select id="listMemberType" onchange="renderLists()"><option value="">すべて</option><option value="party_member">党員</option><option value="supporter">サポーター</option><option value="general">一般</option><option value="unknown">未設定</option></select></div>
+            <div><label class="label">位置</label><select id="listLocation" onchange="renderLists()"><option value="">すべて</option><option value="located">取得済</option><option value="unlocated">未取得</option></select></div>
+          </div>
+          <div id="listQuickFilters" class="chip-filters">
+            <label><input id="listRevisit" type="checkbox" onchange="renderLists()"> 🔁 再訪</label>
+            <label><input id="listUnvisited" type="checkbox" onchange="renderLists()"> 未訪問</label>
+            <label><input id="listRefused" type="checkbox" onchange="renderLists()"> × 断られた</label>
+            <label><input id="listWarning" type="checkbox" onchange="renderLists()"> ⚠ 訪問注意</label>
+            <label><input id="listFollow" type="checkbox" onchange="renderLists()"> 🤝 フォロー対象</label>
+            <label><input id="listFollowPending" type="checkbox" onchange="renderLists()"> 未対応のみ</label>
+            <label><input id="listPosterRequest" type="checkbox" onchange="renderLists()"> 🍊 ポスター依頼</label>
+            <label><input id="listPosterPending" type="checkbox" onchange="renderLists()"> 未報告のみ</label>
+          </div>
         </div>
       </div>
       <div id="listCards" class="list card-grid"></div>
@@ -270,5 +280,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.3"></script><script src="assets/js/state.js?v=2.8.3"></script><script src="assets/js/utils.js?v=2.8.3"></script><script src="assets/js/api.js?v=2.8.3"></script><script src="assets/js/auth.js?v=2.8.3"></script><script src="assets/js/map.js?v=2.8.3"></script><script src="assets/js/records.js?v=2.8.3"></script><script src="assets/js/contacts.js?v=2.8.3"></script><script src="assets/js/views.js?v=2.8.3"></script><script src="assets/js/admin.js?v=2.8.3"></script><script src="assets/js/main.js?v=2.8.3"></script>
+<script src="assets/js/config.js?v=2.8.4"></script><script src="assets/js/state.js?v=2.8.4"></script><script src="assets/js/utils.js?v=2.8.4"></script><script src="assets/js/api.js?v=2.8.4"></script><script src="assets/js/auth.js?v=2.8.4"></script><script src="assets/js/map.js?v=2.8.4"></script><script src="assets/js/records.js?v=2.8.4"></script><script src="assets/js/contacts.js?v=2.8.4"></script><script src="assets/js/views.js?v=2.8.4"></script><script src="assets/js/admin.js?v=2.8.4"></script><script src="assets/js/main.js?v=2.8.4"></script>
 </body></html>

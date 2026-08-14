@@ -4,7 +4,8 @@ function logout(){localStorage.removeItem("aisapo_session");localStorage.removeI
 async function startApp(){
   if(!session)return;
   $('loginView').classList.add('hidden');$('app').classList.remove('hidden');
-  $('userName').textContent=session.name;if(typeof syncMobileUser==='function')syncMobileUser();
+  $('userName').textContent=session.name;
+  if($('mobileUserName'))$('mobileUserName').textContent=session.name;
   $('userRole').textContent=({member:'一般',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[session.role]||session.role);
   $('branchLabel').textContent=session.branchName||'全支部';
   const manager=['leader','prefecture_admin','system_admin'].includes(session.role);

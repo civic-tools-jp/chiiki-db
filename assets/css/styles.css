@@ -1152,3 +1152,83 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
     content:none!important;
   }
 }
+
+
+/* Ver.2.8.4 — mobile account controls + collapsible list filters */
+.list-search-tools{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+}
+.list-search-tools .search-box.wide{margin-bottom:0}
+.list-filter-toggle{white-space:nowrap}
+.list-filter-body{margin-top:14px}
+
+.mobile-user-actions{display:none}
+
+@media(max-width:700px){
+  .app-header{
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-areas:"brand mobileuser" "tabs tabs"!important;
+    gap:8px!important;
+  }
+  .app-header>.user-menu{display:none!important}
+  .mobile-user-actions{
+    grid-area:mobileuser;
+    display:grid!important;
+    grid-template-columns:auto auto;
+    grid-template-areas:"name name" "pw logout";
+    gap:4px 6px;
+    align-items:center;
+    justify-items:end;
+    min-width:0;
+  }
+  .mobile-user-name{
+    grid-area:name;
+    max-width:150px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:11px;
+    font-weight:900;
+    color:#40382f;
+  }
+  .mobile-pw-btn,.mobile-logout-btn{
+    min-height:30px;
+    padding:4px 7px;
+    border-radius:9px;
+    font-size:9px;
+    font-weight:900;
+    background:#fff;
+  }
+  .mobile-pw-btn{
+    grid-area:pw;
+    border:1px solid #d9e5d6;
+    color:#2e7d43;
+  }
+  .mobile-logout-btn{
+    grid-area:logout;
+    border:1px solid #f4c79f;
+    color:#e76500;
+  }
+
+  .list-search-tools{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+  }
+  .list-filter-toggle{
+    min-height:48px;
+    padding:8px 11px;
+    border-radius:14px;
+    background:#fff7ec;
+    color:#2e7d43;
+    border:1px solid #ead8c5;
+    font-size:12px;
+    font-weight:900;
+  }
+  .list-filter-body.mobile-collapsed{display:none!important}
+  .list-filter-body{margin-top:10px}
+  .list-select-filters{grid-template-columns:1fr!important}
+  .chip-filters{gap:7px!important}
+}
