@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.42</title>
+<title>あいサポ Ver.2.8.43</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/styles.css?v=2.8.39">
 </head>
@@ -19,7 +19,7 @@
     <label class="label">パスワード</label><div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password"><button type="button" id="loginPasswordToggle" class="password-toggle" onclick="toggleLoginPassword()" aria-label="パスワードを表示" title="パスワードを表示"><img class="password-cute-icon" src="assets/img/password-person-hide.png" alt=""></button></div>
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.42</div>
+    <div class="version-note">Ver.2.8.43</div>
   </div>
 </div>
 
@@ -118,9 +118,7 @@
     <section id="view-list" class="view-section hidden">
       <div class="panel list-filter-panel">
         <div class="section-heading list-heading"><div class="heading-icon green"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></div><div><h2>訪問先一覧</h2><p>検索・絞り込みから次に回る場所を確認</p></div><button type="button" id="listBackToAnalysis" class="btn list-back-analysis hidden" onclick="showView('analysis')" aria-label="活動状況に戻る"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/><path d="M9 12h10"/></svg><span>活動状況へ戻る</span></button></div>
-        <button type="button" id="listScrollTopFloating" class="scroll-top-floating hidden" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="一覧の上へ戻る">↑ <span>上へ</span></button>
-        <button type="button" id="analysisScrollTopFloating" class="scroll-top-floating hidden" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="活動状況の上へ戻る">↑ <span>上へ</span></button>
-        <button type="button" id="listBackToAnalysisFloating" class="list-back-analysis-floating hidden" onclick="showView('analysis')" aria-label="活動状況に戻る"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/><path d="M9 12h10"/></svg><span>活動状況へ戻る</span></button>
+<button type="button" id="listBackToAnalysisFloating" class="list-back-analysis-floating hidden" onclick="showView('analysis')" aria-label="活動状況に戻る"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/><path d="M9 12h10"/></svg><span>活動状況へ戻る</span></button>
         <div class="list-search-tools">
           <div class="search-box wide"><span>⌕</span><input id="listSearch" placeholder="名前・住所・電話・メモで検索" oninput="renderLists()"></div>
           <button type="button" id="listFilterToggle" class="btn list-filter-toggle" onclick="toggleListFilters()"><svg class="filter-funnel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6.3 7.1v4.5l-3.4 1.8v-6.3L4 6Z"/></svg><span>絞り込み</span></button>
@@ -191,6 +189,9 @@
         <div class="panel span-2"><div class="card-title">登録ユーザー</div><div class="admin-user-filters"><input id="adminUserSearch" placeholder="ID・氏名で検索" oninput="renderUsers()"><select id="adminUserRole" onchange="renderUsers()"><option value="">権限すべて</option><option value="system_admin">システム管理者</option><option value="leader">支部管理者</option><option value="member">一般利用者</option></select><select id="adminUserActive" onchange="renderUsers()"><option value="">有効・無効すべて</option><option value="active">有効</option><option value="inactive">無効</option></select></div><div id="usersTable"></div></div><div id="loginHistoryPanel" class="panel span-2 hidden"><div class="card-title admin-areas-title">ログイン履歴 <button type="button" class="mini-btn admin-areas-toggle" id="loginHistoryToggleBtn" onclick="toggleLoginHistory()">履歴を表示 ▼</button></div><div id="loginHistoryTable" class="hidden"></div></div>
       </div>
     </section>
+
+    <button type="button" id="listScrollTopFloating" class="scroll-top-floating hidden" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="一覧の上へ戻る">↑ <span>上へ</span></button>
+    <button type="button" id="analysisScrollTopFloating" class="scroll-top-floating hidden" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="活動状況の上へ戻る">↑ <span>上へ</span></button>
   </main>
 </div>
 

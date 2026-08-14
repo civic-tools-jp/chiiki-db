@@ -28,15 +28,47 @@ async function reverseAddress(lat,lng){
     return normalizeJapaneseAddress(await r.json());
   }catch(_){return ''}
 }
+
+function geoErrorMessage(err){
+  if(!window.isSecureContext)return '現在地取得にはHTTPS接続が必要です。';
+  const code=Number(err?.code||0);
+  if(code===1)return '位置情報の利用が許可されていません。ブラウザのサイト設定で「あいサポ」の位置情報を許可してください。';
+  if(code===2)return '現在地を取得できませんでした。端末の位置情報をONにして、Wi-Fiやモバイル通信を確認してください。';
+  if(code===3)return '現在地の取得がタイムアウトしました。少し待ってからもう一度お試しください。';
+  return '現在地を取得できませんでした。';
+}
+function currentPositionOnce(options){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){reject({code:0,message:'geolocation unavailable'});return}
+    navigator.geolocation.getCurrentPosition(resolve,reject,options);
+  });
+}
+async function getCurrentPositionSmart(){
+  if(!navigator.geolocation)throw {code:0,message:'geolocation unavailable'};
+  try{
+    return await currentPositionOnce({enableHighAccuracy:true,timeout:20000,maximumAge:15000});
+  }catch(first){
+    // GPSが弱い室内などでは、Wi-Fi/基地局を使える低精度取得へ自動フォールバック。
+    if(Number(first?.code)===1)throw first;
+    try{
+      return await currentPositionOnce({enableHighAccuracy:false,timeout:15000,maximumAge:60000});
+    }catch(second){
+      throw second||first;
+    }
+  }
+}
+
 async function fillAddressFromCurrentLocation(){
-  if(!navigator.geolocation){alert('この端末では現在地を取得できません');return}
-  navigator.geolocation.getCurrentPosition(async p=>{
+  try{
+    const p=await getCurrentPositionSmart();
     const lat=p.coords.latitude,lng=p.coords.longitude;
     $('lat').value=lat;$('lng').value=lng;
     const address=await reverseAddress(lat,lng);
     if(address)$('fullAddress').value=address;
     if(map)map.setView([lat,lng],18);
-  },()=>alert('現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:12000});
+  }catch(err){
+    alert(geoErrorMessage(err));
+  }
 }
 
 async function geocodeRecordAddress(){
@@ -189,4 +221,14 @@ async function searchMap(){
   if(local){map.setView([Number(local.lat),Number(local.lng)],17);markers['r_'+local.id]?.openTooltip();return}
   try{const res=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ja&q=${encodeURIComponent(q)}`);const j=await res.json();if(j[0])map.setView([+j[0].lat,+j[0].lon],17);else alert('見つかりませんでした')}catch(_){alert('検索に失敗しました')}
 }
-function addCurrentLocation(){navigator.geolocation.getCurrentPosition(async p=>{const lat=p.coords.latitude,lng=p.coords.longitude;map.setView([lat,lng],18);const address=await reverseAddress(lat,lng);openEdit({lat,lng,fullAddress:address,status:'visited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)},()=>alert('現在地を取得できませんでした'),{enableHighAccuracy:true,timeout:12000})}
+async function addCurrentLocation(){
+  try{
+    const p=await getCurrentPositionSmart();
+    const lat=p.coords.latitude,lng=p.coords.longitude;
+    map.setView([lat,lng],18);
+    const address=await reverseAddress(lat,lng);
+    openEdit({lat,lng,fullAddress:address,status:'visited',type:'戸建て',date:today(),source:'map',memberType:'general'},true);
+  }catch(err){
+    alert(geoErrorMessage(err));
+  }
+}

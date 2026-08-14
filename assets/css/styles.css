@@ -2012,3 +2012,65 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   #editModal .mobile-detail-action-bar{grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.35fr)}
   #editModal .mobile-detail-action-bar #mobileDetailDeleteBtn{color:#b64a45;border-color:#e8b4b0;background:#fff8f7}
 }
+
+
+/* Ver.2.8.43 — detail actions follow on PC/mobile + remove duplicate footer controls */
+#editModal .mobile-detail-action-bar{
+  position:fixed;
+  z-index:1605;
+  display:grid;
+  gap:10px;
+  padding:9px;
+  border:1px solid rgba(232,216,198,.92);
+  border-radius:18px;
+  background:rgba(255,253,249,.96);
+  box-shadow:0 10px 32px rgba(72,54,38,.22);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+#editModal .mobile-detail-action-bar .btn{
+  margin:0;
+  font-weight:900;
+  border-radius:13px;
+}
+#editModal .detail-footer .actions,
+#editModal #deleteRecordRow{
+  display:none!important;
+}
+#editModal .detail-footer{
+  padding-bottom:96px!important;
+}
+#editModal .mobile-detail-action-bar #mobileDetailDeleteBtn{
+  color:#b64a45;
+  border-color:#e8b4b0;
+  background:#fff8f7;
+}
+
+@media(min-width:701px){
+  #editModal .mobile-detail-action-bar{
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    width:min(620px,calc(100vw - 48px));
+    grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.35fr);
+  }
+  #editModal .mobile-detail-action-bar .btn{
+    min-height:44px;
+    font-size:14px;
+  }
+}
+@media(max-width:700px){
+  #editModal .mobile-detail-action-bar{
+    left:12px;
+    right:12px;
+    bottom:calc(14px + env(safe-area-inset-bottom));
+    grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.35fr);
+  }
+  #editModal .mobile-detail-action-bar .btn{
+    min-height:48px;
+    font-size:15px;
+  }
+  #editModal .detail-footer{
+    padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;
+  }
+}
