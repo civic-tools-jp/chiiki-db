@@ -2003,3 +2003,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   /* 最下部のフォーム内容・削除ボタンが固定バーに隠れないための余白 */
   #editModal .detail-footer{padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
 }
+
+/* Ver.2.8.42 — mobile scroll-to-top + delete in fixed detail bar */
+.scroll-top-floating{display:none}
+@media(max-width:700px){
+  .scroll-top-floating:not(.hidden){position:fixed;right:14px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:1445;display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:9px 13px;border:1px solid #f0c8a6;border-radius:999px;background:rgba(255,255,255,.95);color:#b7662d;font-size:12px;font-weight:900;box-shadow:0 8px 24px rgba(72,54,38,.16);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #listBackToAnalysisFloating:not(.hidden) ~ #listScrollTopFloating, #listScrollTopFloating:not(.hidden){bottom:calc(72px + env(safe-area-inset-bottom))}
+  #editModal .mobile-detail-action-bar{grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.35fr)}
+  #editModal .mobile-detail-action-bar #mobileDetailDeleteBtn{color:#b64a45;border-color:#e8b4b0;background:#fff8f7}
+}

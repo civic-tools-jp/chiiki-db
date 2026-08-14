@@ -295,6 +295,17 @@ function renderAnalysis(){
   </div>
   <div class="panel"><div class="section-heading"><div class="heading-icon green activity-icon">🗺️</div><div><h2>町丁目別の進捗</h2><p>未訪問が多い地域から表示</p></div></div><div class="analysis-town-list">${townRows||'<div class="notice">住所データがありません。</div>'}</div></div>`;
 }
+function updateScrollTopFloating(){
+  const mobile=window.matchMedia('(max-width:700px)').matches;
+  const show=mobile&&window.scrollY>420;
+  const listVisible=!$('view-list')?.classList.contains('hidden');
+  const analysisVisible=!$('view-analysis')?.classList.contains('hidden');
+  $('listScrollTopFloating')?.classList.toggle('hidden',!(show&&listVisible));
+  $('analysisScrollTopFloating')?.classList.toggle('hidden',!(show&&analysisVisible));
+}
+window.addEventListener('scroll',updateScrollTopFloating,{passive:true});
+window.addEventListener('resize',updateScrollTopFloating);
+
 function showView(v,opts={}){
   ['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x)?.classList.toggle('hidden',x!==v));
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
@@ -304,4 +315,5 @@ function showView(v,opts={}){
   if(v==='analysis')renderAnalysis();
   if(v==='list')setTimeout(()=>toggleListFilters(false),0);
   if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();},100);
+  setTimeout(updateScrollTopFloating,0);
 }
