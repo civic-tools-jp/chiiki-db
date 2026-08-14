@@ -134,31 +134,50 @@ function formatMessageDate(v){
   const d=new Date(v);if(isNaN(d))return String(v);
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
+function canManageBranchMessage(m){
+  return !!session&&(session.role==='system_admin'||String(m.createdBy||'')===String(session.userId||''));
+}
 function renderBranchMessages(){
   if(!branchMessages.length)return '<div class="branch-message-empty">連絡はまだありません。</div>';
   return branchMessages.slice(0,5).map(m=>`<article class="branch-message-item">
     <div class="branch-message-top"><b>${esc(m.title||'連絡')}</b><time>${esc(formatMessageDate(m.createdAt))}</time></div>
     <div class="branch-message-route">${esc(branchName(m.fromBranchId))} → ${esc(branchName(m.toBranchId))}</div>
     <div class="branch-message-body">${esc(m.body)}</div>
-    <div class="branch-message-author">${esc(m.createdByName||'')}</div>
+    <div class="branch-message-footer">
+      <div class="branch-message-author">${esc(m.createdByName||'')}</div>
+      ${canManageBranchMessage(m)?`<div class="branch-message-actions"><button type="button" onclick="openBranchMessageModal('${esc(m.messageId)}')">✏️ 編集</button><button type="button" class="danger" onclick="deleteBranchMessage('${esc(m.messageId)}')">🗑️ 削除</button></div>`:''}
+    </div>
   </article>`).join('');
 }
-function openBranchMessageModal(){
+function openBranchMessageModal(messageId=''){
   const modal=$('branchMessageModal');if(!modal)return;
   const sel=$('branchMessageTo');
   sel.innerHTML=`<option value="all">全支部</option>${branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('')}`;
-  $('branchMessageTitle').value='';$('branchMessageBody').value='';
+  const m=messageId?branchMessages.find(x=>String(x.messageId)===String(messageId)):null;
+  $('branchMessageId').value=m?.messageId||'';
+  $('branchMessageModalTitle').textContent=m?'📣 支部連絡を編集':'📣 支部連絡を追加';
+  $('branchMessageTo').value=m?.toBranchId||'all';
+  $('branchMessageTitle').value=m?.title||'';
+  $('branchMessageBody').value=m?.body||'';
+  $('branchMessageSaveBtn').textContent=m?'変更を保存':'連絡を追加';
   modal.style.display='flex';
 }
 function closeBranchMessageModal(){$('branchMessageModal').style.display='none'}
 async function saveBranchMessage(){
-  const btn=$('branchMessageSaveBtn');
+  const btn=$('branchMessageSaveBtn'),messageId=$('branchMessageId')?.value||'';
   try{
-    if(btn){btn.disabled=true;btn.textContent='送信中…'}
-    await api('saveBranchMessage',{message:{toBranchId:$('branchMessageTo').value,title:$('branchMessageTitle').value.trim(),body:$('branchMessageBody').value.trim()}});
+    if(btn){btn.disabled=true;btn.textContent=messageId?'保存中…':'送信中…'}
+    await api('saveBranchMessage',{message:{messageId,toBranchId:$('branchMessageTo').value,title:$('branchMessageTitle').value.trim(),body:$('branchMessageBody').value.trim()}});
     closeBranchMessageModal();await loadBranchMessages();renderAnalysis();
   }catch(e){alert(e.message)}
-  finally{if(btn){btn.disabled=false;btn.textContent='連絡を追加'}}
+  finally{if(btn){btn.disabled=false;btn.textContent=messageId?'変更を保存':'連絡を追加'}}
+}
+async function deleteBranchMessage(messageId){
+  if(!confirm('この支部連絡を削除しますか？'))return;
+  try{
+    await api('deleteBranchMessage',{messageId});
+    await loadBranchMessages();renderAnalysis();
+  }catch(e){alert(e.message)}
 }
 
 function renderAnalysis(){

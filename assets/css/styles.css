@@ -1554,3 +1554,15 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   color:#756b62;
 }
 .priority-section .analysis-action-group-label:first-of-type{margin-top:12px}
+
+/* Ver.2.8.12 — branch message actions / quick-filter visual language */
+.branch-message-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.branch-message-actions{display:flex;gap:8px;flex-wrap:wrap}
+.branch-message-actions button{border:1px solid #eadbc9;background:#fffaf4;border-radius:10px;padding:7px 12px;font-weight:700;cursor:pointer}
+.branch-message-actions button.danger{color:#c84a3d;background:#fff8f7;border-color:#efc6c0}
+.chip-filters label{display:inline-flex;align-items:center;gap:7px}
+.filter-dot{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:13px;font-weight:900;color:#fff;line-height:1;flex:0 0 22px}
+.filter-revisit{background:#ef5350}.filter-unvisited{background:#9aa4b2}.filter-refused{background:#6b7280}
+.filter-warning{background:#e53935}.filter-follow{background:#2fb45d}.filter-pending{background:#f2a33a}
+.filter-poster{background:#f39800}.filter-report{background:#d86b3d}
+@media(max-width:700px){.branch-message-footer{align-items:flex-end}.branch-message-actions button{padding:7px 10px}.filter-dot{width:20px;height:20px;flex-basis:20px;font-size:12px}}

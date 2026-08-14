@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.11</title>
+<title>あいサポ Ver.2.8.12</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/styles.css?v=2.8.8">
 </head>
@@ -19,7 +19,7 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.11</div>
+    <div class="version-note">Ver.2.8.12</div>
   </div>
 </div>
 
@@ -50,7 +50,8 @@
   <main class="app-main">
     <div id="appMsg"></div><div id="branchMessageModal" class="modal-bg" style="display:none">
   <div class="modal-card branch-message-modal">
-    <div class="modal-head"><h2>📣 支部連絡を追加</h2><button class="icon-btn" onclick="closeBranchMessageModal()">×</button></div>
+    <div class="modal-head"><h2 id="branchMessageModalTitle">📣 支部連絡を追加</h2><button class="icon-btn" onclick="closeBranchMessageModal()">×</button></div>
+    <input id="branchMessageId" type="hidden">
     <label class="label">宛先</label>
     <select id="branchMessageTo"></select>
     <label class="label">件名</label>
@@ -116,14 +117,14 @@
             <div><label class="label">位置</label><select id="listLocation" onchange="renderLists()"><option value="">すべて</option><option value="located">取得済</option><option value="unlocated">未取得</option></select></div>
           </div>
           <div id="listQuickFilters" class="chip-filters">
-            <label><input id="listRevisit" type="checkbox" onchange="renderLists()"> 🔁 再訪</label>
-            <label><input id="listUnvisited" type="checkbox" onchange="renderLists()"> 未訪問</label>
-            <label><input id="listRefused" type="checkbox" onchange="renderLists()"> × 断られた</label>
-            <label><input id="listWarning" type="checkbox" onchange="renderLists()"> ⚠ 訪問注意</label>
-            <label><input id="listFollow" type="checkbox" onchange="renderLists()"> 🤝 フォロー対象</label>
-            <label><input id="listFollowPending" type="checkbox" onchange="renderLists()"> 未対応のみ</label>
-            <label><input id="listPosterRequest" type="checkbox" onchange="renderLists()"> 🍊 ポスター依頼</label>
-            <label><input id="listPosterPending" type="checkbox" onchange="renderLists()"> 未報告のみ</label>
+            <label><input id="listRevisit" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-revisit">↻</span>再訪</label>
+            <label><input id="listUnvisited" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-unvisited">●</span>未訪問</label>
+            <label><input id="listRefused" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-refused">×</span>断られた</label>
+            <label><input id="listWarning" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-warning">!</span>訪問注意</label>
+            <label><input id="listFollow" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-follow">♥</span>フォロー対象</label>
+            <label><input id="listFollowPending" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-pending">●</span>未対応のみ</label>
+            <label><input id="listPosterRequest" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-poster">⌂</span>ポスター依頼</label>
+            <label><input id="listPosterPending" type="checkbox" onchange="renderLists()"><span class="filter-dot filter-report">!</span>未報告のみ</label>
           </div>
         </div>
       </div>

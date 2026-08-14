@@ -12,7 +12,7 @@ function doPost(e){try{const p=JSON.parse((e.postData&&e.postData.contents)||'{}
 case'bootstrap':return json_(bootstrap_(user));
 case'listRecords':return json_(listRecords_(user,p));case'saveRecord':return json_(saveRecord_(user,p.record||{}));case'deleteRecord':return json_(deleteRecord_(user,p));
 case'listContacts':return json_(listContacts_(user,p));case'saveContact':return json_(saveContact_(user,p.contact||{}));case'deleteContact':return json_(deleteContact_(user,p));
-case'listBranchMessages':return json_(listBranchMessages_(user,p));case'saveBranchMessage':return json_(saveBranchMessage_(user,p.message||{}));
+case'listBranchMessages':return json_(listBranchMessages_(user,p));case'saveBranchMessage':return json_(saveBranchMessage_(user,p.message||{}));case'deleteBranchMessage':return json_(deleteBranchMessage_(user,p));
 case'adminData':return json_(adminData_(user));case'createUser':return json_(createUser_(user,p.user||{}));case'setUserArea':return json_(setUserArea_(user,p));case'createArea':return json_(createArea_(user,p.area||{}));case'importContacts':return json_(importContacts_(user,p));case'changePassword':return json_(changePassword_(user,p));case'resetPassword':return json_(resetPassword_(user,p));
 default:throw Error('不明な処理です');}}catch(err){return json_({ok:false,error:String(err.message||err)});}}
 
@@ -160,6 +160,9 @@ function listBranchMessages_(u,p){
   return {ok:true,messages:visible.slice(0,limit)};
 }
 
+function canManageBranchMessage_(u,item){
+  return String(u.role)==='system_admin'||String(item.createdBy||'')===String(u.userId||'');
+}
 function saveBranchMessage_(u,m){
   ensureSheet_(SpreadsheetApp.getActive(),SHEETS.BRANCH_MESSAGES,BRANCH_MESSAGE_HEADERS);
   const body=String(m.body||'').trim();
@@ -169,15 +172,42 @@ function saveBranchMessage_(u,m){
   const toBranchId=String(m.toBranchId||'all');
   const activeBranches=rows_(SHEETS.BRANCHES).filter(x=>truth_(x.active));
   if(toBranchId!=='all'&&!activeBranches.some(b=>String(b.branchId)===toBranchId))throw Error('宛先支部が見つかりません');
-  const fromBranchId=String(u.branchId||'all');
-  const item={
-    messageId:uuid_(),fromBranchId,toBranchId,title,body,
-    createdBy:String(u.userId||''),createdByName:String(u.name||u.loginId||''),
-    createdAt:now_(),active:true
-  };
   const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.BRANCH_MESSAGES);
+  const messageId=String(m.messageId||'');
+  if(messageId){
+    const vals=sh.getDataRange().getValues(),headers=vals[0].map(String);
+    const idx=headers.indexOf('messageId');
+    for(let i=1;i<vals.length;i++){
+      if(String(vals[i][idx])===messageId){
+        const item={};headers.forEach((h,j)=>item[h]=vals[i][j]);
+        if(!canManageBranchMessage_(u,item))throw Error('この連絡は編集できません');
+        const changes={toBranchId,title,body};
+        headers.forEach((hh,j)=>{if(Object.prototype.hasOwnProperty.call(changes,hh))sh.getRange(i+1,j+1).setValue(changes[hh])});
+        return {ok:true,message:Object.assign(item,changes)};
+      }
+    }
+    throw Error('連絡が見つかりません');
+  }
+  const fromBranchId=String(u.branchId||'all');
+  const item={messageId:uuid_(),fromBranchId,toBranchId,title,body,createdBy:String(u.userId||''),createdByName:String(u.name||u.loginId||''),createdAt:now_(),active:true};
   sh.appendRow(BRANCH_MESSAGE_HEADERS.map(h=>item[h]??''));
   return {ok:true,message:item};
+}
+function deleteBranchMessage_(u,p){
+  ensureSheet_(SpreadsheetApp.getActive(),SHEETS.BRANCH_MESSAGES,BRANCH_MESSAGE_HEADERS);
+  const id=String(p.messageId||'');if(!id)throw Error('連絡IDがありません');
+  const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.BRANCH_MESSAGES);
+  const vals=sh.getDataRange().getValues(),headers=vals[0].map(String);
+  const idIdx=headers.indexOf('messageId'),activeIdx=headers.indexOf('active');
+  for(let i=1;i<vals.length;i++){
+    if(String(vals[i][idIdx])===id){
+      const item={};headers.forEach((h,j)=>item[h]=vals[i][j]);
+      if(!canManageBranchMessage_(u,item))throw Error('この連絡は削除できません');
+      if(activeIdx>=0)sh.getRange(i+1,activeIdx+1).setValue(false);else sh.deleteRow(i+1);
+      return {ok:true};
+    }
+  }
+  throw Error('連絡が見つかりません');
 }
 
 function auth_(token){if(!token)throw Error('セッションがありません');cleanupSessions_();const s=rows_(SHEETS.SESSIONS).find(x=>x.token===token);if(!s||new Date(s.expiresAt)<=new Date())throw Error('セッションの有効期限が切れました');const u=rows_(SHEETS.USERS).find(x=>x.userId===s.userId&&truth_(x.active));if(!u)throw Error('利用者が無効です');return u;}
