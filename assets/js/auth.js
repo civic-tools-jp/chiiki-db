@@ -10,7 +10,7 @@ async function startApp(){
   const roleLabel=({member:'一般ユーザー',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[session.role]||session.role);
   $('userRole').textContent=({member:'一般',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[session.role]||session.role);
   if($('mobileUserRole'))$('mobileUserRole').textContent=roleLabel;
-  const avatar=({system_admin:'👑',prefecture_admin:'👑',leader:'🧭',member:'👤'}[session.role]||'👤'); if($('userAvatar'))$('userAvatar').textContent=avatar; if($('mobileUserAvatar'))$('mobileUserAvatar').textContent=avatar;
+  const roleIcon=({system_admin:'assets/img/role-admin.png',prefecture_admin:'assets/img/role-admin.png',leader:'assets/img/role-leader.png',member:'assets/img/role-member.png'}[session.role]||'assets/img/role-member.png'); const roleAlt=roleLabel; if($('userAvatar'))$('userAvatar').innerHTML=`<img src="${roleIcon}" alt="${esc(roleAlt)}" class="role-avatar-img">`; if($('mobileUserAvatar'))$('mobileUserAvatar').innerHTML=`<img src="${roleIcon}" alt="${esc(roleAlt)}" class="role-avatar-img">`;
   $('branchLabel').textContent=session.branchName||'全支部';
   const manager=['leader','prefecture_admin','system_admin'].includes(session.role);
   if(manager){$('adminTab')?.classList.remove('hidden');$('contactsTab')?.classList.remove('hidden')}
