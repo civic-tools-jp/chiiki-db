@@ -298,11 +298,9 @@ function renderAnalysis(){
 function showView(v,opts={}){
   ['map','list','contacts','analysis','admin'].forEach(x=>$('view-'+x)?.classList.toggle('hidden',x!==v));
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
-  const back=$('listBackToAnalysis');
-  if(back){
-    if(v==='list'&&opts.fromAnalysis)back.classList.remove('hidden');
-    else if(v!=='list'||!opts.fromAnalysis)back.classList.add('hidden');
-  }
+  const backButtons=[$('listBackToAnalysis'),$('listBackToAnalysisFloating')].filter(Boolean);
+  const fromAnalysis=v==='list'&&!!opts.fromAnalysis;
+  backButtons.forEach(back=>back.classList.toggle('hidden',!fromAnalysis));
   if(v==='analysis')renderAnalysis();
   if(v==='list')setTimeout(()=>toggleListFilters(false),0);
   if(v==='map')setTimeout(()=>{if(map&&typeof map.invalidateSize==='function')map.invalidateSize();},100);

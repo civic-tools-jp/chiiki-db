@@ -1940,3 +1940,66 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   .list-back-analysis span{display:none}
   .list-back-analysis svg{width:22px;height:22px}
 }
+
+
+/* Ver.2.8.41 — mobile floating return + fixed detail action bar */
+.list-back-analysis-floating,
+.mobile-detail-action-bar{display:none}
+
+@media(max-width:700px){
+  /* 活動状況から一覧へ来たときだけ、スクロール位置に関係なく戻れる */
+  .list-back-analysis-floating:not(.hidden){
+    position:fixed;
+    right:14px;
+    bottom:calc(18px + env(safe-area-inset-bottom));
+    z-index:1450;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    min-height:44px;
+    padding:9px 13px;
+    border:1px solid #d8e8d9;
+    border-radius:999px;
+    background:rgba(255,255,255,.95);
+    color:#28763f;
+    font-size:12px;
+    font-weight:900;
+    box-shadow:0 8px 24px rgba(54,86,59,.18);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+  .list-back-analysis-floating svg{
+    width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;
+  }
+
+  /* 詳細画面：保存/閉じるを画面下に追従。safe-areaとブラウザ下部UIの余白を確保 */
+  #editModal .mobile-detail-action-bar{
+    position:fixed;
+    left:12px;
+    right:12px;
+    bottom:calc(14px + env(safe-area-inset-bottom));
+    z-index:1605;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+    gap:10px;
+    padding:9px;
+    border:1px solid rgba(232,216,198,.92);
+    border-radius:18px;
+    background:rgba(255,253,249,.96);
+    box-shadow:0 10px 32px rgba(72,54,38,.22);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  #editModal .mobile-detail-action-bar .btn{
+    min-height:48px;
+    margin:0;
+    font-size:15px;
+    font-weight:900;
+    border-radius:13px;
+  }
+  /* 固定バーと重複する保存/キャンセルは下部フッターでは非表示。削除は残す */
+  #editModal .detail-footer .actions{display:none!important}
+  /* 最下部のフォーム内容・削除ボタンが固定バーに隠れないための余白 */
+  #editModal .detail-footer{padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
+}

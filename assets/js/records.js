@@ -27,6 +27,8 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
     deleteBtn.textContent=imported?'この名簿データを無効化':'この訪問先を削除';
     deleteBtn.title=imported?'元データは削除せず、通常表示から外します':'';
   }
+  const mobileCancelBtn=$('mobileDetailCancelBtn');
+  if(mobileCancelBtn)mobileCancelBtn.textContent=isNew?'キャンセル':'閉じる';
   const protectedMember=session?.role==='member'&&!isNew&&['party_member','supporter'].includes(String(r.memberType||''));
   const importedMember=protectedMember&&String(r.source||'')==='import';
   const locationConfirmed=protectedMember&&r.locationConfirmed===true;
@@ -159,9 +161,9 @@ async function geocodeAddressQuietly(address){
 }
 
 async function saveRecord(){
-  const btn=document.getElementById('saveRecordBtn');
+  const btn=document.getElementById('saveRecordBtn'),mobileBtn=document.getElementById('mobileSaveRecordBtn');
   try{
-    if(btn){btn.disabled=true;btn.textContent='保存中…'}
+    [btn,mobileBtn].filter(Boolean).forEach(b=>{b.disabled=true;b.textContent='保存中…'});
 
     const fullAddress=$('fullAddress').value.trim();
     let lat=Number($('lat').value),lng=Number($('lng').value);
@@ -170,7 +172,7 @@ async function saveRecord(){
     const shouldGeocode=fullAddress && (!hasCoords || (addressChanged && String($('recordSource').value||'manual')!=='map'));
 
     if(shouldGeocode){
-      if(btn)btn.textContent='位置確認中…';
+      [btn,mobileBtn].filter(Boolean).forEach(b=>b.textContent='位置確認中…');
       const pos=await geocodeAddressQuietly(fullAddress);
       if(pos){
         lat=pos.lat;lng=pos.lng;
@@ -229,7 +231,7 @@ async function saveRecord(){
     console.error(e);
     alert(e.message||String(e));
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='保存'}
+    [btn,mobileBtn].filter(Boolean).forEach(b=>{b.disabled=false;b.textContent='保存'});
   }
 }
 async function deleteRecord(){
