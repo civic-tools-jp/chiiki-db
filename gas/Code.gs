@@ -153,7 +153,7 @@ function listBranchMessages_(u,p){
   let visible=all;
   if(!isGlobal_(u)){
     const bid=String(u.branchId||'');
-    visible=all.filter(x=>String(x.toBranchId)==='all'||String(x.toBranchId)===bid||String(x.fromBranchId)===bid);
+    visible=all.filter(x=>String(x.fromBranchId||'')===bid);
   }
   visible.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const limit=Math.max(1,Math.min(100,Number(p.limit)||5));
@@ -161,38 +161,50 @@ function listBranchMessages_(u,p){
 }
 
 function canManageBranchMessage_(u,item){
-  return String(u.role)==='system_admin'||String(item.createdBy||'')===String(u.userId||'');
+  if(String(u.role)==='system_admin')return true;
+  return String(item.createdBy||'')===String(u.userId||'');
 }
+
 function saveBranchMessage_(u,m){
   ensureSheet_(SpreadsheetApp.getActive(),SHEETS.BRANCH_MESSAGES,BRANCH_MESSAGE_HEADERS);
   const body=String(m.body||'').trim();
   if(!body)throw Error('連絡内容を入力してください');
   if(body.length>1000)throw Error('連絡内容は1000文字以内で入力してください');
   const title=String(m.title||'').trim().slice(0,80);
-  const toBranchId=String(m.toBranchId||'all');
-  const activeBranches=rows_(SHEETS.BRANCHES).filter(x=>truth_(x.active));
-  if(toBranchId!=='all'&&!activeBranches.some(b=>String(b.branchId)===toBranchId))throw Error('宛先支部が見つかりません');
   const sh=SpreadsheetApp.getActive().getSheetByName(SHEETS.BRANCH_MESSAGES);
   const messageId=String(m.messageId||'');
+
   if(messageId){
     const vals=sh.getDataRange().getValues(),headers=vals[0].map(String);
     const idx=headers.indexOf('messageId');
     for(let i=1;i<vals.length;i++){
       if(String(vals[i][idx])===messageId){
-        const item={};headers.forEach((h,j)=>item[h]=vals[i][j]);
+        const item={};headers.forEach((hh,j)=>item[hh]=vals[i][j]);
         if(!canManageBranchMessage_(u,item))throw Error('この連絡は編集できません');
-        const changes={toBranchId,title,body};
+        const changes={title,body};
         headers.forEach((hh,j)=>{if(Object.prototype.hasOwnProperty.call(changes,hh))sh.getRange(i+1,j+1).setValue(changes[hh])});
         return {ok:true,message:Object.assign(item,changes)};
       }
     }
     throw Error('連絡が見つかりません');
   }
+
   const fromBranchId=String(u.branchId||'all');
-  const item={messageId:uuid_(),fromBranchId,toBranchId,title,body,createdBy:String(u.userId||''),createdByName:String(u.name||u.loginId||''),createdAt:now_(),active:true};
+  const item={
+    messageId:uuid_(),
+    fromBranchId,
+    toBranchId:'',
+    title,
+    body,
+    createdBy:String(u.userId||''),
+    createdByName:String(u.name||u.loginId||''),
+    createdAt:now_(),
+    active:true
+  };
   sh.appendRow(BRANCH_MESSAGE_HEADERS.map(h=>item[h]??''));
   return {ok:true,message:item};
 }
+
 function deleteBranchMessage_(u,p){
   ensureSheet_(SpreadsheetApp.getActive(),SHEETS.BRANCH_MESSAGES,BRANCH_MESSAGE_HEADERS);
   const id=String(p.messageId||'');if(!id)throw Error('連絡IDがありません');
@@ -201,7 +213,7 @@ function deleteBranchMessage_(u,p){
   const idIdx=headers.indexOf('messageId'),activeIdx=headers.indexOf('active');
   for(let i=1;i<vals.length;i++){
     if(String(vals[i][idIdx])===id){
-      const item={};headers.forEach((h,j)=>item[h]=vals[i][j]);
+      const item={};headers.forEach((hh,j)=>item[hh]=vals[i][j]);
       if(!canManageBranchMessage_(u,item))throw Error('この連絡は削除できません');
       if(activeIdx>=0)sh.getRange(i+1,activeIdx+1).setValue(false);else sh.deleteRow(i+1);
       return {ok:true};

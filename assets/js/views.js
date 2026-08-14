@@ -141,7 +141,7 @@ function renderBranchMessages(){
   if(!branchMessages.length)return '<div class="branch-message-empty">連絡はまだありません。</div>';
   return branchMessages.slice(0,5).map(m=>`<article class="branch-message-item">
     <div class="branch-message-top"><b>${esc(m.title||'連絡')}</b><time>${esc(formatMessageDate(m.createdAt))}</time></div>
-    <div class="branch-message-route">${esc(branchName(m.fromBranchId))} → ${esc(branchName(m.toBranchId))}</div>
+    <div class="branch-message-route">${esc(branchName(m.fromBranchId))}</div>
     <div class="branch-message-body">${esc(m.body)}</div>
     <div class="branch-message-footer">
       <div class="branch-message-author">${esc(m.createdByName||'')}</div>
@@ -151,12 +151,9 @@ function renderBranchMessages(){
 }
 function openBranchMessageModal(messageId=''){
   const modal=$('branchMessageModal');if(!modal)return;
-  const sel=$('branchMessageTo');
-  sel.innerHTML=`<option value="all">全支部</option>${branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('')}`;
   const m=messageId?branchMessages.find(x=>String(x.messageId)===String(messageId)):null;
   $('branchMessageId').value=m?.messageId||'';
   $('branchMessageModalTitle').textContent=m?'📣 支部連絡を編集':'📣 支部連絡を追加';
-  $('branchMessageTo').value=m?.toBranchId||'all';
   $('branchMessageTitle').value=m?.title||'';
   $('branchMessageBody').value=m?.body||'';
   $('branchMessageSaveBtn').textContent=m?'変更を保存':'連絡を追加';
@@ -167,7 +164,7 @@ async function saveBranchMessage(){
   const btn=$('branchMessageSaveBtn'),messageId=$('branchMessageId')?.value||'';
   try{
     if(btn){btn.disabled=true;btn.textContent=messageId?'保存中…':'送信中…'}
-    await api('saveBranchMessage',{message:{messageId,toBranchId:$('branchMessageTo').value,title:$('branchMessageTitle').value.trim(),body:$('branchMessageBody').value.trim()}});
+    await api('saveBranchMessage',{message:{messageId,title:$('branchMessageTitle').value.trim(),body:$('branchMessageBody').value.trim()}});
     closeBranchMessageModal();await loadBranchMessages();renderAnalysis();
   }catch(e){alert(e.message)}
   finally{if(btn){btn.disabled=false;btn.textContent=messageId?'変更を保存':'連絡を追加'}}

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.12</title>
+<title>あいサポ Ver.2.8.13</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/styles.css?v=2.8.8">
 </head>
@@ -19,7 +19,7 @@
     <label class="label">パスワード</label><input id="loginPassword" type="password" autocomplete="current-password">
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.12</div>
+    <div class="version-note">Ver.2.8.13</div>
   </div>
 </div>
 
@@ -52,8 +52,6 @@
   <div class="modal-card branch-message-modal">
     <div class="modal-head"><h2 id="branchMessageModalTitle">📣 支部連絡を追加</h2><button class="icon-btn" onclick="closeBranchMessageModal()">×</button></div>
     <input id="branchMessageId" type="hidden">
-    <label class="label">宛先</label>
-    <select id="branchMessageTo"></select>
     <label class="label">件名</label>
     <input id="branchMessageTitle" maxlength="80" placeholder="例：ポスター掲示について">
     <label class="label">内容</label>
