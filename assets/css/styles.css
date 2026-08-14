@@ -1654,7 +1654,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   }
 }
 
-/* Ver.2.8.16 — poster follow integration */
+/* Ver.2.8.17 — poster follow integration */
 .follow-subsection.poster-follow{
   margin-top:18px;
   padding-top:16px;
@@ -1665,3 +1665,19 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   margin-bottom:10px;
 }
 .detail-subtitle.orange{color:#e87516;}
+
+/* Ver.2.8.17 — activity icons + desktop clickable affordance */
+.activity-icon{
+  width:52px;height:52px;border-radius:17px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;line-height:1;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
+}
+.analysis-clickable{position:relative;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;}
+.analysis-link-hint{display:none;margin-top:12px;font-size:13px;font-weight:800;color:#e87516;}
+@media (min-width:701px){
+  .analysis-clickable .analysis-label{color:#d96512;}
+  .analysis-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(77,60,38,.08);border-color:#f2ad69;}
+  .analysis-clickable:hover .analysis-label{color:#e87516;}
+  .analysis-clickable .analysis-link-hint{display:block;}
+}

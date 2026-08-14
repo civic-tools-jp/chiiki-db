@@ -125,7 +125,7 @@ function renderMarkers(){
     const marker=L.marker([lat,lng],{icon:icon(r)}).addTo(map).on('click',()=>openEdit(r,false));
     const extras=[
       priorityBadge(mt),
-      (typeof cleanDisplayName==='function'?cleanDisplayName(r.personName):r.personName)||r.fullAddress||'訪問先',
+      (typeof recordDisplayName==='function'?recordDisplayName(r):(r.personName||''))||r.fullAddress||'訪問先',
       key==='refused'?'×断られた':'',
       boolValue(r.warning)?'⚠️訪問注意':'',
       boolValue(r.posterRequest)?'🍊ポスター依頼':''
