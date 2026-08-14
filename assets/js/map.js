@@ -68,12 +68,32 @@ function openRecordGoogleMaps(){
 function initMap(){if(map)return;map=L.map('map').setView([33.5902,130.4017],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);map.on('click',async e=>{const address=await reverseAddress(e.latlng.lat,e.latlng.lng);openEdit({id:'',lat:e.latlng.lat,lng:e.latlng.lng,fullAddress:address,status:'unvisited',type:'戸建て',date:today(),source:'map',memberType:'general'},true)});setTimeout(()=>map.invalidateSize(),100)}
 function priorityBadge(memberType){return memberType==='party_member'?'⭐':memberType==='supporter'?'🟠':''}
 function recordMemberType(r){return r.memberType||'general'}
+function markerSymbol(key){
+  return ({
+    unvisited:'●',
+    visited:'✓',
+    good:'♥',
+    absent:'⌂',
+    revisit:'↻',
+    refused:'×'
+  })[key]||'●';
+}
 function icon(r){
   const key=statusKey(r.status),c=STATUS[key].color,b=priorityBadge(recordMemberType(r));
-  const w=boolValue(r.warning)?'⚠️':'',x=key==='refused'?'×':'';
+  const warning=boolValue(r.warning);
   const f=typeof hasFollow==='function'&&hasFollow(r)?'🤝':'';
   const p=boolValue(r.posterRequest)?'🍊':'';
-  return L.divIcon({className:'',html:`<div class="pin-wrap"><div class="pin" style="background:${c}"></div>${b?`<div class="pin-priority">${b}</div>`:''}${w?`<div class="pin-warning">${w}</div>`:''}${x?`<div class="pin-refused">${x}</div>`:''}${f?`<div class="pin-follow">${f}</div>`:''}${p?`<div class="pin-poster">${p}</div>`:''}</div>`,iconSize:[40,40],iconAnchor:[11,22]})
+  return L.divIcon({
+    className:'aisapo-leaflet-marker',
+    html:`<div class="pin-wrap">
+      <div class="pin pin-${key}" style="--pin-color:${c}"><span class="pin-symbol">${markerSymbol(key)}</span></div>
+      ${b?`<div class="pin-priority">${b}</div>`:''}
+      ${warning?`<div class="pin-warning" title="訪問注意">!</div>`:''}
+      ${f?`<div class="pin-follow">${f}</div>`:''}
+      ${p?`<div class="pin-poster">${p}</div>`:''}
+    </div>`,
+    iconSize:[42,48],iconAnchor:[21,45],tooltipAnchor:[0,-38]
+  })
 }
 function contactIcon(c){const b=priorityBadge(c.memberType);return L.divIcon({className:'',html:`<div class="contact-pin ${c.memberType==='party_member'?'member':'support'}">${b||'○'}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}
 function renderMarkers(){
