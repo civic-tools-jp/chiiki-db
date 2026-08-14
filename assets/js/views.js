@@ -98,6 +98,52 @@ function analysisGo(kind){
   if(kind==='posterPending')$('listPosterPending').checked=true;
   showView('list');renderLists();
 }
+async function loadBranchMessages(){
+  try{
+    const d=await api('listBranchMessages',{limit:5});
+    branchMessages=d.messages||[];
+    if(!$('view-analysis')?.classList.contains('hidden'))renderAnalysis();
+  }catch(e){
+    console.warn('支部連絡の取得:',e.message);
+    branchMessages=[];
+  }
+}
+function branchName(id){
+  if(String(id)==='all')return '全支部';
+  return branches.find(b=>String(b.branchId)===String(id))?.name||'支部';
+}
+function formatMessageDate(v){
+  if(!v)return'';
+  const d=new Date(v);if(isNaN(d))return String(v);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function renderBranchMessages(){
+  if(!branchMessages.length)return '<div class="branch-message-empty">連絡はまだありません。</div>';
+  return branchMessages.slice(0,5).map(m=>`<article class="branch-message-item">
+    <div class="branch-message-top"><b>${esc(m.title||'連絡')}</b><time>${esc(formatMessageDate(m.createdAt))}</time></div>
+    <div class="branch-message-route">${esc(branchName(m.fromBranchId))} → ${esc(branchName(m.toBranchId))}</div>
+    <div class="branch-message-body">${esc(m.body)}</div>
+    <div class="branch-message-author">${esc(m.createdByName||'')}</div>
+  </article>`).join('');
+}
+function openBranchMessageModal(){
+  const modal=$('branchMessageModal');if(!modal)return;
+  const sel=$('branchMessageTo');
+  sel.innerHTML=`<option value="all">全支部</option>${branches.map(b=>`<option value="${esc(b.branchId)}">${esc(b.name)}</option>`).join('')}`;
+  $('branchMessageTitle').value='';$('branchMessageBody').value='';
+  modal.style.display='flex';
+}
+function closeBranchMessageModal(){$('branchMessageModal').style.display='none'}
+async function saveBranchMessage(){
+  const btn=$('branchMessageSaveBtn');
+  try{
+    if(btn){btn.disabled=true;btn.textContent='送信中…'}
+    await api('saveBranchMessage',{message:{toBranchId:$('branchMessageTo').value,title:$('branchMessageTitle').value.trim(),body:$('branchMessageBody').value.trim()}});
+    closeBranchMessageModal();await loadBranchMessages();renderAnalysis();
+  }catch(e){alert(e.message)}
+  finally{if(btn){btn.disabled=false;btn.textContent='連絡を追加'}}
+}
+
 function renderAnalysis(){
   const total=records.length,countStatus=k=>records.filter(r=>statusKey(r.status)===k).length;
   const unvisited=countStatus('unvisited'),handshake=countStatus('handshake'),absent=countStatus('absent'),refused=countStatus('refused');
@@ -114,8 +160,17 @@ function renderAnalysis(){
   const metric=(label,value)=>`<div class="analysis-metric"><div class="analysis-value">${value}</div><div class="analysis-label">${esc(label)}</div></div>`;
   const el=$('analysisContent');if(!el)return;
   el.innerHTML=`
+  <div class="panel activity-section branch-messages-section">
+    <div class="section-heading branch-message-heading">
+      <div class="heading-icon orange">📣</div>
+      <div><h2>支部連絡</h2><p>支部間の連絡・共有事項（最新5件）</p></div>
+      <button type="button" class="btn branch-message-add" onclick="openBranchMessageModal()">＋ 連絡を追加</button>
+    </div>
+    <div class="branch-message-list">${renderBranchMessages()}</div>
+  </div>
+
   <div class="panel activity-section priority-section">
-    <div class="section-heading"><div class="heading-icon orange">✓</div><div><h2>今日やること</h2><p>次の対応が必要なもの</p></div></div>
+    <div class="section-heading"><div class="heading-icon orange">✓</div><div><h2>対応が必要なもの</h2><p>未対応の項目を確認</p></div></div>
     <div class="analysis-actions">
       ${action('revisit','要再訪',revisit,'もう一度訪問する')}
       ${action('followPending','フォロー未対応',followPending,'党員・サポーター希望など')}

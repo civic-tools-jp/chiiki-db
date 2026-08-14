@@ -16,7 +16,7 @@ async function startApp(){
   if(session.role==='system_admin'){
     $('areaAddPanel')?.classList.remove('hidden');
   }
-  await loadBootstrap();initMap();await changeArea(false);
+  await loadBootstrap();initMap();await changeArea(false);await loadBranchMessages();
   if(manager)await loadAdmin();
   if(session.mustChangePassword)openPasswordModal(true);
 }
