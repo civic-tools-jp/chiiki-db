@@ -951,3 +951,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px
   }
   .list-map-btn span{display:none}
 }
+
+/* Ver.2.7.9 — fixed official あいサポ brand mark */
+.aisapo-official-mark{overflow:visible}
+.brand-name span{color:#ff8614}
+.brand-name b{color:#4b9347}
