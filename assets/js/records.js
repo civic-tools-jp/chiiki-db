@@ -2,7 +2,7 @@ function boolValue(v){return v===true||v===1||String(v||"").toLowerCase()==="tru
 "use strict";
 async function loadRecords(){try{setBusy(true);const d=await api('listRecords',{areaId:currentAreaId});records=d.records||[];renderAll();}catch(e){if(/セッション/.test(e.message)){logout();return}msg('appMsg',e.message)}finally{setBusy(false)}}
 function setBusy(v){$('app').classList.toggle('spinner',v)}
-function isRevisit(r){return statusKey(r.status)==='revisit'||['○中','◎高'].includes(r.revisitPriority)}
+function isRevisit(r){return statusKey(r.status)==='revisit'}
 function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button type="button" class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()">${v.label}</button>`).join('');if($('detailHeaderStatus'))$('detailHeaderStatus').textContent=(STATUS[editStatus]||STATUS.unvisited).label}
 function inputDateValue(v){
   if(!v)return today();
