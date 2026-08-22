@@ -20,7 +20,7 @@ function isPartyOrSupporter(c){
   return /党員|会員|サポーター/.test(raw);
 }
 function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=(typeof recordDisplayName==='function'?recordDisplayName(r):(r.personName||''));$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=(typeof supportRankValue==='function'?supportRankValue(r.supporter):(r.supporter||''));$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('followParty').checked=boolValue(r.followParty);$('followSupporter').checked=boolValue(r.followSupporter);$('followDetails').checked=boolValue(r.followDetails);$('followDone').checked=boolValue(r.followDone);$('followMemo').value=r.followMemo||'';toggleFollowFields();$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('posterRequest').checked=boolValue(r.posterRequest);$('posterReported').checked=boolValue(r.posterReported);$('posterRequestMemo').value=r.posterRequestMemo||'';togglePosterRequestFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();updateDetailHeader({...r,isNew});const imported=String(r.source||'')==='import';
-  const canRemove=!!r.id&&(!imported||['leader','prefecture_admin','system_admin'].includes(appSession?.role));
+  const canRemove=!!r.id&&(!imported||['leader','prefecture_admin','system_admin'].includes(window.appSession?.role));
   $('deleteRecordRow')?.classList.toggle('hidden',!canRemove);
   $('mobileDetailDeleteBtn')?.classList.toggle('hidden',!canRemove);
   const deleteBtn=document.querySelector('#deleteRecordRow button');
@@ -30,7 +30,7 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
   }
   const mobileCancelBtn=$('mobileDetailCancelBtn');
   if(mobileCancelBtn)mobileCancelBtn.textContent=isNew?'キャンセル':'閉じる';
-  const protectedMember=appSession?.role==='member'&&!isNew&&['party_member','supporter'].includes(String(r.memberType||''));
+  const protectedMember=window.appSession?.role==='member'&&!isNew&&['party_member','supporter'].includes(String(r.memberType||''));
   const importedMember=protectedMember&&String(r.source||'')==='import';
   const locationConfirmed=protectedMember&&r.locationConfirmed===true;
 
@@ -240,7 +240,7 @@ async function saveRecord(){
 async function deleteRecord(){
   if(!editing?.id){closeEdit();return}
   const imported=String(editing.source||'')==='import';
-  if(imported&&!['leader','prefecture_admin','system_admin'].includes(appSession?.role)){alert('名簿から取り込んだデータは削除できません');return}
+  if(imported&&!['leader','prefecture_admin','system_admin'].includes(window.appSession?.role)){alert('名簿から取り込んだデータは削除できません');return}
   const text=imported?'この名簿データを無効化しますか？\n\n元データは削除せず、一覧・地図・分析から非表示にします。':'この訪問先を削除しますか？';
   if(!confirm(text))return;
   try{

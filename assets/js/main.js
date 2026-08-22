@@ -1,5 +1,5 @@
 "use strict";
-window.addEventListener('load',()=>{if(appSession)startApp()});
+window.addEventListener('load',()=>{if(window.appSession)startApp()});
 
 
 function toggleMapFilters(force){

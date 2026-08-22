@@ -71,7 +71,7 @@ function recordCard(r){
     <div class="badges">
       <span class="badge member-badge ${mt==='party_member'?'member-party':mt==='supporter'?'member-supporter':''}">${esc(memberTypeLabel(mt))}</span>
       <span class="badge">${esc(sourceLabel[r.source]||'手入力')}</span>
-      <span class="badge">${(appSession?.role==='member'&&['party_member','supporter'].includes(mt))?(r.locationConfirmed?'🔒 位置確認済':'⚠ 位置未確認'):(located?'📍 位置取得済':'⚠ 位置未取得')}</span>
+      <span class="badge">${(window.appSession?.role==='member'&&['party_member','supporter'].includes(mt))?(r.locationConfirmed?'🔒 位置確認済':'⚠ 位置未確認'):(located?'📍 位置取得済':'⚠ 位置未取得')}</span>
       ${supportRankLabel(r.supporter)?`<span class="badge support-rank-badge rank-${supportRankValue(r.supporter).toLowerCase()}">${esc(supportRankLabel(r.supporter))}</span>`:''}
       ${r.revisitPriority?`<span class="badge">優先度 ${esc(String(r.revisitPriority).replace(/^[△○◎]/,''))}</span>`:''}${Number(r.visitCount||0)>0?`<span class="badge">訪問 ${Number(r.visitCount||0)}回</span>`:''}
       ${boolValue(r.warning)?'<span class="badge warning-soft">⚠ 訪問注意</span>':''}
@@ -196,7 +196,7 @@ function formatMessageDate(v){
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 function canManageBranchMessage(m){
-  return !!appSession&&(appSession.role==='system_admin'||String(m.createdBy||'')===String(appSession.userId||''));
+  return !!window.appSession&&(window.appSession.role==='system_admin'||String(m.createdBy||'')===String(window.appSession.userId||''));
 }
 function renderBranchMessages(){
   if(!branchMessages.length)return '<div class="branch-message-empty">連絡はまだありません。</div>';

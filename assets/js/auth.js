@@ -3,36 +3,36 @@ function syncLoginPasswordState(forceHidden=false){const input=$('loginPassword'
 function toggleLoginPassword(){const input=$('loginPassword');if(!input)return;input.type=input.type==='text'?'password':'text';syncLoginPasswordState(false)}
 window.addEventListener('pageshow',()=>syncLoginPasswordState(true));
 window.addEventListener('DOMContentLoaded',()=>syncLoginPasswordState(true));
-async function login(){try{msg("loginMsg","");const data=await api("login",{loginId:$('loginId').value.trim(),password:$('loginPassword').value});appSession=data.session;localStorage.setItem("aisapo_session",JSON.stringify(appSession));startApp();}catch(e){msg("loginMsg",e.message)}}
-function logout(){localStorage.removeItem("aisapo_session");localStorage.removeItem("gdbv2_session");appSession=null;location.reload()}
+async function login(){try{msg("loginMsg","");const data=await api("login",{loginId:$('loginId').value.trim(),password:$('loginPassword').value});window.appSession=data.session;localStorage.setItem("aisapo_session",JSON.stringify(window.appSession));startApp();}catch(e){msg("loginMsg",e.message)}}
+function logout(){localStorage.removeItem("aisapo_session");localStorage.removeItem("gdbv2_session");window.appSession=null;location.reload()}
 async function startApp(){
-  if(!appSession)return;
+  if(!window.appSession)return;
   $('loginView').classList.add('hidden');$('app').classList.remove('hidden');
-  $('userName').textContent=appSession.name;
-  if($('mobileUserName'))$('mobileUserName').textContent=appSession.name;
-  const roleLabel=({member:'一般ユーザー',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[appSession.role]||appSession.role);
-  $('userRole').textContent=({member:'一般',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[appSession.role]||appSession.role);
+  $('userName').textContent=window.appSession.name;
+  if($('mobileUserName'))$('mobileUserName').textContent=window.appSession.name;
+  const roleLabel=({member:'一般ユーザー',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[window.appSession.role]||window.appSession.role);
+  $('userRole').textContent=({member:'一般',leader:'支部管理者',prefecture_admin:'管理者',system_admin:'管理者'}[window.appSession.role]||window.appSession.role);
   if($('mobileUserRole'))$('mobileUserRole').textContent=roleLabel;
-  const roleIcon=({system_admin:'assets/img/role-admin.png',prefecture_admin:'assets/img/role-admin.png',leader:'assets/img/role-leader.png',member:'assets/img/role-member.png'}[appSession.role]||'assets/img/role-member.png'); const roleAlt=roleLabel; if($('userAvatar'))$('userAvatar').innerHTML=`<img src="${roleIcon}" alt="${esc(roleAlt)}" class="role-avatar-img">`; if($('mobileUserAvatar'))$('mobileUserAvatar').innerHTML=`<img src="${roleIcon}" alt="${esc(roleAlt)}" class="role-avatar-img">`;
-  $('branchLabel').textContent=appSession.branchName||'全支部';
-  const manager=['leader','prefecture_admin','system_admin'].includes(appSession.role);
+  const roleIcon=({system_admin:'assets/img/role-admin.png',prefecture_admin:'assets/img/role-admin.png',leader:'assets/img/role-leader.png',member:'assets/img/role-member.png'}[window.appSession.role]||'assets/img/role-member.png'); const roleAlt=roleLabel; if($('userAvatar'))$('userAvatar').innerHTML=`<img src="${roleIcon}" alt="${esc(roleAlt)}" class="role-avatar-img">`; if($('mobileUserAvatar'))$('mobileUserAvatar').innerHTML=`<img src="${roleIcon}" alt="${esc(roleAlt)}" class="role-avatar-img">`;
+  $('branchLabel').textContent=window.appSession.branchName||'全支部';
+  const manager=['leader','prefecture_admin','system_admin'].includes(window.appSession.role);
   if(manager){$('adminTab')?.classList.remove('hidden');$('contactsTab')?.classList.remove('hidden')}
   if(manager){
     $('contactImportPanel')?.classList.remove('hidden');
   }
-  if(appSession.role==='system_admin'){
+  if(window.appSession.role==='system_admin'){
     $('areaAddPanel')?.classList.remove('hidden');
   }
   await loadBootstrap();initMap();await changeArea(false);await loadBranchMessages();
   if(manager)await loadAdmin();
-  if(appSession.mustChangePassword)openPasswordModal(true);
+  if(window.appSession.mustChangePassword)openPasswordModal(true);
 }
-async function loadBootstrap(){const d=await api('bootstrap');branches=d.branches||[];areas=d.areas||[];const sel=$('areaSelect');sel.innerHTML=areas.map(a=>`<option value="${esc(a.areaId)}">${esc((a.city?a.city+' ':'')+a.name)}</option>`).join('');if(d.areaLocked){currentAreaId=d.defaultAreaId||appSession.areaId||areas[0]?.areaId||'';appSession.areaId=currentAreaId;localStorage.setItem('aisapo_session',JSON.stringify(appSession));$('areaControl').classList.add('locked');sel.disabled=true;}else{sel.disabled=false;$('areaControl').classList.remove('locked');const saved=localStorage.getItem('aisapo_area')||'';currentAreaId=areas.some(a=>String(a.areaId)===String(saved))?saved:(areas[0]?.areaId||'');}sel.value=currentAreaId;if(!currentAreaId)msg('appMsg','活動エリアが設定されていません。管理者に確認してください。');}
-async function changeArea(save=true){const sel=$('areaSelect');if(appSession?.role==='member')currentAreaId=appSession.areaId||currentAreaId;else currentAreaId=sel?.value||currentAreaId;if(save&&appSession?.role!=='member')localStorage.setItem('aisapo_area',currentAreaId||'');if(sel)sel.value=currentAreaId;const a=areas.find(x=>String(x.areaId)===String(currentAreaId));$('areaLabel').textContent=a?((a.city?a.city+' ':'')+a.name):'未設定';if(map&&a&&Number(a.mapLat)&&Number(a.mapLng))map.setView([Number(a.mapLat),Number(a.mapLng)],13);await Promise.all([loadRecords(),loadContacts()]);}
+async function loadBootstrap(){const d=await api('bootstrap');branches=d.branches||[];areas=d.areas||[];const sel=$('areaSelect');sel.innerHTML=areas.map(a=>`<option value="${esc(a.areaId)}">${esc((a.city?a.city+' ':'')+a.name)}</option>`).join('');if(d.areaLocked){currentAreaId=d.defaultAreaId||window.appSession.areaId||areas[0]?.areaId||'';window.appSession.areaId=currentAreaId;localStorage.setItem('aisapo_session',JSON.stringify(window.appSession));$('areaControl').classList.add('locked');sel.disabled=true;}else{sel.disabled=false;$('areaControl').classList.remove('locked');const saved=localStorage.getItem('aisapo_area')||'';currentAreaId=areas.some(a=>String(a.areaId)===String(saved))?saved:(areas[0]?.areaId||'');}sel.value=currentAreaId;if(!currentAreaId)msg('appMsg','活動エリアが設定されていません。管理者に確認してください。');}
+async function changeArea(save=true){const sel=$('areaSelect');if(window.appSession?.role==='member')currentAreaId=window.appSession.areaId||currentAreaId;else currentAreaId=sel?.value||currentAreaId;if(save&&window.appSession?.role!=='member')localStorage.setItem('aisapo_area',currentAreaId||'');if(sel)sel.value=currentAreaId;const a=areas.find(x=>String(x.areaId)===String(currentAreaId));$('areaLabel').textContent=a?((a.city?a.city+' ':'')+a.name):'未設定';if(map&&a&&Number(a.mapLat)&&Number(a.mapLng))map.setView([Number(a.mapLat),Number(a.mapLng)],13);await Promise.all([loadRecords(),loadContacts()]);}
 let passwordChangeForced=false;
 function openPasswordModal(forced=false){passwordChangeForced=!!forced;$('passwordModal').style.display='flex';$('passwordModalTitle').textContent=forced?'初回パスワード変更':'パスワード変更';$('passwordModalNote').textContent=forced?'仮パスワードのままでは利用できません。新しいパスワードへ変更してください。':'現在のパスワードを確認して変更します。';$('passwordClose').classList.toggle('hidden',forced);$('currentPassword').value=$('newPassword1').value=$('newPassword2').value='';msg('passwordMsg','');}
 function closePasswordModal(){if(passwordChangeForced)return;$('passwordModal').style.display='none';}
-async function changeOwnPassword(){try{const current=$('currentPassword').value,next=$('newPassword1').value,confirm=$('newPassword2').value;if(next!==confirm)throw Error('新しいパスワードが一致しません');await api('changePassword',{currentPassword:current,newPassword:next});appSession.mustChangePassword=false;localStorage.setItem('aisapo_session',JSON.stringify(appSession));passwordChangeForced=false;$('passwordModal').style.display='none';alert('パスワードを変更しました');}catch(e){msg('passwordMsg',e.message)}}
+async function changeOwnPassword(){try{const current=$('currentPassword').value,next=$('newPassword1').value,confirm=$('newPassword2').value;if(next!==confirm)throw Error('新しいパスワードが一致しません');await api('changePassword',{currentPassword:current,newPassword:next});window.appSession.mustChangePassword=false;localStorage.setItem('aisapo_session',JSON.stringify(window.appSession));passwordChangeForced=false;$('passwordModal').style.display='none';alert('パスワードを変更しました');}catch(e){msg('passwordMsg',e.message)}}
 
 
 
