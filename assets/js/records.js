@@ -3,7 +3,7 @@ function boolValue(v){return v===true||v===1||String(v||"").toLowerCase()==="tru
 async function loadRecords(){try{setBusy(true);const d=await api('listRecords',{areaId:currentAreaId});records=d.records||[];renderAll();}catch(e){if(/セッション/.test(e.message)){logout();return}msg('appMsg',e.message)}finally{setBusy(false)}}
 function setBusy(v){$('app').classList.toggle('spinner',v)}
 function isRevisit(r){return statusKey(r.status)==='revisit'}
-function renderStatus(){$('statusGrid').innerHTML=Object.entries(STATUS).map(([k,v])=>`<button type="button" class="status-btn ${editStatus===k?'active':''}" onclick="editStatus='${k}';renderStatus()"><span class="status-icon">${v.icon||''}</span>${v.label}</button>`).join('');if($('detailHeaderStatus')){const st=STATUS[editStatus]||STATUS.unvisited;$('detailHeaderStatus').innerHTML=`<span class="status-icon">${st.icon||''}</span>${st.label}`}}
+function renderStatus(){const grid=$('statusGrid');if(grid)grid.innerHTML='';const st=STATUS[editStatus]||STATUS.unvisited;if($('detailHeaderStatus'))$('detailHeaderStatus').innerHTML=`<span class="status-icon">${st.icon||''}</span>${st.label}`;const summary=$('visitSummary');if(summary){const count=Number(editing?.visitCount||editing?.roundNo||0)||0;const next=editing?.nextVisitDate?formatVisitDate(editing.nextVisitDate):'';summary.innerHTML=`<div class="visit-summary-main"><strong>${st.icon||''} ${esc(st.label)}</strong>${count?`<span>${count}回訪問</span>`:'<span>訪問履歴なし</span>'}</div>${next?`<div class="visit-summary-next">次回予定：${esc(next)}</div>`:''}`;}}
 function inputDateValue(v){
   if(!v)return today();
   if(v instanceof Date&&!isNaN(v))return v.toISOString().slice(0,10);
@@ -17,13 +17,27 @@ const VISIT_RESULT_LABELS={talked:'本人と話せた',family:'家族・同居�
 function toggleVisitResultFields(){const on=!!$('visitResult')?.value;$('visitResultFields')?.classList.toggle('hidden',!on);}
 function nextRoundForRecord(r){const n=Number(r?.roundNo||r?.visitCount||0)||0;return Math.min(n+1,4);}
 function formatVisitDate(v){if(!v)return'';return String(v).slice(0,10).replace(/-/g,'/');}
-async function loadVisitHistory(recordId){
+async function loadVisitHistory(recordId,record){
   const wrap=$('visitHistoryWrap'),list=$('visitHistoryList');if(!wrap||!list)return;
-  if(!recordId){wrap.classList.add('hidden');list.innerHTML='';return;}
-  try{const d=await api('listVisitHistory',{recordId});const visits=d.visits||[];
-    wrap.classList.toggle('hidden',visits.length===0);
-    list.innerHTML=visits.length?visits.map(v=>`<div class="visit-history-item"><div class="visit-history-head"><strong>${esc(v.roundNo?`${v.roundNo}巡目`:'訪問')}</strong><span>${esc(formatVisitDate(v.visitedAt))}</span></div><div class="visit-history-result">${esc(VISIT_RESULT_LABELS[v.result]||v.result||'')}</div>${boolValue(v.posted)?'<div class="visit-history-posted">📮 ポスティング</div>':''}${v.nextVisitDate?`<div class="visit-history-next">次回：${esc(formatVisitDate(v.nextVisitDate))}</div>`:''}${v.memo?`<div class="visit-history-memo">${esc(v.memo)}</div>`:''}</div>`).join(''):'';
-  }catch(e){console.warn('visit history',e);}
+  wrap.classList.remove('hidden');
+  if(!recordId){list.innerHTML='<div class="visit-history-empty">まだ訪問履歴はありません。</div>';if($('visitRound'))$('visitRound').value='1';return;}
+  try{
+    const d=await api('listVisitHistory',{recordId});let visits=d.visits||[];
+    // Ver.2.8.51以前の「最新訪問」しか持っていないデータも、画面上では履歴として確認できるようにする。
+    if(visits.length===0 && record && record.date && statusKey(record.status)!=='unvisited'){
+      const reverseResult={visited:'talked',absent:'absent',revisit:'intercom',refused:'refused'};
+      visits=[{roundNo:Number(record.roundNo||record.visitCount||1)||1,visitedAt:record.date,result:reverseResult[statusKey(record.status)]||'other',posted:false,nextVisitDate:record.nextVisitDate||'',memo:record.memo||'',legacy:true}];
+    }
+    if(visits.length===0){
+      list.innerHTML='<div class="visit-history-empty">まだ訪問履歴はありません。</div>';
+      if($('visitRound'))$('visitRound').value='1';
+    }else{
+      visits=[...visits].sort((a,b)=>String(b.visitedAt||'').localeCompare(String(a.visitedAt||''))||Number(b.roundNo||0)-Number(a.roundNo||0));
+      list.innerHTML=visits.map(v=>`<div class="visit-history-item"><div class="visit-history-head"><strong>${esc(v.roundNo?`${v.roundNo}巡目`:'訪問')}</strong><span>${esc(formatVisitDate(v.visitedAt))}</span></div><div class="visit-history-result">${esc(VISIT_RESULT_LABELS[v.result]||v.result||'')}</div>${boolValue(v.posted)?'<div class="visit-history-posted">📮 ポスティング</div>':''}${v.nextVisitDate?`<div class="visit-history-next">次回：${esc(formatVisitDate(v.nextVisitDate))}</div>`:''}${v.memo?`<div class="visit-history-memo">${esc(v.memo)}</div>`:''}${v.legacy?'<div class="visit-history-legacy">旧データから表示</div>':''}</div>`).join('');
+      const maxRound=Math.max(...visits.map(v=>Number(v.roundNo||0)||0),0);
+      if($('visitRound'))$('visitRound').value=String(Math.min(maxRound+1,4));
+    }
+  }catch(e){console.warn('visit history',e);list.innerHTML='<div class="visit-history-empty">訪問履歴を読み込めませんでした。</div>';}
 }
 function isPartyOrSupporter(c){
   const mt=String(c.memberType||'').trim();
@@ -84,7 +98,7 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
     locationNote.classList.toggle('hidden',!protectedMember);
   }
 
-  const editModal=$('editModal');editModal.style.display='flex';loadVisitHistory(r.id||'');requestAnimationFrame(()=>{editModal.scrollTop=0;const detail=editModal.querySelector('.detail-modal');if(detail)detail.scrollTop=0;window.scrollTo({top:0,left:0,behavior:'auto'});});}
+  const editModal=$('editModal');editModal.style.display='flex';loadVisitHistory(r.id||'',r);requestAnimationFrame(()=>{editModal.scrollTop=0;const detail=editModal.querySelector('.detail-modal');if(detail)detail.scrollTop=0;window.scrollTo({top:0,left:0,behavior:'auto'});});}
 function toggleRecordContactLink(){
   const checked=!!$('linkContactCheck')?.checked;
   $('recordContactWrap')?.classList.toggle('hidden',!checked);
@@ -202,7 +216,6 @@ async function saveRecord(){
     const dateNow=$('date').value;
     const visitResult=$('visitResult')?.value||'';
     const cautions=[];
-    if(visitResult&&statusNow==='unvisited' && dateNow) cautions.push('訪問ステータスが「未訪問」ですが、今回の訪問結果が入力されています。');
     if(statusNow==='refused' && priorityNow) cautions.push('「断られた」状態ですが、再訪優先度が設定されています。');
     if(statusNow==='refused' && hasFollowNow) cautions.push('「断られた」状態ですが、フォロー対象が設定されています。');
     if(statusNow==='refused' && posterNow) cautions.push('「断られた」状態ですが、ポスター依頼が設定されています。');

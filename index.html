@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>あいサポ Ver.2.8.51</title>
+<title>あいサポ Ver.2.8.52</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/styles.css?v=2.8.47">
 </head>
@@ -19,7 +19,7 @@
     <label class="label">パスワード</label><div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password"><button type="button" id="loginPasswordToggle" class="password-toggle simple-eye-toggle" onclick="toggleLoginPassword()" aria-label="パスワードを表示" title="パスワードを表示"><svg class="password-eye-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button></div>
     <button class="btn primary full" onclick="login()">ログイン</button>
     
-    <div class="version-note">Ver.2.8.51</div>
+    <div class="version-note">Ver.2.8.52</div>
   </div>
 </div>
 
@@ -216,14 +216,22 @@
           <label class="label">紹介者</label><input id="referrer" placeholder="例：山田さん、○○さんからの紹介">
         </section>
 
-        <section class="detail-section status-section">
-          <div class="detail-section-title green"><span>📋</span> 訪問ステータス</div>
-          <div id="statusGrid" class="status-grid"></div>
+        <section class="detail-section visit-summary-section">
+          <div class="detail-section-title green"><span>📋</span> 訪問状況</div>
+          <div id="visitSummary" class="visit-summary"></div>
+          <div id="statusGrid" class="status-grid hidden"></div>
+        </section>
+
+        <section class="detail-section visit-history-section">
+          <div class="detail-section-title"><span>🕘</span> 訪問履歴</div>
+          <div id="visitHistoryWrap" class="visit-history-wrap">
+            <div id="visitHistoryList" class="visit-history-list"><div class="visit-history-empty">読み込み中…</div></div>
+          </div>
         </section>
 
         <section class="detail-section visit-round-section">
-          <div class="detail-section-title"><span>🚶</span> 今回の訪問</div>
-          <div class="notice visit-help">不在でも1回として記録できます。1巡目 → 2巡目 → 3巡目と回った経過を残します。</div>
+          <div class="detail-section-title"><span>🚶</span> 今回の訪問を記録</div>
+          <div class="notice visit-help">不在でも1回として記録します。保存すると訪問履歴に追加され、訪問状況も自動更新されます。</div>
           <div class="row">
             <div><label class="label">巡回</label><select id="visitRound"><option value="">自動（次の巡回）</option><option value="1">1巡目</option><option value="2">2巡目</option><option value="3">3巡目</option><option value="4">4巡目以降</option></select></div>
             <div><label class="label">訪問日</label><input id="date" type="date"></div>
@@ -235,10 +243,6 @@
             <label class="label">次に回る日</label><input id="nextVisitDate" type="date">
           </div>
           <label class="label">メモ</label><textarea id="memo" placeholder="会話内容・不在時の状況・次回につながる情報"></textarea>
-          <div id="visitHistoryWrap" class="visit-history-wrap hidden">
-            <div class="detail-subtitle green">訪問履歴</div>
-            <div id="visitHistoryList" class="visit-history-list"></div>
-          </div>
         </section>
 
         <section class="detail-section follow-section">
@@ -326,5 +330,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="assets/js/config.js?v=2.8.51"></script><script src="assets/js/state.js?v=2.8.51"></script><script src="assets/js/utils.js?v=2.8.51"></script><script src="assets/js/api.js?v=2.8.51"></script><script src="assets/js/auth.js?v=2.8.51"></script><script src="assets/js/map.js?v=2.8.51"></script><script src="assets/js/records.js?v=2.8.51"></script><script src="assets/js/contacts.js?v=2.8.51"></script><script src="assets/js/views.js?v=2.8.51"></script><script src="assets/js/admin.js?v=2.8.51"></script><script src="assets/js/main.js?v=2.8.51"></script>
+<script src="assets/js/config.js?v=2.8.52"></script><script src="assets/js/state.js?v=2.8.52"></script><script src="assets/js/utils.js?v=2.8.52"></script><script src="assets/js/api.js?v=2.8.52"></script><script src="assets/js/auth.js?v=2.8.52"></script><script src="assets/js/map.js?v=2.8.52"></script><script src="assets/js/records.js?v=2.8.52"></script><script src="assets/js/contacts.js?v=2.8.52"></script><script src="assets/js/views.js?v=2.8.52"></script><script src="assets/js/admin.js?v=2.8.52"></script><script src="assets/js/main.js?v=2.8.52"></script>
 </body></html>
