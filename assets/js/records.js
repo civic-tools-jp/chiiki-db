@@ -13,13 +13,25 @@ function inputDateValue(v){
   const d=new Date(s);
   return isNaN(d)?today():d.toISOString().slice(0,10);
 }
+const VISIT_RESULT_LABELS={talked:'本人と話せた',family:'家族・同居人と話せた',absent:'不在',intercom:'インターフォンのみ',refused:'断られた',other:'その他'};
+function toggleVisitResultFields(){const on=!!$('visitResult')?.value;$('visitResultFields')?.classList.toggle('hidden',!on);}
+function nextRoundForRecord(r){const n=Number(r?.roundNo||r?.visitCount||0)||0;return Math.min(n+1,4);}
+function formatVisitDate(v){if(!v)return'';return String(v).slice(0,10).replace(/-/g,'/');}
+async function loadVisitHistory(recordId){
+  const wrap=$('visitHistoryWrap'),list=$('visitHistoryList');if(!wrap||!list)return;
+  if(!recordId){wrap.classList.add('hidden');list.innerHTML='';return;}
+  try{const d=await api('listVisitHistory',{recordId});const visits=d.visits||[];
+    wrap.classList.toggle('hidden',visits.length===0);
+    list.innerHTML=visits.length?visits.map(v=>`<div class="visit-history-item"><div class="visit-history-head"><strong>${esc(v.roundNo?`${v.roundNo}巡目`:'訪問')}</strong><span>${esc(formatVisitDate(v.visitedAt))}</span></div><div class="visit-history-result">${esc(VISIT_RESULT_LABELS[v.result]||v.result||'')}</div>${boolValue(v.posted)?'<div class="visit-history-posted">📮 ポスティング</div>':''}${v.nextVisitDate?`<div class="visit-history-next">次回：${esc(formatVisitDate(v.nextVisitDate))}</div>`:''}${v.memo?`<div class="visit-history-memo">${esc(v.memo)}</div>`:''}</div>`).join(''):'';
+  }catch(e){console.warn('visit history',e);}
+}
 function isPartyOrSupporter(c){
   const mt=String(c.memberType||'').trim();
   if(mt==='party_member'||mt==='supporter')return true;
   const raw=String(c.memberTypeRaw||c.membershipType||c.memberCategory||c.partyMemberType||'').trim();
   return /党員|会員|サポーター/.test(raw);
 }
-function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=(typeof recordDisplayName==='function'?recordDisplayName(r):(r.personName||''));$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=(typeof supportRankValue==='function'?supportRankValue(r.supporter):(r.supporter||''));$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('followParty').checked=boolValue(r.followParty);$('followSupporter').checked=boolValue(r.followSupporter);$('followDetails').checked=boolValue(r.followDetails);$('followDone').checked=boolValue(r.followDone);$('followMemo').value=r.followMemo||'';toggleFollowFields();$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('posterRequest').checked=boolValue(r.posterRequest);$('posterReported').checked=boolValue(r.posterReported);$('posterRequestMemo').value=r.posterRequestMemo||'';togglePosterRequestFields();$('type').value=r.type||'戸建て';$('date').value=inputDateValue(r.date);$('memo').value=r.memo||'';editStatus=statusKey(r.status);renderStatus();updateDetailHeader({...r,isNew});const imported=String(r.source||'')==='import';
+function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('recordMemberType').value=r.memberType||'general';$('recordSource').value=r.source||(isNew?'manual':'');$('lat').value=r.lat||'';$('lng').value=r.lng||'';$('fullAddress').value=r.fullAddress||'';$('personName').value=(typeof recordDisplayName==='function'?recordDisplayName(r):(r.personName||''));$('recordPhone').value=r.phone||'';$('recordEmail').value=r.email||'';$('supporter').value=(typeof supportRankValue==='function'?supportRankValue(r.supporter):(r.supporter||''));$('priority').value=r.revisitPriority||'';$('referrer').value=r.referrer||'';$('followParty').checked=boolValue(r.followParty);$('followSupporter').checked=boolValue(r.followSupporter);$('followDetails').checked=boolValue(r.followDetails);$('followDone').checked=boolValue(r.followDone);$('followMemo').value=r.followMemo||'';toggleFollowFields();$('warning').checked=boolValue(r.warning);$('warningReason').value=r.warningReason||'';$('warningMemo').value=r.warningMemo||'';toggleWarningFields();$('posterRequest').checked=boolValue(r.posterRequest);$('posterReported').checked=boolValue(r.posterReported);$('posterRequestMemo').value=r.posterRequestMemo||'';togglePosterRequestFields();$('type').value=r.type||'戸建て';$('date').value=today();$('memo').value='';if($('visitRound'))$('visitRound').value=String(nextRoundForRecord(r));if($('visitResult'))$('visitResult').value='';if($('visitPosted'))$('visitPosted').checked=false;if($('nextVisitDate'))$('nextVisitDate').value=r.nextVisitDate?inputDateValue(r.nextVisitDate):'';toggleVisitResultFields();editStatus=statusKey(r.status);renderStatus();updateDetailHeader({...r,isNew});const imported=String(r.source||'')==='import';
   const canRemove=!!r.id&&(!imported||['leader','prefecture_admin','system_admin'].includes(window.appSession?.role));
   $('deleteRecordRow')?.classList.toggle('hidden',!canRemove);
   $('mobileDetailDeleteBtn')?.classList.toggle('hidden',!canRemove);
@@ -72,7 +84,7 @@ function openEdit(r,isNew){editing={...r,isNew};$('recordId').value=r.id||'';$('
     locationNote.classList.toggle('hidden',!protectedMember);
   }
 
-  const editModal=$('editModal');editModal.style.display='flex';requestAnimationFrame(()=>{editModal.scrollTop=0;const detail=editModal.querySelector('.detail-modal');if(detail)detail.scrollTop=0;window.scrollTo({top:0,left:0,behavior:'auto'});});}
+  const editModal=$('editModal');editModal.style.display='flex';loadVisitHistory(r.id||'');requestAnimationFrame(()=>{editModal.scrollTop=0;const detail=editModal.querySelector('.detail-modal');if(detail)detail.scrollTop=0;window.scrollTo({top:0,left:0,behavior:'auto'});});}
 function toggleRecordContactLink(){
   const checked=!!$('linkContactCheck')?.checked;
   $('recordContactWrap')?.classList.toggle('hidden',!checked);
@@ -188,8 +200,9 @@ async function saveRecord(){
     const hasFollowNow=$('followParty').checked||$('followSupporter').checked||$('followDetails').checked;
     const posterNow=$('posterRequest').checked;
     const dateNow=$('date').value;
+    const visitResult=$('visitResult')?.value||'';
     const cautions=[];
-    if(statusNow==='unvisited' && dateNow) cautions.push('訪問ステータスが「未訪問」ですが、訪問日が入力されています。');
+    if(visitResult&&statusNow==='unvisited' && dateNow) cautions.push('訪問ステータスが「未訪問」ですが、今回の訪問結果が入力されています。');
     if(statusNow==='refused' && priorityNow) cautions.push('「断られた」状態ですが、再訪優先度が設定されています。');
     if(statusNow==='refused' && hasFollowNow) cautions.push('「断られた」状態ですが、フォロー対象が設定されています。');
     if(statusNow==='refused' && posterNow) cautions.push('「断られた」状態ですが、ポスター依頼が設定されています。');
@@ -223,11 +236,23 @@ async function saveRecord(){
       posterReported:$('posterReported').checked,
       posterRequestMemo:$('posterRequestMemo').value.trim(),
       type:$('type').value,
-      date:$('date').value,
-      memo:$('memo').value.trim(),
+      date:visitResult?($('date').value||today()):(editing?.date||''),
+      memo:visitResult?$('memo').value.trim():(editing?.memo||''),
       updatedAt:editing?.updatedAt||''
     };
-    await api('saveRecord',{record:rec});
+    if(visitResult){
+      const mappedStatus={talked:'visited',family:'visited',absent:'absent',intercom:'revisit',refused:'refused',other:editStatus};
+      rec.status=mappedStatus[visitResult]||editStatus;
+    }
+    const visitEntry=visitResult?{
+      roundNo:Number($('visitRound')?.value||nextRoundForRecord(editing)),
+      visitedAt:$('date').value||today(),
+      result:visitResult,
+      posted:!!$('visitPosted')?.checked,
+      nextVisitDate:$('nextVisitDate')?.value||'',
+      memo:$('memo').value.trim()
+    }:null;
+    await api('saveRecord',{record:rec,visitEntry});
     closeEdit();
     await loadRecords();
   }catch(e){
